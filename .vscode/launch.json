@@ -1,0 +1,26 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "node-terminal",
+			"name": "Debug",
+			"request": "launch",
+			"command": "npm run start",
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "node-terminal",
+			"name": "Debug with Nodemon",
+			"request": "launch",
+			"command": "npm run nodemon",
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"type": "node-terminal",
+			"name": "Debug Unit Tests",
+			"request": "launch",
+			"command": "npm run test",
+			"cwd": "${workspaceFolder}"
+		}
+	]
+}
