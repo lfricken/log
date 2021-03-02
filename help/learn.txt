@@ -1,5 +1,5 @@
 
-When the app is on heroku or a real development server, everything is being hosted together, but when you host locally there are two servers. One is hosting the React code and automagically updates and builds it as you edit. The other one is the standard Node server. Because there are two servers, the requests being made from the clients javascript have to get rerouted to the Node server, which we have put on port 3001. This is defined in the client/package.json "proxy" field.
+When the app is on heroku or a real development server, everything is being hosted together, but when you host locally there are two servers (sort of). One is hosting the React code on port 3000 and automagically updates and builds the html from react code as you edit. It gives the html and javascript to your browser when you go to some address, but doesn't do anything else. The other server is the standard Node server. It listens for requests made by javascript that we write. Because there are two servers, the requests being made from the clients javascript have to get rerouted to the Node server, which we have put on port 3001. This is defined in the client/package.json "proxy" field. Heroku ignores this since it is all the same port.
 
 
 
