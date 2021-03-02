@@ -1,8 +1,33 @@
 {
 	"version": "0.2.0",
+	"compounds": [
+		{
+			"name": "Debug All",
+			"configurations": [
+				"client launch chrome",
+				"client attach chrome",
+				"server start and attach",
+				"client start"
+			]
+		}
+	],
 	"configurations": [
 		{
-			"name": "d",
+			"name": "server start and attach",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "yarn start_dev",
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"name": "client start",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "yarn start_dev",
+			"cwd": "${workspaceFolder}/client"
+		},
+		{
+			"name": "client launch chrome",
 			"request": "launch",
 			"runtimeArgs": [
 				"--remote-debugging-port=8080"
@@ -12,37 +37,12 @@
 			"webRoot": "${workspaceFolder}"
 		},
 		{
-			"name": "c attach",
+			"name": "client attach chrome",
 			"port": 8080,
 			"timeout": 5000,
 			"request": "attach",
 			"type": "chrome",
 			"webRoot": "${workspaceFolder}"
-		},
-		{
-			"name": "server",
-			"type": "node-terminal",
-			"request": "launch",
-			"command": "yarn dev",
-			"cwd": "${workspaceFolder}"
-		},
-		{
-			"name": "c start",
-			"type": "node-terminal",
-			"request": "launch",
-			"command": "yarn dev",
-			"cwd": "${workspaceFolder}/client"
-		}
-	],
-	"compounds": [
-		{
-			"name": "Debug",
-			"configurations": [
-				"server",
-				"c start",
-				"d",
-				"c attach"
-			]
 		}
 	]
 }

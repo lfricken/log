@@ -1,0 +1,19 @@
+
+When the app is on heroku or a real development server, everything is being hosted together, but when you host locally there are two servers. One is hosting the React code and automagically updates and builds it as you edit. The other one is the standard Node server. Because there are two servers, the requests being made from the clients javascript have to get rerouted to the Node server, which we have put on port 3001. This is defined in the client/package.json "proxy" field.
+
+
+
+React scripts automatically restart the when you make changes, but Node.js doesn't, so we use "nodemon" to do that. It's a special program we had to install seperately.
+
+
+
+There was annoying issue where the react script would automatically launch a new browser. So after debugging 10 times you'll have 10 windows to close. This was fixed by adding the .env file and putting BROWSER=none.
+
+
+
+Apparently backtick ` (to the left of the 1 key) in js lets you format a string: "Sent ${count}" will put the count variable in the right spot.
+
+
+
+If you don't commit the yarn.lock file, Heroku will be very upset.
+

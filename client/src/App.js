@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import './App.css';
 
+console.log('Client loading in browser.')
 class App extends Component {
 	// Initialize state
 	state = { passwords: [] }
@@ -18,6 +19,7 @@ class App extends Component {
 	}
 
 	render() {
+		console.log('Client rendering in browser.')
 		const { passwords } = this.state;
 
 		return (
