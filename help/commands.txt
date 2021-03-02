@@ -1,0 +1,5 @@
+
+// pushes all code from the main branch of our repository to the
+// main repository of the staging remote repository
+git push staging main:main
+

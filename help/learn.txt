@@ -3,6 +3,10 @@ When the app is on heroku or a real development server, everything is being host
 
 
 
+Notice that if you navigate to *URL OF INDEX*/api/passwords and get the response from the server. The Node.js server will respond to anyone that asks. There is nothing special about the react code running in your browser.
+
+
+
 React scripts automatically restart the when you make changes, but Node.js doesn't, so we use "nodemon" to do that. It's a special program we had to install seperately.
 
 
