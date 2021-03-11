@@ -3,7 +3,12 @@ const path = require('path');
 const { Pool, Client } = require('pg')
 // pools will use environment variables
 // for connection information
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({
+	connectionString: process.env.DATABASE_URL,
+	ssl: {
+		rejectUnauthorized: false
+	}
+});
 
 const app = express();
 
