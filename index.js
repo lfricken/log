@@ -5,10 +5,9 @@ const { Pool, Client } = require('pg')
 // for connection information
 const pool = new Pool({
 	connectionString: process.env.DATABASE_URL,
-	ssl: {
-		rejectUnauthorized: false
-	}
+	ssl: process.env.DATABASE_SKIPSSL ? null : { rejectUnauthorized: false },
 });
+
 
 const app = express();
 
