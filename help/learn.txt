@@ -21,3 +21,10 @@ Apparently backtick ` (to the left of the 1 key) in js lets you format a string:
 
 If you don't commit the yarn.lock file, Heroku will be very upset.
 
+
+
+Search all in Visual Studio Code is tricky. Ctrl + Shift + F, then you need to click on the 3 dots on the right to drop down 2 more fields. Then you need to enter * into the files to include field for it to include all files.
+
+
+
+

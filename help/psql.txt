@@ -1,0 +1,26 @@
+
+Login local:
+psql -U postgres
+noel1
+
+
+// remote database name:
+postgresql-objective-52725
+
+// login remote
+heroku pg:psql
+
+
+// push and pull
+heroku pg:push DATABASE_URL local
+heroku pg:pull DATABASE_URL local
+
+
+set DATABASE_URL=postgres://leon:noel1@127.0.0.1:5432/local
+
+
+SELECT *
+FROM pg_settings
+WHERE name = 'port';
+
+

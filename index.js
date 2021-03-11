@@ -1,6 +1,9 @@
 const express = require('express');
 const path = require('path');
-const generatePassword = require('password-generator');
+const { Pool, Client } = require('pg')
+// pools will use environment variables
+// for connection information
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 const app = express();
 
@@ -8,18 +11,17 @@ const app = express();
 app.use(express.static(path.join(__dirname, 'client/build')));
 
 // Put all API endpoints under '/api'
-app.get('/api/passwords', (req, res) => {
-	const count = 5;
+app.get('/api/passwords', async (req, res) => {
+	let data = [];
 
-	// Generate some passwords
-	const passwords = Array.from(Array(count).keys()).map(i =>
-		generatePassword(12, false)
-	)
+	let databaseRes = await pool.query('SELECT * FROM horses;');//, (err, res) => 
 
-	// Return them as json
-	res.json(passwords);
+	for (let row of databaseRes.rows) {
+		data.push(JSON.stringify(row));
+	}
+	res.json(data);
 
-	console.log(`Sent ${count} passwords`);
+	console.log(`Sent data back to client`);
 });
 
 // The "catchall" handler: for any request that doesn't

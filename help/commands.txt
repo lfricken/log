@@ -1,4 +1,25 @@
 
+// make sure you're logged in
+heroku login
+
+
+// add the heroku 
+git remote add staging https://github.com/user/repo.git
+
+
+// local database
+https://devcenter.heroku.com/articles/heroku-postgresql
+
+
+
+
+
+
+
+
+
+
+
 // pushes all code from the main branch of our repository to the
 // main repository of the staging remote repository
 git push staging main:main
