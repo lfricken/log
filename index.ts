@@ -1,15 +1,18 @@
-const express = require('express');
-const http = require('http');
-const app = express();
-const server = http.createServer(app);
-const io = require('socket.io')(server);
+import * as exp from 'express';
+import * as http from 'http';
+import * as io from 'socket.io';
+import * as path from 'path';
+import * as pg from 'pg';
 
-const path = require('path');
-const { Pool, Client } = require('pg')
+import express from 'express';
+const expWrap = express();
+const httpServer = http.createServer(expWrap);
+const ioWrap = new io.Server(httpServer);
 
 
 
-io.on('connection', (socket) => {
+
+ioWrap.on('connection', (socket: io.Socket) => {
 	console.log(`a user connected ${0}`);
 	socket.on('disconnect', () => {
 		console.log('user disconnected');
@@ -21,18 +24,18 @@ io.on('connection', (socket) => {
 
 // pools will use environment variables
 // for connection information
-const pool = new Pool({
+const pool = new pg.Pool({
 	connectionString: process.env.DATABASE_URL,
-	ssl: process.env.DATABASE_SKIPSSL ? null : { rejectUnauthorized: false },
+	ssl: process.env.DATABASE_SKIPSSL ? undefined : { rejectUnauthorized: false },
 });
 
 
 
 // Serve static files from the React app
-app.use(express.static(path.join(__dirname, 'client/build')));
+expWrap.use(express.static(path.join(__dirname, 'client/build')));
 
 // Put all API endpoints under '/api'
-app.get('/api/passwords', async (req, res) => {
+expWrap.get('/api/passwords', async (req: exp.Request, res: exp.Response) => {
 	let data = [];
 
 	let databaseRes = await pool.query('SELECT * FROM horses;');//, (err, res) => 
@@ -47,11 +50,11 @@ app.get('/api/passwords', async (req, res) => {
 
 // The "catchall" handler: for any request that doesn't
 // match one above, send back React's index.html file.
-app.get('*', (req, res) => {
+expWrap.get('*', (req: exp.Request, res: exp.Response) => {
 	res.sendFile(path.join(__dirname + '/client/build/index.html'));
 });
 
 const port = process.env.PORT || 3001;
-server.listen(port);
+httpServer.listen(port);
 
 console.log(`Server listening on ${port}`);
