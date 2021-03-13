@@ -20,6 +20,7 @@
 	"scripts": {
 		"build": "tsc",
 		"heroku-postbuild": "cd client && yarn && yarn run build",
-		"start_dev": "nodemon build/index.js"
+		"start_dev": "nodemon build/index.js",
+		"start": "node build/index.js"
 	}
 }
