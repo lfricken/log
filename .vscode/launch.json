@@ -16,7 +16,7 @@
 			"name": "server start and attach",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "yarn start_dev",
+			"command": "yarn build | yarn start_dev",
 			"cwd": "${workspaceFolder}"
 		},
 		{

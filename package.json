@@ -1,7 +1,7 @@
 {
 	"name": "log",
 	"version": "1.0.0",
-	"main": "index.js",
+	"main": "build/index.js",
 	"license": "MIT",
 	"dependencies": {
 		"express": "^4.17.1",
@@ -18,9 +18,8 @@
 		"nodemon": "^2.0.7"
 	},
 	"scripts": {
-		"start_dev": "nodemon index.ts",
-		"start": "node build/index.js",
 		"build": "tsc",
-		"heroku-postbuild": "cd client && yarn && yarn run build"
+		"heroku-postbuild": "cd client && yarn && yarn run build",
+		"start_dev": "nodemon build/index.js"
 	}
 }
