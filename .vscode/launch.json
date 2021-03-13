@@ -16,14 +16,14 @@
 			"name": "server start and attach",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "yarn build | yarn start_dev",
+			"command": "yarn start_watch",
 			"cwd": "${workspaceFolder}"
 		},
 		{
 			"name": "client start",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "yarn start_dev",
+			"command": "yarn start_watch",
 			"cwd": "${workspaceFolder}/client"
 		},
 		{

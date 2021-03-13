@@ -4,10 +4,10 @@
 	"main": "index.js",
 	"license": "MIT",
 	"dependencies": {
+		"@types/jest": "^26.0.20",
 		"express": "^4.17.1",
 		"pg": "^8.5.1",
 		"socket.io": "^4.0.0",
-		"ts-node": "^9.1.1",
 		"typescript": "^4.2.3"
 	},
 	"devDependencies": {
@@ -15,12 +15,13 @@
 		"@types/node": "^14.14.34",
 		"@types/pg": "^7.14.11",
 		"@types/socket.io": "^2.1.13",
-		"nodemon": "^2.0.7"
+		"nodemon": "^2.0.7",
+		"ts-node-dev": "^1.1.6"
 	},
 	"scripts": {
 		"build": "tsc",
-		"start_dev": "nodemon index.js",
+		"start": "node index.js",
 		"heroku-postbuild": "yarn build && cd client && yarn && yarn run build",
-		"start": "node index.js"
+		"start_watch": "ts-node-dev index.ts"
 	}
 }

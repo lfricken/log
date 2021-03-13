@@ -1,9 +1,10 @@
-import React, { Component } from 'react';
+
+import * as React from 'react';
 import './App.css';
 import io from "socket.io-client";
 
 console.log('Client loading in browser.')
-class App extends Component {
+class App extends React.Component {
 	// Initialize state
 	state = { passwords: [] }
 
@@ -34,7 +35,7 @@ class App extends Component {
 	}
 
 	render() {
-		console.log('Client rendering in browser.')
+		console.log('Client rendering in browser.s')
 		const { passwords } = this.state;
 
 		return (

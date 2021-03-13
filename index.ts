@@ -45,7 +45,7 @@ expWrap.get('/api/passwords', async (req: exp.Request, res: exp.Response) => {
 	}
 	res.json(data);
 
-	console.log(`Sent data back to client`);
+	console.log(`Sent data back to clients.ss`);
 });
 
 // The "catchall" handler: for any request that doesn't

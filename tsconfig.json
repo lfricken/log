@@ -2,7 +2,9 @@
 	"include": [
 		"./"
 	],
-	"exclude": [],
+	"exclude": [
+		"./client"
+	],
 	"compilerOptions": {
 		"target": "es6",
 		"module": "commonjs",
