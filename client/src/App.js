@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import './App.css';
+import io from "socket.io-client";
 
 console.log('Client loading in browser.')
 class App extends Component {
@@ -8,7 +9,21 @@ class App extends Component {
 
 	// Fetch passwords after first mount
 	componentDidMount() {
+		//var socket = io();
+		const script = document.createElement('script');
+
+		script.src = "/socket.io/socket.io.js";
+		script.async = true;
+		//script.innerHTML = "var socket = io().connect('http://localhost:3001', {reconnect: true});;";
+
+		document.body.appendChild(script);
 		this.getPasswords();
+
+		const socket = io();
+		socket.connect();
+		// socket.on("FromAPI", data => {
+		// 	setResponse(data);
+		// });
 	}
 
 	getPasswords = () => {
@@ -48,16 +63,16 @@ class App extends Component {
             </button>
 					</div>
 				) : (
-						// Render a helpful message otherwise
-						<div>
-							<h1>No passwords :(</h1>
-							<button
-								className="more"
-								onClick={this.getPasswords}>
-								Try Again?
+					// Render a helpful message otherwise
+					<div>
+						<h1>No passwords :(</h1>
+						<button
+							className="more"
+							onClick={this.getPasswords}>
+							Try Again?
             </button>
-						</div>
-					)}
+					</div>
+				)}
 			</div>
 		);
 	}

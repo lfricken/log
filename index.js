@@ -1,6 +1,24 @@
 const express = require('express');
+const http = require('http');
+const app = express();
+const server = http.createServer(app);
+const io = require('socket.io')(server);
+
 const path = require('path');
 const { Pool, Client } = require('pg')
+
+
+
+io.on('connection', (socket) => {
+	console.log(`a user connected ${0}`);
+	socket.on('disconnect', () => {
+		console.log('user disconnected');
+	});
+});
+
+
+
+
 // pools will use environment variables
 // for connection information
 const pool = new Pool({
@@ -9,7 +27,6 @@ const pool = new Pool({
 });
 
 
-const app = express();
 
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, 'client/build')));
@@ -35,6 +52,6 @@ app.get('*', (req, res) => {
 });
 
 const port = process.env.PORT || 3001;
-app.listen(port);
+server.listen(port);
 
 console.log(`Server listening on ${port}`);
