@@ -1,0 +1,50 @@
+{
+	"env": {
+		"browser": true,
+		"es2021": true
+	},
+	"extends": [
+		"eslint:recommended",
+		"plugin:react/recommended"
+	],
+	"parser": "@typescript-eslint/parser",
+	"parserOptions": {
+		"ecmaFeatures": {
+			"jsx": true
+		},
+		"ecmaVersion": 12,
+		"sourceType": "module"
+	},
+	"plugins": [
+		"@typescript-eslint"
+	],
+	"settings": {
+		"react": {
+			"version": "detect"
+		}
+	},
+	"rules": {
+		"prefer-const": "warn",
+		"no-extra-semi": "error",
+		"no-irregular-whitespace": "error",
+		"no-loss-of-precision": "warn",
+		"no-unreachable": "warn",
+		"valid-typeof": "warn",
+		"eqeqeq": "error",
+		"no-eval": "error",
+		"no-magic-numbers": "warn",
+		"no-return-await": "error",
+		"max-len": [
+			"error",
+			130,
+			4,
+			{
+				"ignoreUrls": true,
+				"ignoreComments": true,
+				"ignoreRegExpLiterals": true,
+				"ignoreStrings": false,
+				"ignoreTemplateLiterals": false
+			}
+		]
+	}
+}

@@ -17,5 +17,7 @@
 		"**/.gitattributes": true,
 		"**/.env": true,
 		"**/*.lock": true,
-	}
+	},
+	"eslint.format.enable": true,
+	"eslint.packageManager": "yarn"
 }

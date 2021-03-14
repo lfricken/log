@@ -3,6 +3,11 @@ import * as http from 'http';
 import * as io from 'socket.io';
 import * as path from 'path';
 import * as pg from 'pg';
+import * as dotenv from 'dotenv';
+declare const process: any;
+declare const __dirname: any;
+
+dotenv.config();
 
 import express from 'express';
 const expWrap = express();
@@ -13,7 +18,7 @@ const ioWrap = new io.Server(httpServer);
 
 
 ioWrap.on('connection', (socket: io.Socket) => {
-	console.log(`a user connected ${0}`);
+	console.log(`a user connected`);
 	socket.on('disconnect', () => {
 		console.log('user disconnected');
 	});
@@ -35,15 +40,16 @@ const pool = new pg.Pool({
 expWrap.use(express.static(path.join(__dirname, 'client/build')));
 
 // Put all API endpoints under '/api'
-expWrap.get('/api/passwords', async (req: exp.Request, res: exp.Response) => {
-	let data = [];
+expWrap.get('/api/passwords', async (req, res: any) => {
+	const data = [];
 
-	let databaseRes = await pool.query('SELECT * FROM horses;');//, (err, res) => 
+	const databaseRes = await pool.query('SELECT * FROM horses;');//, (err, res) => 
 
-	for (let row of databaseRes.rows) {
+	for (const row of databaseRes.rows) {
 		data.push(JSON.stringify(row));
 	}
 	res.json(data);
+
 
 	console.log(`Sent data back to clients.ss`);
 });
@@ -54,7 +60,7 @@ expWrap.get('*', (req: exp.Request, res: exp.Response) => {
 	res.sendFile(path.join(__dirname + '/client/build/index.html'));
 });
 
-const port = process.env.PORT || 3001;
+const port = process.env.PORT;
 httpServer.listen(port);
 
 console.log(`Server listening on ${port}`);

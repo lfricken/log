@@ -15,7 +15,7 @@ class App extends React.Component {
 
 		script.src = "/socket.io/socket.io.js";
 		script.async = true;
-		//script.innerHTML = "var socket = io().connect('http://localhost:3001', {reconnect: true});;";
+		//script.innerHTML = "var socket = io().connect('http://localhost:3001', {reconnect: true});;"
 
 		document.body.appendChild(script);
 		this.getPasswords();

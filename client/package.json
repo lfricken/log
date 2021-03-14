@@ -3,19 +3,20 @@
 	"version": "0.1.0",
 	"private": true,
 	"dependencies": {
-		"@testing-library/jest-dom": "^5.11.4",
+		"@testing-library/jest-dom": "^5.11.9",
 		"@testing-library/react": "^11.1.0",
 		"@testing-library/user-event": "^12.1.10",
+		"@types/": "testing-library/jest-dom",
+		"@types/react": "^17.0.1",
+		"@types/react-dom": "^17.0.1",
+		"@types/socket.io-client": "^1.4.36",
 		"nodemon": "^2.0.7",
 		"react": "^17.0.1",
 		"react-dom": "^17.0.1",
 		"react-scripts": "4.0.3",
 		"socket.io-client": "^4.0.0",
 		"typescript": "^4.2.3",
-		"web-vitals": "^1.0.1",
-		"@types/react": "^17.0.1",
-		"@types/react-dom": "^17.0.1",
-		"@types/socket.io-client": "^1.4.36"
+		"web-vitals": "^1.0.1"
 	},
 	"devDependencies": {},
 	"scripts": {
@@ -24,12 +25,6 @@
 		"test": "react-scripts test",
 		"eject": "react-scripts eject",
 		"start_watch": "react-scripts start"
-	},
-	"eslintConfig": {
-		"extends": [
-			"react-app",
-			"react-app/jest"
-		]
 	},
 	"browserslist": {
 		"production": [
