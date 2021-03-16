@@ -1,4 +1,3 @@
-
 import * as React from 'react';
 import './App.css';
 import io from "socket.io-client";
@@ -11,7 +10,7 @@ class App extends React.Component {
 	// Fetch passwords after first mount
 	componentDidMount() {
 		//var socket = io();
-		const script = document.createElement('script');
+		let script: any = document.createElement('script'); // d
 
 		script.src = "/socket.io/socket.io.js";
 		script.async = true;
@@ -37,6 +36,8 @@ class App extends React.Component {
 	render() {
 		console.log('Client rendering in browser.s')
 		const { passwords } = this.state;
+
+		if (passwords.length) { }
 
 		return (
 			<div className="App">

@@ -3,7 +3,7 @@
 		"./"
 	],
 	"exclude": [
-		"./client"
+		"./client/"
 	],
 	"compilerOptions": {
 		"target": "es6",

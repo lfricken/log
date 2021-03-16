@@ -46,7 +46,8 @@ expWrap.get('/api/passwords', async (req, res: any) => {
 	const databaseRes = await pool.query('SELECT * FROM horses;');//, (err, res) => 
 
 	for (const row of databaseRes.rows) {
-		data.push(JSON.stringify(row));
+		if (databaseRes.rows.length)
+			data.push(JSON.stringify(row));
 	}
 	res.json(data);
 

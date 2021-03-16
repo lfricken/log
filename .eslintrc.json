@@ -1,4 +1,5 @@
 {
+	"root": true,
 	"env": {
 		"browser": true,
 		"es2021": true
@@ -13,7 +14,11 @@
 			"jsx": true
 		},
 		"ecmaVersion": 12,
-		"sourceType": "module"
+		"sourceType": "module",
+		"project": [
+			"./tsconfig.json",
+			"./client/tsconfig.json"
+		]
 	},
 	"plugins": [
 		"@typescript-eslint"
@@ -45,6 +50,8 @@
 				"ignoreStrings": false,
 				"ignoreTemplateLiterals": false
 			}
-		]
+		],
+		"@typescript-eslint/strict-boolean-expressions": "error",
+		"@typescript-eslint/no-explicit-any": "error"
 	}
 }
