@@ -41,7 +41,7 @@ class App extends React.Component
 		console.log('Client rendering in browser.s')
 		const { passwords } = this.state;
 
-		if (passwords.length)
+		if (passwords.length > 0)
 		{
 
 		}
