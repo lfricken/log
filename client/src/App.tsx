@@ -10,7 +10,7 @@ class App extends React.Component {
 	// Fetch passwords after first mount
 	componentDidMount() {
 		//var socket = io();
-		let script: any = document.createElement('script'); // d
+		const script = document.createElement('script'); // d
 
 		script.src = "/socket.io/socket.io.js";
 		script.async = true;
@@ -37,12 +37,15 @@ class App extends React.Component {
 		console.log('Client rendering in browser.s')
 		const { passwords } = this.state;
 
-		if (passwords.length) { }
+		if (passwords.length > 0) 
+		{ 
+
+		}
 
 		return (
 			<div className="App">
 				{/* Render the passwords if we have them */}
-				{passwords.length ? (
+				{passwords.length === 0 ? (
 					<div>
 						<h1>5 Passwords.</h1>
 						<ul className="passwords">
@@ -62,17 +65,19 @@ class App extends React.Component {
 							className="more"
 							onClick={this.getPasswords}>
 							Get More
-            </button>
+            			</button>
 					</div>
-				) : (
+				) 
+				: 
+					(
 					// Render a helpful message otherwise
-					<div>
+						<div>
 						<h1>No passwords :(</h1>
 						<button
 							className="more"
 							onClick={this.getPasswords}>
 							Try Again?
-            </button>
+            			</button>
 					</div>
 				)}
 			</div>

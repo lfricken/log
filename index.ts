@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as pg from 'pg';
 import * as dotenv from 'dotenv';
 declare const process: any;
-declare const __dirname: any;
+declare const __dirname: string;
 
 dotenv.config();
 
@@ -31,7 +31,7 @@ ioWrap.on('connection', (socket: io.Socket) => {
 // for connection information
 const pool = new pg.Pool({
 	connectionString: process.env.DATABASE_URL,
-	ssl: process.env.DATABASE_SKIPSSL ? undefined : { rejectUnauthorized: false },
+	ssl: process.env.DATABASE_SKIPSSL === "true" ? undefined : { rejectUnauthorized: false },
 });
 
 
@@ -40,7 +40,7 @@ const pool = new pg.Pool({
 expWrap.use(express.static(path.join(__dirname, 'client/build')));
 
 // Put all API endpoints under '/api'
-expWrap.get('/api/passwords', async (req, res: any) => {
+expWrap.get('/api/passwords', async (req, res: exp.Response) => {
 	const data = [];
 
 	const databaseRes = await pool.query('SELECT * FROM horses;');//, (err, res) => 

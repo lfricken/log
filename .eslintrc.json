@@ -5,8 +5,8 @@
 		"es2021": true
 	},
 	"extends": [
-		"eslint:recommended",
-		"plugin:react/recommended"
+		//"eslint:recommended",
+		//"plugin:react/recommended"
 	],
 	"parser": "@typescript-eslint/parser",
 	"parserOptions": {
@@ -29,18 +29,27 @@
 		}
 	},
 	"rules": {
-		"prefer-const": "warn",
-		"no-extra-semi": "error",
-		"no-irregular-whitespace": "error",
+		//"prefer-const": "warn",
+		"no-eval": "error",
 		"no-loss-of-precision": "warn",
 		"no-unreachable": "warn",
 		"valid-typeof": "warn",
-		"eqeqeq": "error",
-		"no-eval": "error",
-		"no-magic-numbers": "warn",
-		"no-return-await": "error",
+		"no-magic-numbers": [
+			"warn",
+			{
+				"ignore": [
+					-1,
+					0,
+					1
+				]
+			}
+		],
+		"no-return-await": "warn",
+		"no-extra-semi": "warn",
+		"eqeqeq": "warn",
+		"no-irregular-whitespace": "warn",
 		"max-len": [
-			"error",
+			"warn",
 			130,
 			4,
 			{
@@ -51,7 +60,14 @@
 				"ignoreTemplateLiterals": false
 			}
 		],
-		"@typescript-eslint/strict-boolean-expressions": "error",
-		"@typescript-eslint/no-explicit-any": "error"
+		"@typescript-eslint/strict-boolean-expressions": [
+			"warn",
+			{
+				"allowNumber": false,
+				"allowString": false,
+				"allowAny": false
+			}
+		],
+		"@typescript-eslint/no-explicit-any": "warn"
 	}
 }
