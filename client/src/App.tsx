@@ -1,12 +1,13 @@
 import * as React from 'react';
 import './App.css';
 import io from "socket.io-client";
+import * as models from "../../models";
 
 console.log('Client loading in browser.')
 class App extends React.Component
 {
 	// Initialize state
-	state = { passwords: [] }
+	state = { passwords: [""] }
 
 	// Fetch passwords after first mount
 	componentDidMount()
