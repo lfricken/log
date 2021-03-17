@@ -19,5 +19,13 @@
 		"**/*.lock": true,
 	},
 	"eslint.format.enable": true,
-	"eslint.packageManager": "yarn"
+	"eslint.packageManager": "yarn",
+	"[typescriptreact]": {
+		"editor.defaultFormatter": "vscode.typescript-language-features"
+	},
+	"javascript.format.placeOpenBraceOnNewLineForControlBlocks": true, 
+"javascript.format.placeOpenBraceOnNewLineForFunctions": true,
+
+"typescript.format.placeOpenBraceOnNewLineForControlBlocks": true,
+"typescript.format.placeOpenBraceOnNewLineForFunctions": true,
 }

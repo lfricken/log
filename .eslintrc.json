@@ -1,73 +1,64 @@
 {
-	"root": true,
-	"env": {
-		"browser": true,
-		"es2021": true
-	},
-	"extends": [
-		//"eslint:recommended",
-		//"plugin:react/recommended"
-	],
-	"parser": "@typescript-eslint/parser",
-	"parserOptions": {
-		"ecmaFeatures": {
-			"jsx": true
-		},
-		"ecmaVersion": 12,
-		"sourceType": "module",
-		"project": [
-			"./tsconfig.json",
-			"./client/tsconfig.json"
-		]
-	},
-	"plugins": [
-		"@typescript-eslint"
-	],
-	"settings": {
-		"react": {
-			"version": "detect"
-		}
-	},
-	"rules": {
-		//"prefer-const": "warn",
-		"no-eval": "error",
-		"no-loss-of-precision": "warn",
-		"no-unreachable": "warn",
-		"valid-typeof": "warn",
-		"no-magic-numbers": [
-			"warn",
-			{
-				"ignore": [
-					-1,
-					0,
-					1
-				]
-			}
-		],
-		"no-return-await": "warn",
-		"no-extra-semi": "warn",
-		"eqeqeq": "warn",
-		"no-irregular-whitespace": "warn",
-		"max-len": [
-			"warn",
-			130,
-			4,
-			{
-				"ignoreUrls": true,
-				"ignoreComments": true,
-				"ignoreRegExpLiterals": true,
-				"ignoreStrings": false,
-				"ignoreTemplateLiterals": false
-			}
-		],
-		"@typescript-eslint/strict-boolean-expressions": [
-			"warn",
-			{
-				"allowNumber": false,
-				"allowString": false,
-				"allowAny": false
-			}
-		],
-		"@typescript-eslint/no-explicit-any": "warn"
-	}
+  "root": true,
+  "env": {
+    "browser": true,
+    "es2021": true
+  },
+  "extends": [
+    //"eslint:recommended",
+    //"plugin:react/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    },
+    "ecmaVersion": 12,
+    "sourceType": "module",
+    "project": ["./tsconfig.json", "./client/tsconfig.json"]
+  },
+  "plugins": ["@typescript-eslint"],
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "rules": {
+    //"prefer-const": "warn",
+    "no-eval": "error",
+    "no-loss-of-precision": "warn",
+    "no-unreachable": "warn",
+    "valid-typeof": "warn",
+    "no-magic-numbers": [
+      "warn",
+      {
+        "ignore": [-1, 0, 1]
+      }
+    ],
+    "no-return-await": "warn",
+    "no-extra-semi": "warn",
+    "eqeqeq": "warn",
+    "no-irregular-whitespace": "warn",
+    "max-len": [
+      "warn",
+      130,
+      4,
+      {
+        "ignoreUrls": true,
+        "ignoreComments": true,
+        "ignoreRegExpLiterals": true,
+        "ignoreStrings": false,
+        "ignoreTemplateLiterals": false
+      }
+    ],
+    "@typescript-eslint/strict-boolean-expressions": [
+      "warn",
+      {
+        "allowNumber": false,
+        "allowString": false,
+        "allowAny": false
+      }
+    ],
+    "@typescript-eslint/no-explicit-any": "warn"
+  }
 }
