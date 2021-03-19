@@ -22,6 +22,7 @@
 		"**/*tsconfig.json": true,
 		"help": true,
 		".vscode": true,
+		"client/build": true,
 	},
 	"eslint.format.enable": true,
 	"eslint.packageManager": "yarn",
