@@ -17,7 +17,7 @@
 			"type": "node-terminal",
 			"request": "launch",
 			"command": "yarn start_watch",
-			"cwd": "${workspaceFolder}"
+			"cwd": "${workspaceFolder}/server"
 		},
 		{
 			"name": "client start",

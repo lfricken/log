@@ -1,3 +1,6 @@
+/**
+ * Entry point for react render.
+ */
 
 import * as React from 'react';
 import * as ReactDom from 'react-dom';

@@ -1,8 +1,18 @@
 {
+	"include": [
+		"../client/src/"
+	],
+	"exclude": [
+		"../shared/",
+		"../server/"
+	],
 	"compilerOptions": {
-		"target": "es6",
-		"rootDir": "../../",
+		"rootDir": "../",
 		"outDir": "./",
+		"target": "es6",
+		"module": "esnext",
+		"esModuleInterop": true,
+		"strict": true,
 		"typeRoots": [
 			"./node_modules/@types/"
 		],
@@ -13,22 +23,13 @@
 		],
 		"allowJs": false,
 		"skipLibCheck": true,
-		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true,
-		"strict": true,
 		"forceConsistentCasingInFileNames": true,
 		"noFallthroughCasesInSwitch": true,
-		"module": "esnext",
 		"moduleResolution": "node",
 		"resolveJsonModule": true,
 		"isolatedModules": true,
 		"noEmit": true,
 		"jsx": "react-jsx"
-	},
-	"include": [
-		"./src/"
-	],
-	"exclude": [
-		"./node_modules/"
-	]
+	}
 }

@@ -1,15 +1,16 @@
 {
 	"include": [
-		"./"
+		"./shared/",		
+	 	"./server/"
 	],
 	"exclude": [
-		"./client/"
+		"./client/",
 	],
 	"compilerOptions": {
-		"target": "es6",
-		"module": "commonjs",
 		"rootDir": "./",
 		"outDir": "./",
+		"target": "es6",
+		"module": "commonjs",
 		"esModuleInterop": true,
 		"strict": true,
 		"typeRoots": [
