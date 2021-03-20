@@ -26,9 +26,10 @@
 		"ts-node-dev": "^1.1.6"
 	},
 	"scripts": {
-		"build": "tsc",
-		"heroku-postbuild": "yarn build && cd client && yarn && yarn run build",
+		"heroku-postbuild": "yarn compile-tsc && cd client && yarn && yarn run build",
 		"start": "node server/server.js",
-		"start_watch": "ts-node-dev server/server.ts"
+		"compile-tsc": "tsc",
+		"start_watch": "ts-node-dev server/server.ts debug.env",
+		"heroku-sim": "yarn heroku-postbuild && yarn start sim.env"
 	}
 }

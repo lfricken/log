@@ -2,7 +2,6 @@
 	"compilerOptions": {
 		"target": "es6",
 		"rootDir": "../",
-		"baseUrl": "../client",
 		"outDir": "./",
 		"typeRoots": [
 			"./node_modules/@types/"

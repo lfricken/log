@@ -24,3 +24,8 @@ https://devcenter.heroku.com/articles/heroku-postgresql
 // main repository of the staging remote repository
 git push staging main:main
 
+
+// test heroku locally
+yarn heroku-sim
+
+

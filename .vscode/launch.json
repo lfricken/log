@@ -2,12 +2,19 @@
 	"version": "0.2.0",
 	"compounds": [
 		{
-			"name": "Debug All",
+			"name": "Debug",
 			"configurations": [
 				"client launch chrome",
 				"client attach chrome",
 				"server start and attach",
 				"client start"
+			]
+		},
+		{
+			"name": "Heroku Sim",
+			"configurations": [
+				"start heroku",
+				"client launch chrome"
 			]
 		}
 	],
@@ -43,6 +50,13 @@
 			"request": "attach",
 			"type": "chrome",
 			"webRoot": "${workspaceFolder}"
+		},
+		{
+			"name": "start heroku",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "yarn heroku-sim",
+			"cwd": "${workspaceFolder}"
 		}
 	]
 }

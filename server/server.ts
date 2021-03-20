@@ -10,10 +10,17 @@ import express from "express";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const process: any;
-dotenv.config();
+
+const use_env_arg = 2;
+if (process.argv.length > use_env_arg)
+{
+	const envFile: string = process.argv[use_env_arg];
+	dotenv.config({ path: envFile });
+	console.log(`Using env file ${envFile}.`);
+}
 
 global.custom = {
-	__rootPublic: path.join(process.cwd(), "/client/build/")
+	__root_static: path.join(process.cwd(), "/client/build/")
 }
 
 
@@ -72,7 +79,7 @@ ioWrap.on("connection", (socket: io.Socket) =>
 		expWrap.use(proxy.createProxyMiddleware({ target: 'http://localhost:3000', changeOrigin: true }));
 	else
 		// if hosting in prod, use the build version
-		expWrap.use(express.static(global.custom.__rootPublic));
+		expWrap.use(express.static(global.custom.__root_static));
 
 	// The "catchall" handler: for any request.
 	expWrap.get("*", (req: exp.Request, res: exp.Response) =>
@@ -81,7 +88,10 @@ ioWrap.on("connection", (socket: io.Socket) =>
 	});
 }
 
-const port = process.env.PORT;
-httpServer.listen(port);
 
-console.log(`Server listening on ${port}`);
+// host
+{
+	const port = process.env.PORT;
+	httpServer.listen(port);
+	console.log(`Server listening on ${port}`);
+}

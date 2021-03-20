@@ -7,7 +7,7 @@ declare global
 		interface Global
 		{
 			custom: {
-				__rootPublic: string;
+				__root_static: string;
 			}
 		}
 	}
