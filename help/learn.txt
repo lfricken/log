@@ -27,12 +27,11 @@ Search all in Visual Studio Code is tricky. Ctrl + Shift + F, then you need to c
 
 
 
-
 Getting socket.io to work was a bit of a nightmare. It kept complaning about inability to find/access socket.io.js. Turns out the solution was here: 
 https://stackoverflow.com/questions/17696801/express-js-app-listen-vs-server-listen
 53b061d6dc02af4772d344158aac562ff308155b
 
 
 
-
+React wont let you pick a different baseUrl for typescript, so we'll just stick with the defaults.
 
