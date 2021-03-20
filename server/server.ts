@@ -23,24 +23,30 @@ global.custom = {
 	__root_static: path.join(process.cwd(), "/client/build/")
 }
 
-
-
 const expWrap = express();
 const httpServer = http.createServer(expWrap);
-const ioWrap = new io.Server(httpServer);
 
-ioWrap.on("connection", (socket: io.Socket) =>
+
+// socket.io
 {
-	console.log(`User ${0} connected.`);
-	socket.on("disconnect", () =>
+	const ioWrap = new io.Server(httpServer);
+	ioWrap.on("connection", (socket: io.Socket) =>
 	{
-		console.log(`User ${0} disconnected.`);
+		socket.broadcast.emit('hi');
+		console.log(`User ${0} connected.`);
+		socket.on("disconnect", () =>
+		{
+			console.log(`User ${0} disconnected.`);
+		});
+		socket.on('chat message', (msgText: string) =>
+		{
+			const message = new models.PlayerChatMessage("dude", msgText);
+			models.PlayerChatMessage.Validate(message);
+			socket.broadcast.emit('chat message', message);
+			console.log('message: ' + models.PlayerChatMessage.DisplayString(message));
+		});
 	});
-	socket.on('chat message', (msg) =>
-	{
-		console.log('message: ' + msg);
-	});
-});
+}
 
 
 // dynamic serve

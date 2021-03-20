@@ -1,6 +1,7 @@
 import * as React from 'react';
 import './App.css';
 import io from "socket.io-client";
+import sanitizeHtml from "sanitize-html";
 import * as models from "../../shared/models-shared";
 
 console.log('Client loading in browser.')
@@ -23,6 +24,7 @@ class App extends React.Component
 		const socket = io();
 		socket.connect();
 
+		var messages = document.getElementById('messages') as HTMLUListElement;
 		var form = document.getElementById('form') as HTMLFormElement;
 		var input = document.getElementById('input') as HTMLInputElement;
 
@@ -34,6 +36,14 @@ class App extends React.Component
 				socket.emit('chat message', input.value);
 				input.value = '';
 			}
+		});
+
+		socket.on('chat message', function (msg: models.PlayerChatMessage)
+		{
+			var item = document.createElement('li');
+			item.textContent = models.PlayerChatMessage.DisplayString(msg);
+			messages.appendChild(item);
+			window.scrollTo(0, document.body.scrollHeight);
 		});
 	}
 
@@ -52,7 +62,7 @@ class App extends React.Component
 
 		return (
 			<div className="App">
-				<ul id="messages"></ul>
+				<div className="abc" id="messages"></div>
 				<form id="form" action="">
 					<input id="input" autoComplete="off" />
 					<button>Send</button>
@@ -95,7 +105,8 @@ class App extends React.Component
 								Try Again?
 							</button>
 						</div>
-					)}
+					)
+				}
 			</div>
 		);
 	}
