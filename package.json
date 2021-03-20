@@ -26,8 +26,8 @@
 	},
 	"scripts": {
 		"build": "tsc",
-		"start": "node index.js",
+		"start": "node server/server.js",
 		"heroku-postbuild": "yarn build && cd client && yarn && yarn run build",
-		"start_watch": "ts-node-dev index.ts"
+		"start_watch": "ts-node-dev server/server.ts"
 	}
 }
