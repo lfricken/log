@@ -7,9 +7,10 @@ import * as dotenv from "dotenv";
 import * as models from "../shared/models-shared";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const process: any;
-declare const __dirname: string;
-
+const __root: string = process.cwd();
+const __rootPublic: string = path.join(__root, "/client/build/");
 dotenv.config();
+
 
 import express from "express";
 const expWrap = express();
@@ -35,7 +36,7 @@ const pool = new pg.Pool(
 );
 
 // Serve static files from the React app
-expWrap.use(express.static(path.join(__dirname, "client/build")));
+expWrap.use(express.static(__rootPublic));
 
 // Put all API endpoints under '/api'
 expWrap.get("/api/passwords", async (req: any, res: exp.Response) =>
@@ -59,7 +60,7 @@ expWrap.get("/api/passwords", async (req: any, res: exp.Response) =>
 // match one above, send back React's index.html file.
 expWrap.get("*", (req: exp.Request, res: exp.Response) =>
 {
-	res.sendFile(path.join(__dirname + "/client/build/index.html"));
+	res.sendFile(path.join(__rootPublic + "index.html"));
 });
 
 const port = process.env.PORT;
