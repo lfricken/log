@@ -20,6 +20,9 @@
 	],
 	"configurations": [
 		{
+			"presentation": {
+				"hidden": true
+			},
 			"name": "server start and attach",
 			"type": "node-terminal",
 			"request": "launch",
@@ -27,6 +30,9 @@
 			"cwd": "${workspaceFolder}"
 		},
 		{
+			"presentation": {
+				"hidden": true
+			},
 			"name": "client start",
 			"type": "node-terminal",
 			"request": "launch",
@@ -34,6 +40,9 @@
 			"cwd": "${workspaceFolder}/client"
 		},
 		{
+			"presentation": {
+				"hidden": true
+			},
 			"name": "client launch chrome",
 			"request": "launch",
 			"runtimeArgs": [
@@ -44,6 +53,9 @@
 			"webRoot": "${workspaceFolder}"
 		},
 		{
+			"presentation": {
+				"hidden": true
+			},
 			"name": "client attach chrome",
 			"port": 8080,
 			"timeout": 5000,
@@ -52,6 +64,9 @@
 			"webRoot": "${workspaceFolder}"
 		},
 		{
+			"presentation": {
+				"hidden": true
+			},
 			"name": "start heroku",
 			"type": "node-terminal",
 			"request": "launch",
