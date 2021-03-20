@@ -4,15 +4,20 @@ import * as io from "socket.io";
 import * as path from "path";
 import * as pg from "pg";
 import * as dotenv from "dotenv";
+import * as proxy from "http-proxy-middleware";
 import * as models from "../shared/models-shared";
+import express from "express";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const process: any;
-const __root: string = process.cwd();
-const __rootPublic: string = path.join(__root, "/client/build/");
 dotenv.config();
 
+global.custom = {
+	__rootPublic: path.join(process.cwd(), "/client/build/")
+}
 
-import express from "express";
+
+
 const expWrap = express();
 const httpServer = http.createServer(expWrap);
 const ioWrap = new io.Server(httpServer);
@@ -26,42 +31,55 @@ ioWrap.on("connection", (socket: io.Socket) =>
 	});
 });
 
-// pools will use environment variables
-// for connection information
-const pool = new pg.Pool(
-	{
-		connectionString: process.env.DATABASE_URL,
-		ssl: process.env.DATABASE_SKIPSSL === "true" ? undefined : { rejectUnauthorized: false },
-	}
-);
 
-// Serve static files from the React app
-expWrap.use(express.static(__rootPublic));
-
-// Put all API endpoints under '/api'
-expWrap.get("/api/passwords", async (req: any, res: exp.Response) =>
+// dynamic serve
 {
-	let x = new models.PlayerTurnActions(0);
+	// pools will use environment variables
+	// for connection information
+	const pool = new pg.Pool(
+		{
+			connectionString: process.env.DATABASE_URL,
+			ssl: process.env.DATABASE_SKIPSSL === "true" ? undefined : { rejectUnauthorized: false },
+		}
+	);
 
-	const data = [];
 
-	const databaseRes = await pool.query("SELECT * FROM horses;"); //, (err, res) =>
-
-	for (const row of databaseRes.rows)
+	// Put all API endpoints under '/api'
+	expWrap.get("/api/passwords", async (req: any, res: exp.Response) =>
 	{
-		data.push(JSON.stringify(row));
-	}
-	res.json(data);
+		let x = new models.PlayerTurnActions(0);
 
-	console.log(`Sent data back to clients.ss`);
-});
+		const data = [];
 
-// The "catchall" handler: for any request that doesn't
-// match one above, send back React's index.html file.
-expWrap.get("*", (req: exp.Request, res: exp.Response) =>
+		const databaseRes = await pool.query("SELECT * FROM horses;"); //, (err, res) =>
+
+		for (const row of databaseRes.rows)
+		{
+			data.push(JSON.stringify(row));
+		}
+		res.json(data);
+
+		console.log(`Sent data back to clients.ss`);
+	});
+}
+
+
+// static serve
 {
-	res.sendFile(path.join(__rootPublic + "index.html"));
-});
+	if (process.env.USE_STATIC_PROXY === "true")
+		// if we are localhosting, use the react watch server
+		// this needs to happen after the api endpoints or they will get proxied too
+		expWrap.use(proxy.createProxyMiddleware({ target: 'http://localhost:3000', changeOrigin: true }));
+	else
+		// if hosting in prod, use the build version
+		expWrap.use(express.static(global.custom.__rootPublic));
+
+	// The "catchall" handler: for any request.
+	expWrap.get("*", (req: exp.Request, res: exp.Response) =>
+	{
+		res.sendFile(path.join("index.html"));
+	});
+}
 
 const port = process.env.PORT;
 httpServer.listen(port);

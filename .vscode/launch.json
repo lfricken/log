@@ -33,7 +33,7 @@
 				"--remote-debugging-port=8080"
 			],
 			"type": "pwa-chrome",
-			"url": "http://localhost:3000",
+			"url": "http://localhost:3001",
 			"webRoot": "${workspaceFolder}"
 		},
 		{
