@@ -2,7 +2,7 @@ import * as React from 'react';
 import './App.css';
 import io from "socket.io-client";
 import sanitizeHtml from "sanitize-html";
-import * as models from "../../shared/models-shared";
+import * as models from "./shared/models-shared";
 
 console.log('Client loading in browser.')
 class App extends React.Component

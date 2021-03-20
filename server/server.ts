@@ -5,7 +5,7 @@ import * as path from "path";
 import * as pg from "pg";
 import * as dotenv from "dotenv";
 import * as proxy from "http-proxy-middleware";
-import * as models from "../shared/models-shared";
+import * as models from "../client/src/shared/models-shared";
 import express from "express";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
