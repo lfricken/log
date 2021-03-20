@@ -1,7 +1,7 @@
 import * as React from 'react';
 import './App.css';
 import io from "socket.io-client";
-import * as models from "../../models";
+import * as models from "../../shared/models-shared";
 
 console.log('Client loading in browser.')
 class App extends React.Component
@@ -42,7 +42,7 @@ class App extends React.Component
 		console.log('Client rendering in browser.s')
 		const { passwords } = this.state;
 
-		if (passwords.length > 0)
+		if (passwords.length)
 		{
 
 		}

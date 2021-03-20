@@ -4,7 +4,7 @@ import * as io from "socket.io";
 import * as path from "path";
 import * as pg from "pg";
 import * as dotenv from "dotenv";
-import * as models from "./models";
+import * as models from "../shared/models-shared";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const process: any;
 declare const __dirname: string;
@@ -38,7 +38,7 @@ const pool = new pg.Pool(
 expWrap.use(express.static(path.join(__dirname, "client/build")));
 
 // Put all API endpoints under '/api'
-expWrap.get("/api/passwords", async (req, res: exp.Response) =>
+expWrap.get("/api/passwords", async (req: any, res: exp.Response) =>
 {
 	let x = new models.PlayerTurnActions(0);
 
