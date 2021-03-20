@@ -1,14 +1,10 @@
-/**
- * Entry point for express server.
- */
-
 import * as exp from "express";
 import * as http from "http";
 import * as io from "socket.io";
 import * as path from "path";
 import * as pg from "pg";
 import * as dotenv from "dotenv";
-import * as shared from "../shared/models-shared";
+import * as models from "./models";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const process: any;
 declare const __dirname: string;
@@ -42,9 +38,9 @@ const pool = new pg.Pool(
 expWrap.use(express.static(path.join(__dirname, "client/build")));
 
 // Put all API endpoints under '/api'
-expWrap.get("/api/passwords", async (req, res: any) =>
+expWrap.get("/api/passwords", async (req, res: exp.Response) =>
 {
-	let x = new shared.PlayerTurnActions(0);
+	let x = new models.PlayerTurnActions(0);
 
 	const data = [];
 

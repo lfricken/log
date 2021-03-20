@@ -1,11 +1,7 @@
-/**
- * A react component.
- */
-
 import * as React from 'react';
 import './App.css';
 import io from "socket.io-client";
-import * as models from "../../shared/models-shared";
+import * as models from "../../models";
 
 console.log('Client loading in browser.')
 class App extends React.Component
@@ -41,12 +37,12 @@ class App extends React.Component
 			.then(passwords => this.setState({ passwords }));
 	}
 
-	render(): JSX.Element
+	render()
 	{
 		console.log('Client rendering in browser.s')
 		const { passwords } = this.state;
 
-		if (passwords.length)
+		if (passwords.length > 0)
 		{
 
 		}
@@ -64,7 +60,7 @@ class App extends React.Component
 								It's ok for this example because there will always
 								be the same number of passwords, and they never
 								change positions in the array.
-								*/}
+							*/}
 								{passwords.map((password, index) =>
 									<li key={index}>
 										{password}
@@ -75,7 +71,7 @@ class App extends React.Component
 								className="more"
 								onClick={this.getPasswords}>
 								Get More
-							</button>
+            				</button>
 						</div>
 					)
 					:
@@ -87,7 +83,7 @@ class App extends React.Component
 								className="more"
 								onClick={this.getPasswords}>
 								Try Again?
-							</button>
+            				</button>
 						</div>
 					)}
 			</div>

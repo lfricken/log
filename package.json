@@ -1,12 +1,33 @@
 {
-  "scripts": {
-    "heroku-prebuild": "cd client && yarn install && yarn run build && cd .. && cd server && yarn install",
-    "start": "cd server && yarn start"
-  },
-  "dependencies": {
-    "@typescript-eslint/eslint-plugin": "^4.18.0",
-    "@typescript-eslint/parser": "^4.18.0",
-    "eslint": "^7.22.0",
-    "typescript": "^4.2.3"
-  }
+	"name": "log",
+	"version": "1.0.0",
+	"main": "index.js",
+	"license": "MIT",
+	"dependencies": {
+		"@types/express": "^4.17.11",
+		"@types/jest": "^26.0.20",
+		"@types/node": "^14.14.34",
+		"@types/pg": "^7.14.11",
+		"@types/socket.io": "^2.1.13",
+		"dotenv": "^8.2.0",
+		"express": "^4.17.1",
+		"pg": "^8.5.1",
+		"react": "^17.0.1",
+		"socket.io": "^4.0.0",
+		"typescript": "^4.2.3"
+	},
+	"devDependencies": {
+		"@typescript-eslint/eslint-plugin": "^4.17.0",
+		"@typescript-eslint/parser": "^4.17.0",
+		"eslint": "^7.22.0",
+		"eslint-plugin-react": "^7.22.0",
+		"nodemon": "^2.0.7",
+		"ts-node-dev": "^1.1.6"
+	},
+	"scripts": {
+		"build": "tsc",
+		"start": "node index.js",
+		"heroku-postbuild": "yarn build && cd client && yarn && yarn run build",
+		"start_watch": "ts-node-dev index.ts"
+	}
 }

@@ -1,7 +1,3 @@
-/**
- * Models shared between client and server.
- */
-
 
 
 /**
