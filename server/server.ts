@@ -31,10 +31,14 @@ const ioWrap = new io.Server(httpServer);
 
 ioWrap.on("connection", (socket: io.Socket) =>
 {
-	console.log(`a user connected`);
+	console.log(`User ${0} connected.`);
 	socket.on("disconnect", () =>
 	{
-		console.log("user disconnected");
+		console.log(`User ${0} disconnected.`);
+	});
+	socket.on('chat message', (msg) =>
+	{
+		console.log('message: ' + msg);
 	});
 });
 
@@ -52,7 +56,7 @@ ioWrap.on("connection", (socket: io.Socket) =>
 
 
 	// Put all API endpoints under '/api'
-	expWrap.get("/api/passwords", async (req: any, res: exp.Response) =>
+	expWrap.get("/api/passwords", async (req: exp.Request, res: exp.Response) =>
 	{
 		let x = new models.PlayerTurnActions(0);
 
@@ -66,7 +70,7 @@ ioWrap.on("connection", (socket: io.Socket) =>
 		}
 		res.json(data);
 
-		console.log(`Sent data back to clients.ss`);
+		console.log(`Api response`);
 	});
 }
 
@@ -93,5 +97,5 @@ ioWrap.on("connection", (socket: io.Socket) =>
 {
 	const port = process.env.PORT;
 	httpServer.listen(port);
-	console.log(`Server listening on ${port}`);
+	console.log(`Server listening on port ${port}.`);
 }

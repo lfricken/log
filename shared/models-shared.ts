@@ -7,7 +7,7 @@ export class PlayerTurnActions
 {
 	public TurnNumber: number;
 
-	public constructor(turnNumber: any)
+	public constructor(turnNumber: number)
 	{
 		this.TurnNumber = turnNumber;
 	}

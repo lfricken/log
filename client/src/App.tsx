@@ -12,21 +12,29 @@ class App extends React.Component
 	// Fetch passwords after first mount
 	componentDidMount()
 	{
-		//var socket = io();
-		const script = document.createElement('script'); // d
-
+		// TODO this could use more explanation
+		const script = document.createElement('script');
 		script.src = "/socket.io/socket.io.js";
 		script.async = true;
-		//script.innerHTML = "var socket = io().connect('http://localhost:3001', {reconnect: true});;"
-
 		document.body.appendChild(script);
+
 		this.getPasswords();
 
 		const socket = io();
 		socket.connect();
-		// socket.on("FromAPI", data => {
-		// 	setResponse(data);
-		// });
+
+		var form = document.getElementById('form') as HTMLFormElement;
+		var input = document.getElementById('input') as HTMLInputElement;
+
+		form.addEventListener('submit', function (e)
+		{
+			e.preventDefault();
+			if (input.value !== "")
+			{
+				socket.emit('chat message', input.value);
+				input.value = '';
+			}
+		});
 	}
 
 	getPasswords = () =>
@@ -39,28 +47,30 @@ class App extends React.Component
 
 	render()
 	{
-		console.log('Client rendering in browser.s')
+		console.log('Client rendering in browser.')
 		const { passwords } = this.state;
-
-		if (passwords.length)
-		{
-
-		}
 
 		return (
 			<div className="App">
+				<ul id="messages"></ul>
+				<form id="form" action="">
+					<input id="input" autoComplete="off" />
+					<button>Send</button>
+				</form>
 				{/* Render the passwords if we have them */}
 				{passwords.length !== 0 ?
 					(
 						<div>
 							<h1>5 Passwords.</h1>
 							<ul className="passwords">
-								{/*
-								Generally it's bad to use "index" as a key.
-								It's ok for this example because there will always
-								be the same number of passwords, and they never
-								change positions in the array.
-							*/}
+								{
+									/*
+									Generally it's bad to use "index" as a key.
+									It's ok for this example because there will always
+									be the same number of passwords, and they never
+									change positions in the array.
+									*/
+								}
 								{passwords.map((password, index) =>
 									<li key={index}>
 										{password}
