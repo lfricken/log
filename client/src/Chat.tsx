@@ -1,5 +1,5 @@
 import * as React from 'react';
-import './App.css';
+import './Chat.css';
 import io from "socket.io-client";
 import * as x from "./models-shared";
 import cookie from 'react-cookies'
@@ -10,10 +10,10 @@ interface State
 	name: string;
 	messages: x.ChatMessage[];
 }
-class App extends React.Component
+class Chat extends React.Component
 {
 	// Initialize state
-	state: State = App.getInitialState();
+	state: State = Chat.getInitialState();
 	socket!: SocketIOClient.Socket;
 	chatInput!: HTMLInputElement;
 	chatView!: HTMLDivElement;
@@ -28,7 +28,7 @@ class App extends React.Component
 		let nickname = cookie.load('name');
 		if (nickname === null || nickname === undefined)
 		{
-			nickname = App.getRandomName();
+			nickname = Chat.getRandomName();
 			cookie.save('name', nickname, {});
 		}
 		// initial state has a message to welcome the new user onthe chat
@@ -101,7 +101,7 @@ class App extends React.Component
 		const { messages } = this.state;
 
 		return (
-			<div className="App">
+			<div className="Chat">
 				<div className="chatView" id="chatView">
 					{messages.map((mes) =>
 						<div>{x.ChatMessage.DisplayString(mes)}</div>
@@ -115,4 +115,4 @@ class App extends React.Component
 	}
 }
 
-export default App;
+export default Chat;

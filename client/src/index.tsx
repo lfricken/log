@@ -3,6 +3,7 @@ import * as React from 'react';
 import * as ReactDom from 'react-dom';
 import './index.css';
 import App from './App';
+//import Chat from './Chat';
 
 console.log('Client start rendering App in browser.')
 ReactDom.render(

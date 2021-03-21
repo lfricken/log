@@ -1,22 +1,21 @@
 {
-	"include": [
-		"./",
-		//"./client/shared",
-	],
+	// "include": [
+	// 	"./",
+	// 	//"./client/shared",
+	// ],
 	"exclude": [
-		"./client/"
+		"client"
 	],
 	"compilerOptions": {
 		"target": "es6",
 		"module": "commonjs",
 		"rootDir": "./",
-		"outDir": "./",
+		"outDir": "./build/",
 		"esModuleInterop": true,
 		"strict": true,
 		"typeRoots": [
 			"./node_modules/@types/"
-		],
-		"jsx": "react-jsx"
+		]
 	},
 	"ts-node": {
 	  "files": true

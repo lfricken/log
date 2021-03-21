@@ -35,3 +35,7 @@ https://stackoverflow.com/questions/17696801/express-js-app-listen-vs-server-lis
 
 React wont let you pick a different baseUrl for typescript, so we'll just stick with the default import path unfortunately.
 
+
+
+If a javascript file is in the same folder as the tsx stuff, it will glitch out about there being no exports. Solution is to build to another folder outside the react folder.
+
