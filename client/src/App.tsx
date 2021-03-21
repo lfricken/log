@@ -1,14 +1,30 @@
 import * as React from 'react';
 import './App.css';
 import io from "socket.io-client";
-import sanitizeHtml from "sanitize-html";
-import * as models from "./shared/models-shared";
+import { Shared } from "./shared/models-shared";
 
 console.log('Client loading in browser.')
+interface State
+{
+	name: string;
+	messages: Shared.ChatMessage[];
+}
 class App extends React.Component
 {
 	// Initialize state
-	state = { passwords: [""] }
+	state: State = App.getInitialState();
+	socket!: SocketIOClient.Socket;
+	chatInput!: HTMLInputElement;
+	chatView!: HTMLDivElement;
+
+	public static getInitialState(): State
+	{
+		// initial state has a message to welcome the new user onthe chat
+		return {
+			name: "default name",
+			messages: []
+		};
+	}
 
 	// Fetch passwords after first mount
 	componentDidMount()
@@ -21,30 +37,39 @@ class App extends React.Component
 
 		this.getPasswords();
 
-		const socket = io();
-		socket.connect();
+		this.socket = io();
+		this.socket.connect();
+		this.socket.on('chat message', this.onReceiveMessage.bind(this));
 
-		var messages = document.getElementById('messages') as HTMLUListElement;
+		this.chatView = document.getElementById('chatView') as HTMLDivElement;
+		this.chatInput = document.getElementById('chatInput') as HTMLInputElement;
+
 		var form = document.getElementById('form') as HTMLFormElement;
-		var input = document.getElementById('input') as HTMLInputElement;
+		form.addEventListener('submit', this.onSendMessage.bind(this));
+	}
 
-		form.addEventListener('submit', function (e)
-		{
-			e.preventDefault();
-			if (input.value !== "")
-			{
-				socket.emit('chat message', input.value);
-				input.value = '';
-			}
-		});
+	private onSendMessage(e: Event): void
+	{
+		const follow = this.chatView.scrollTop === (this.chatView.scrollHeight - this.chatView.offsetHeight);
 
-		socket.on('chat message', function (msg: models.PlayerChatMessage)
+		e.preventDefault();
+		const mes = this.chatInput.value;
+		if (mes !== "")
 		{
-			var item = document.createElement('li');
-			item.textContent = models.PlayerChatMessage.DisplayString(msg);
-			messages.appendChild(item);
-			window.scrollTo(0, document.body.scrollHeight);
-		});
+			const message = new Shared.ChatMessage("name", mes);
+			this.socket.emit('chat message', message);
+			this.onReceiveMessage(message);
+			this.chatInput.value = '';
+		}
+
+		if (follow)
+			this.chatView.scrollTop = this.chatView.scrollHeight;
+	}
+	private onReceiveMessage(mes: Shared.ChatMessage): void
+	{
+		const messages = this.state.messages;
+		messages.push(mes);
+		this.setState({ messages });
 	}
 
 	getPasswords = () =>
@@ -58,54 +83,58 @@ class App extends React.Component
 	render()
 	{
 		console.log('Client rendering in browser.')
-		const { passwords } = this.state;
+		const { messages } = this.state;
 
 		return (
 			<div className="App">
-				<div className="abc" id="messages"></div>
+				<div className="chat" id="chatView">
+					{messages.map((mes) =>
+						<div>{Shared.ChatMessage.DisplayString(mes)}</div>
+					)}
+				</div>
 				<form id="form" action="">
-					<input id="input" autoComplete="off" />
+					<input id="chatInput" autoComplete="off" />
 					<button>Send</button>
 				</form>
-				{/* Render the passwords if we have them */}
-				{passwords.length !== 0 ?
-					(
-						<div>
-							<h1>5 Passwords.</h1>
-							<ul className="passwords">
-								{
-									/*
-									Generally it's bad to use "index" as a key.
-									It's ok for this example because there will always
-									be the same number of passwords, and they never
-									change positions in the array.
-									*/
-								}
-								{passwords.map((password, index) =>
-									<li key={index}>
-										{password}
-									</li>
-								)}
-							</ul>
-							<button
-								className="more"
-								onClick={this.getPasswords}>
-								Get More
+
+				{/*
+					passwords.length !== 0 ?
+						(
+							<div>
+								<h1>5 Passwords.</h1>
+								<ul className="passwords">
+									{
+										Generally it's bad to use "index" as a key.
+										It's ok for this example because there will always
+										be the same number of passwords, and they never
+										change positions in the array.
+										
+									}
+									{passwords.map((password, index) =>
+										<li key={index}>
+											{password}
+										</li>
+									)}
+								</ul>
+								<button
+									className="more"
+									onClick={this.getPasswords}>
+									Get More
 							</button>
-						</div>
-					)
-					:
-					(
-						// Render a helpful message otherwise
-						<div>
-							<h1>No passwords :(</h1>
-							<button
-								className="more"
-								onClick={this.getPasswords}>
-								Try Again?
+							</div>
+						)
+						:
+						(
+							// Render a helpful message otherwise
+							<div>
+								<h1>No passwords :(</h1>
+								<button
+									className="more"
+									onClick={this.getPasswords}>
+									Try Again?
 							</button>
-						</div>
-					)
+							</div>
+						)*/
 				}
 			</div>
 		);

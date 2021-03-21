@@ -4,8 +4,7 @@ import * as io from "socket.io";
 import * as path from "path";
 import * as pg from "pg";
 import * as dotenv from "dotenv";
-import * as proxy from "http-proxy-middleware";
-import * as models from "../client/src/shared/models-shared";
+import { Shared } from "../client/src/shared/models-shared";
 import express from "express";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,7 +25,6 @@ global.custom = {
 const expWrap = express();
 const httpServer = http.createServer(expWrap);
 
-
 // socket.io
 {
 	const ioWrap = new io.Server(httpServer);
@@ -38,12 +36,11 @@ const httpServer = http.createServer(expWrap);
 		{
 			console.log(`User ${0} disconnected.`);
 		});
-		socket.on('chat message', (msgText: string) =>
+		socket.on('chat message', (message: Shared.ChatMessage) =>
 		{
-			const message = new models.PlayerChatMessage("dude", msgText);
-			models.PlayerChatMessage.Validate(message);
+			Shared.ChatMessage.Validate(message);
 			socket.broadcast.emit('chat message', message);
-			console.log('message: ' + models.PlayerChatMessage.DisplayString(message));
+			console.log('message: ' + Shared.ChatMessage.DisplayString(message));
 		});
 	});
 }
@@ -64,7 +61,7 @@ const httpServer = http.createServer(expWrap);
 	// Put all API endpoints under '/api'
 	expWrap.get("/api/passwords", async (req: exp.Request, res: exp.Response) =>
 	{
-		let x = new models.PlayerTurnActions(0);
+		let x = new Shared.TurnActions(0);
 
 		const data = [];
 
@@ -83,13 +80,8 @@ const httpServer = http.createServer(expWrap);
 
 // static serve
 {
-	if (process.env.USE_STATIC_PROXY === "true")
-		// if we are localhosting, use the react watch server
-		// this needs to happen after the api endpoints or they will get proxied too
-		expWrap.use(proxy.createProxyMiddleware({ target: 'http://localhost:3000', changeOrigin: true }));
-	else
-		// if hosting in prod, use the build version
-		expWrap.use(express.static(global.custom.__root_static));
+	// if hosting in prod, use the build version
+	expWrap.use(express.static(global.custom.__root_static));
 
 	// The "catchall" handler: for any request.
 	expWrap.get("*", (req: exp.Request, res: exp.Response) =>

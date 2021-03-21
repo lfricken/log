@@ -4,13 +4,9 @@ import sanitizeHtml from "sanitize-html";
 
 export namespace Shared
 {
-	// Actions that a player has taken on their turn.
-	export interface ICookie
-	{
-		Name: string;
-	}
-
-	// Actions that a player has taken on their turn.
+	/**
+	 * Actions that a player has taken on their turn.
+	 */
 	export class TurnActions
 	{
 		public TurnNumber: number;
@@ -21,7 +17,9 @@ export namespace Shared
 		}
 	}
 
-	// A message sent out to every client.
+	/**
+	 * A message sent out to every client.
+	 */
 	export class ChatMessage
 	{
 		public static readonly MaxLenName: number = 15;
@@ -29,7 +27,7 @@ export namespace Shared
 
 		Name: string;
 		Message: string;
-		public constructor(name: string, message: string)
+		public constructor(name: string, message: any)
 		{
 			this.Name = name;
 			this.Message = message;
@@ -39,8 +37,8 @@ export namespace Shared
 
 		public static Validate(data: ChatMessage): void
 		{
-			data.Name = data.Name.slice(0, ChatMessage.MaxLenName)
-			data.Message = data.Message.slice(0, ChatMessage.MaxLenMessage)
+			data.Name.slice(0, ChatMessage.MaxLenName)
+			data.Message.slice(0, ChatMessage.MaxLenMessage)
 			data.Name = sanitizeHtml(data.Name);
 			data.Message = sanitizeHtml(data.Message);
 		}
