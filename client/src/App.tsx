@@ -6,7 +6,7 @@ import Chat from './Chat'
 
 const sock = io();
 sock.connect();
-console.log('Client loading in browser.')
+console.log('App loading')
 interface State
 {
 

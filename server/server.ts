@@ -56,23 +56,17 @@ const httpServer = http.createServer(expWrap);
 			ssl: process.env.DATABASE_SKIPSSL === "true" ? undefined : { rejectUnauthorized: false },
 		}
 	);
-
-
 	// Put all API endpoints under '/api'
 	expWrap.get("/api/passwords", async (req: exp.Request, res: exp.Response) =>
 	{
 		let xy = new x.TurnActions(0);
-
 		const data = [];
-
 		const databaseRes = await pool.query("SELECT * FROM horses;"); //, (err, res) =>
-
 		for (const row of databaseRes.rows)
 		{
 			data.push(JSON.stringify(row));
 		}
 		res.json(data);
-
 		console.log(`Api response`);
 	});
 }
@@ -82,7 +76,6 @@ const httpServer = http.createServer(expWrap);
 {
 	// if hosting in prod, use the build version
 	expWrap.use(express.static(global.custom.__root_static));
-
 	// The "catchall" handler: for any request.
 	expWrap.get("*", (req: exp.Request, res: exp.Response) =>
 	{

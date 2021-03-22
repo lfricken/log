@@ -3,7 +3,7 @@ import './Chat.css';
 import * as x from "./models-shared";
 import cookie from 'react-cookies'
 
-console.log('Client loading in browser.')
+console.log('Chat loading')
 const ChatNameKey: string = "nickname";
 interface Props
 {
