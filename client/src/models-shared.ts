@@ -27,26 +27,31 @@ export class ChatMessage
 	public static readonly MaxLenName: number = 15;
 	public static readonly MaxLenMessage: number = 120;
 
-	Name: string;
-	Message: string;
+	NickName: string;
+	Text: string;
 	public constructor(name: string, message: string)
 	{
-		this.Name = name;
-		this.Message = message;
+		this.NickName = name;
+		this.Text = message;
 		ChatMessage.Validate(this);
 	}
 
 
-	public static Validate(data: ChatMessage): void
+	public static Validate(data: ChatMessage): boolean
 	{
-		data.Name = data.Name.slice(0, ChatMessage.MaxLenName)
-		data.Message = data.Message.slice(0, ChatMessage.MaxLenMessage)
-		data.Name = sanitizeHtml(data.Name);
-		data.Message = sanitizeHtml(data.Message);
+		data.NickName = data.NickName.slice(0, ChatMessage.MaxLenName)
+		data.Text = data.Text.slice(0, ChatMessage.MaxLenMessage)
+		data.NickName = sanitizeHtml(data.NickName);
+		data.Text = sanitizeHtml(data.Text);
+
+		if (data.NickName.length < 2) return false;
+		if (data.Text.length < 2) return false;
+
+		return true;
 	}
 	public static DisplayString(data: ChatMessage): string
 	{
-		return data.Name + ": " + data.Message;
+		return data.NickName + ": " + data.Text;
 	}
 }
 //}
