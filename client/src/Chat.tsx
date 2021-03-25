@@ -1,6 +1,6 @@
 import * as React from 'react';
 import './Chat.css';
-import * as x from "./models-shared";
+import * as Shared from "./models-shared";
 import cookie from 'react-cookies'
 
 console.log('Chat loading')
@@ -12,11 +12,10 @@ interface Props
 interface State
 {
 	nickname: string;
-	messages: x.ChatMessage[];
+	messages: Shared.ChatMessage[];
 }
 class Chat extends React.Component<Props, State>
 {
-	public x!: string;
 	// Initialize state
 	state: State = Chat.getInitialState();
 	chatInput!: HTMLInputElement;
@@ -57,7 +56,7 @@ class Chat extends React.Component<Props, State>
 		e.preventDefault();
 		const text = this.chatInput.value;
 		const nickname = this.nameInput.value;
-		const message = new x.ChatMessage(nickname, text);
+		const message = new Shared.ChatMessage(nickname, text);
 		cookie.save(ChatNameKey, nickname, {});
 		if (nickname !== "" && text !== "")
 		{
@@ -66,14 +65,14 @@ class Chat extends React.Component<Props, State>
 			this.chatInput.value = '';
 		}
 	}
-	private onNewMessage(mes: x.ChatMessage): void
+	private onNewMessage(m: Shared.ChatMessage): void
 	{
 		// follow the bottom of the chat if they are already looking there
 		const pixelRange = 80;
 		const follow = (this.chatView.scrollHeight - this.chatView.offsetHeight - this.chatView.scrollTop) < pixelRange;
 
 		const messages = this.state.messages;
-		messages.push(mes);
+		messages.push(m);
 		this.setState({ messages });
 
 		if (follow)
@@ -88,7 +87,7 @@ class Chat extends React.Component<Props, State>
 			<div className="chat">
 				<div className="chatView" id="chatView">
 					{messages.map((message, idx: number) =>
-						<div key={idx}>{x.ChatMessage.DisplayString(message)}</div>
+						<div key={idx}>{Shared.ChatMessage.DisplayString(message)}</div>
 					)}
 				</div>
 				<div className="row">

@@ -4,7 +4,7 @@ import * as io from "socket.io";
 import * as path from "path";
 import * as pg from "pg";
 import * as dotenv from "dotenv";
-import * as x from "../client/src/models-shared";
+import * as Shared from "../client/src/models-shared";
 import express from "express";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,17 +30,16 @@ const httpServer = http.createServer(expWrap);
 	const ioWrap = new io.Server(httpServer);
 	ioWrap.on("connection", (socket: io.Socket) =>
 	{
-		socket.broadcast.emit('hi');
 		console.log(`User ${0} connected.`);
 		socket.on("disconnect", () =>
 		{
 			console.log(`User ${0} disconnected.`);
 		});
-		socket.on('chat message', (message: x.ChatMessage) =>
+		socket.on('chat message', (message: Shared.ChatMessage) =>
 		{
-			x.ChatMessage.Validate(message);
+			Shared.ChatMessage.Validate(message);
 			socket.broadcast.emit('chat message', message);
-			console.log('message: ' + x.ChatMessage.DisplayString(message));
+			console.log('message: ' + Shared.ChatMessage.DisplayString(message));
 		});
 	});
 }
@@ -59,7 +58,7 @@ const httpServer = http.createServer(expWrap);
 	// Put all API endpoints under '/api'
 	expWrap.get("/api/passwords", async (req: exp.Request, res: exp.Response) =>
 	{
-		let xy = new x.TurnActions(0);
+		let xy = new Shared.TurnActions(0);
 		const data = [];
 		const databaseRes = await pool.query("SELECT * FROM horses;"); //, (err, res) =>
 		for (const row of databaseRes.rows)

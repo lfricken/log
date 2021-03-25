@@ -1,6 +1,6 @@
 /* eslint-disable no-magic-numbers */
 
-import sanitizeHtml from "sanitize-html";
+import sanitize from "sanitize-html";
 
 //export namespace Shared
 //{
@@ -41,8 +41,8 @@ export class ChatMessage
 	{
 		data.NickName = data.NickName.slice(0, ChatMessage.MaxLenName)
 		data.Text = data.Text.slice(0, ChatMessage.MaxLenMessage)
-		data.NickName = sanitizeHtml(data.NickName);
-		data.Text = sanitizeHtml(data.Text);
+		data.NickName = sanitize(data.NickName);
+		data.Text = sanitize(data.Text);
 
 		if (data.NickName.length < 2) return false;
 		if (data.Text.length < 2) return false;

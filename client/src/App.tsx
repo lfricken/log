@@ -1,11 +1,11 @@
 import * as React from 'react';
 import './App.css';
 import io from "socket.io-client";
-import * as x from "./models-shared";
 import Chat from './Chat'
+import LobbyJoin from './LobbyJoin';
+import { FormEvent } from 'react';
 
-const sock = io();
-sock.connect();
+const sock = io(); // { auth: { token: "abc" } }
 console.log('App loading')
 interface State
 {
@@ -24,24 +24,30 @@ class App extends React.Component
 		return {};
 	}
 
-	// Fetch passwords after first mount
-	componentDidMount()
+	// called before render
+	componentWillMount()
 	{
+		this.socket = sock;
+		this.socket.connect();
 		// TODO this could use more explanation
 		// const script = document.createElement('script');
 		// script.src = "/socket.io/socket.io.js";
 		// script.async = true;
 		// document.body.appendChild(script);
 	}
-
+	componentWillUnmount()
+	{
+		this.socket.disconnect();
+		// need to unsubscribe from socket
+	}
 	render()
 	{
 		console.log('App render.')
-		const { } = this.state;
 
 		return (
 			<div className="chatComp">
-				<Chat socket={sock} />
+				<LobbyJoin socket={this.socket} />
+				<Chat socket={this.socket} />
 			</div>
 		);
 	}
