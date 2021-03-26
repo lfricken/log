@@ -36,6 +36,7 @@ class LobbyJoin extends React.Component<Props, State>
 						id="lobbyInput"
 						autoComplete="off"
 						onChange={this.onInputChange.bind(this)}
+						defaultValue="Test"
 					/>
 				</form>
 			</div>

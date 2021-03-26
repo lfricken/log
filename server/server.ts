@@ -4,7 +4,7 @@ import * as io from "socket.io";
 import * as path from "path";
 import * as pg from "pg";
 import * as dotenv from "dotenv";
-import * as Shared from "../client/src/models-shared";
+import { Const, Core, Player } from "../client/src/models-shared";
 import express from "express";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,18 +30,47 @@ const httpServer = http.createServer(expWrap);
 	const ioWrap = new io.Server(httpServer);
 	ioWrap.on("connection", (socket: io.Socket) =>
 	{
-		console.log(`User ${0} connected.`);
+		const authObj = socket.handshake.auth as Core.IAuth;
+		socket.join(authObj.LobbyId);
+
+		SendMessage(socket, new Player.ChatMessage("", `Player ${authObj.Nickname} connected.`));
+		console.log(`User ${0} connected to lobby ${authObj.LobbyId}.`);
+
+
 		socket.on("disconnect", () =>
 		{
+			SendMessage(socket, new Player.ChatMessage("", `Player ${authObj.Nickname} disconnected.`));
+
 			console.log(`User ${0} disconnected.`);
 		});
-		socket.on('chat message', (message: Shared.ChatMessage) =>
+		socket.on(Const.Chat, (message: Player.ChatMessage) =>
 		{
-			Shared.ChatMessage.Validate(message);
-			socket.broadcast.emit('chat message', message);
-			console.log('message: ' + Shared.ChatMessage.DisplayString(message));
+			const authObj = socket.handshake.auth as Core.IAuth;
+			Player.ChatMessage.Validate(message);
+
+			// change name notifications
+			if (message.Nickname !== authObj.Nickname)
+			{
+				SendMessage(
+					socket,
+					new Player.ChatMessage("", `${authObj.Nickname} changed name to ${message.Nickname}.`)
+				);
+				authObj.Nickname = message.Nickname;
+			}
+
+			message.Nickname = authObj.Nickname;
+			SendMessage(socket, message);
+
+			console.log('message: ' + Player.ChatMessage.DisplayString(message));
 		});
 	});
+}
+
+
+function SendMessage(socket: io.Socket, message: Player.ChatMessage)
+{
+	const authObj = socket.handshake.auth as Core.IAuth;
+	socket.to(authObj.LobbyId).emit(Const.Chat, message);
 }
 
 
@@ -58,7 +87,7 @@ const httpServer = http.createServer(expWrap);
 	// Put all API endpoints under '/api'
 	expWrap.get("/api/passwords", async (req: exp.Request, res: exp.Response) =>
 	{
-		let xy = new Shared.TurnActions(0);
+		let xy = new Player.TurnActions(0);
 		const data = [];
 		const databaseRes = await pool.query("SELECT * FROM horses;"); //, (err, res) =>
 		for (const row of databaseRes.rows)
@@ -73,12 +102,13 @@ const httpServer = http.createServer(expWrap);
 
 // static serve
 {
+	const x = __dirname;
 	// if hosting in prod, use the build version
 	expWrap.use(express.static(global.custom.__root_static));
 	// The "catchall" handler: for any request.
 	expWrap.get("*", (req: exp.Request, res: exp.Response) =>
 	{
-		res.sendFile(path.join("index.html"));
+		res.sendFile(path.join(global.custom.__root_static, "index.html"));
 	});
 }
 
