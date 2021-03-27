@@ -25,6 +25,7 @@ global.custom = {
 const expWrap = express();
 const httpServer = http.createServer(expWrap);
 
+const games: { [lobbyId: string]: number } = {};
 // socket.io
 {
 	const ioWrap = new io.Server(httpServer);

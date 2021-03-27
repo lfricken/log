@@ -2,11 +2,12 @@ import * as React from 'react';
 import './Chat.css';
 import { Const, Player } from "./models-shared";
 import cookie from 'react-cookies'
+import { Util } from './App';
 
 console.log('Chat loading')
-export const ChatNameKey: string = "nickname";
 interface Props
 {
+	nickname: string;
 	socket: SocketIOClient.Socket
 }
 interface State
@@ -17,7 +18,7 @@ interface State
 export class Chat extends React.Component<Props, State>
 {
 	// Initialize state
-	state: State = Chat.getInitialState();
+	state!: State;
 	chatInput!: HTMLInputElement;
 	nameInput!: HTMLInputElement;
 	chatView!: HTMLDivElement;
@@ -25,18 +26,8 @@ export class Chat extends React.Component<Props, State>
 	constructor(props: Props)
 	{
 		super(props);
-	}
-	public static getInitialState(): State
-	{
-		let nickname = cookie.load(ChatNameKey);
-		if (nickname === null || nickname === undefined)
-		{
-			nickname = "Rando";
-			cookie.save(ChatNameKey, nickname, {});
-		}
-		// initial state has a message to welcome the new user onthe chat
-		return {
-			nickname: nickname,
+		this.state = {
+			nickname: this.props.nickname,
 			messages: []
 		};
 	}
@@ -61,7 +52,8 @@ export class Chat extends React.Component<Props, State>
 		const text = this.chatInput.value;
 		const nickname = this.nameInput.value;
 		const message = new Player.ChatMessage(nickname, text);
-		cookie.save(ChatNameKey, nickname, {});
+		Util.SaveCookie(Const.CookieNickname, nickname);
+
 		if (nickname !== "" && text !== "")
 		{
 			this.props.socket.emit(Const.Chat, message);

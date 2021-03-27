@@ -1,12 +1,14 @@
 /* eslint-disable no-magic-numbers */
 
+import e from "express";
 import sanitize from "sanitize-html";
 
 export namespace Const
 {
-	export const Chat: string = 'm';
-	export const Connect: string = 'c';
-	export const Disconnect: string = 'd';
+	export const UniqueIdLength = 8;
+	export const Chat = 'm';
+	export const CookieUniqueId = "uniqueid";
+	export const CookieNickname = "nickname";
 
 }
 export namespace Core
@@ -16,17 +18,38 @@ export namespace Core
 		Name: string;
 	}
 
-	export interface IAuth
+	export interface IPlayerData
 	{
+		UniqueId: string;
 		Nickname: string;
+	}
+
+	export interface IAuth extends IPlayerData
+	{
 		LobbyId: string;
 	}
 }
 
+/**
+ * lobbyId: game
+ *   uniqueId: GameState
+ * 
+ */
 export namespace Player
 {
+	export class GameState implements Core.IPlayerData
+	{
+		public UniqueId!: string;
+		public Nickname!: string;
+
+		public IsLobbyLeader!: boolean;
+		public IsConnected!: boolean
+
+		public Actions!: TurnState;
+	}
+
 	// Actions that a player has taken on their turn.
-	export class TurnActions
+	export class TurnState
 	{
 		public TurnNumber: number;
 
