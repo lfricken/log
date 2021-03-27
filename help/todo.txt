@@ -1,4 +1,5 @@
 
+Player name with (23) player number after
 LobbyJoin needs submit event
 redo Chat with onChange and propper submit event
 

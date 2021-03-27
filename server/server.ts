@@ -4,7 +4,7 @@ import * as io from "socket.io";
 import * as path from "path";
 import * as pg from "pg";
 import * as dotenv from "dotenv";
-import { Const, Core, Player } from "../client/src/models-shared";
+import { Const, Core, Chat, Model } from "../client/src/models-shared";
 import express from "express";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,27 +34,27 @@ const games: { [lobbyId: string]: number } = {};
 		const authObj = socket.handshake.auth as Core.IAuth;
 		socket.join(authObj.LobbyId);
 
-		SendMessage(socket, new Player.ChatMessage("", `Player ${authObj.Nickname} connected.`));
+		SendMessage(socket, new Chat.Message("", `Player ${authObj.Nickname} connected.`));
 		console.log(`User ${0} connected to lobby ${authObj.LobbyId}.`);
 
 
 		socket.on("disconnect", () =>
 		{
-			SendMessage(socket, new Player.ChatMessage("", `Player ${authObj.Nickname} disconnected.`));
+			SendMessage(socket, new Chat.Message("", `Player ${authObj.Nickname} disconnected.`));
 
 			console.log(`User ${0} disconnected.`);
 		});
-		socket.on(Const.Chat, (message: Player.ChatMessage) =>
+		socket.on(Const.Chat, (message: Chat.Message) =>
 		{
 			const authObj = socket.handshake.auth as Core.IAuth;
-			Player.ChatMessage.Validate(message);
+			Chat.Message.Validate(message);
 
 			// change name notifications
 			if (message.Nickname !== authObj.Nickname)
 			{
 				SendMessage(
 					socket,
-					new Player.ChatMessage("", `${authObj.Nickname} changed name to ${message.Nickname}.`)
+					new Chat.Message("", `${authObj.Nickname} changed name to ${message.Nickname}.`)
 				);
 				authObj.Nickname = message.Nickname;
 			}
@@ -62,16 +62,16 @@ const games: { [lobbyId: string]: number } = {};
 			message.Nickname = authObj.Nickname;
 			SendMessage(socket, message);
 
-			console.log('message: ' + Player.ChatMessage.DisplayString(message));
+			console.log('message: ' + Chat.Message.DisplayString(message));
 		});
 	});
 }
 
 
-function SendMessage(socket: io.Socket, message: Player.ChatMessage)
+function SendMessage(socket: io.Socket, message: Chat.Message): void
 {
 	const authObj = socket.handshake.auth as Core.IAuth;
-	socket.to(authObj.LobbyId).emit(Const.Chat, message);
+	socket.broadcast.to(authObj.LobbyId).emit(Const.Chat, message);
 }
 
 
@@ -88,7 +88,7 @@ function SendMessage(socket: io.Socket, message: Player.ChatMessage)
 	// Put all API endpoints under '/api'
 	expWrap.get("/api/passwords", async (req: exp.Request, res: exp.Response) =>
 	{
-		let xy = new Player.TurnState(0);
+		let xy = new Model.Turn();
 		const data = [];
 		const databaseRes = await pool.query("SELECT * FROM horses;"); //, (err, res) =>
 		for (const row of databaseRes.rows)

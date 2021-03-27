@@ -1,8 +1,7 @@
 import * as React from 'react';
+import { ReactNode } from 'react';
 import './Chat.css';
-import { Const, Player } from "./models-shared";
-import cookie from 'react-cookies'
-import { Util } from './App';
+import { Util, Const, Chat } from "./models-shared";
 
 console.log('Chat loading')
 interface Props
@@ -13,9 +12,9 @@ interface Props
 interface State
 {
 	nickname: string;
-	messages: Player.ChatMessage[];
+	messages: Chat.Message[];
 }
-export class Chat extends React.Component<Props, State>
+export class ChatComp extends React.Component<Props, State>
 {
 	// Initialize state
 	state!: State;
@@ -31,7 +30,7 @@ export class Chat extends React.Component<Props, State>
 			messages: []
 		};
 	}
-	componentDidMount()
+	componentDidMount(): ReactNode
 	{
 		this.chatView = document.getElementById('chatView') as HTMLDivElement;
 		this.chatInput = document.getElementById('chatInput') as HTMLInputElement;
@@ -41,17 +40,14 @@ export class Chat extends React.Component<Props, State>
 
 		var chatForm = document.getElementById('chatForm') as HTMLFormElement;
 		chatForm.addEventListener('submit', this.onSubmitMessage.bind(this));
-	}
-	componentWillUnmount()
-	{
-		// need to unsubscribe from socket
+		return null;
 	}
 	private onSubmitMessage(e: Event): void
 	{
 		e.preventDefault();
 		const text = this.chatInput.value;
 		const nickname = this.nameInput.value;
-		const message = new Player.ChatMessage(nickname, text);
+		const message = new Chat.Message(nickname, text);
 		Util.SaveCookie(Const.CookieNickname, nickname);
 
 		if (nickname !== "" && text !== "")
@@ -61,7 +57,7 @@ export class Chat extends React.Component<Props, State>
 			this.chatInput.value = '';
 		}
 	}
-	private onNewMessage(m: Player.ChatMessage): void
+	private onNewMessage(m: Chat.Message): void
 	{
 		// follow the bottom of the chat if they are already looking there
 		const pixelRange = 80;
@@ -74,7 +70,7 @@ export class Chat extends React.Component<Props, State>
 		if (follow)
 			this.chatView.scrollTop = this.chatView.scrollHeight;
 	}
-	render()
+	render(): ReactNode
 	{
 		console.log('Chat render')
 		const { nickname: name, messages } = this.state;
@@ -86,7 +82,7 @@ export class Chat extends React.Component<Props, State>
 						<div
 							className={message.Nickname === "" ? 'official_message' : ''}
 							key={idx}>
-							{Player.ChatMessage.DisplayString(message)}
+							{Chat.Message.DisplayString(message)}
 						</div>
 					)}
 				</div>

@@ -15,6 +15,7 @@
 		"dotenv": "^8.2.0",
 		"express": "^4.17.1",
 		"http-proxy-middleware": "^1.0.6",
+		"jest": "26.6.0",
 		"pg": "^8.5.1",
 		"react": "^17.0.1",
 		"redis": "^3.0.2",
@@ -27,11 +28,18 @@
 		"typescript": "^4.2.3"
 	},
 	"devDependencies": {
+		"@babel/plugin-transform-runtime": "^7.13.10",
+		"@babel/preset-env": "^7.13.12",
+		"@babel/preset-flow": "^7.13.13",
+		"@babel/preset-react": "^7.13.13",
 		"@typescript-eslint/eslint-plugin": "^4.17.0",
 		"@typescript-eslint/parser": "^4.17.0",
+		"babel-jest": "^26.6.3",
 		"eslint": "^7.22.0",
 		"eslint-plugin-react": "^7.22.0",
 		"nodemon": "^2.0.7",
+		"react-test-renderer": "^17.0.2",
+		"ts-jest": "^26.5.4",
 		"ts-node-dev": "^1.1.6"
 	},
 	"scripts": {
@@ -39,6 +47,7 @@
 		"start": "node build/server/server.js",
 		"compile-tsc": "tsc",
 		"start_watch": "ts-node-dev server/server.ts debug.env",
-		"heroku-sim": "yarn heroku-postbuild && yarn start sim.env"
+		"heroku-sim": "yarn heroku-postbuild && yarn start sim.env",
+		"test": "jest --watchAll"
 	}
 }

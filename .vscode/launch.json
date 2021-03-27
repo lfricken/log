@@ -16,6 +16,13 @@
 				"start heroku",
 				"client launch chrome"
 			]
+		},
+		{
+			"name": "Debug Tests",
+			"configurations": [
+				"test client",
+				"test server"
+			]
 		}
 	],
 	"configurations": [
@@ -28,6 +35,26 @@
 			"request": "launch",
 			"command": "yarn start_watch",
 			"cwd": "${workspaceFolder}"
+		},
+		{
+			"presentation": {
+				"hidden": true
+			},
+			"name": "test server",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "yarn test",
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"presentation": {
+				"hidden": true
+			},
+			"name": "test client",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "yarn test",
+			"cwd": "${workspaceFolder}/client"
 		},
 		{
 			"presentation": {

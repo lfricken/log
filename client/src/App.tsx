@@ -1,40 +1,9 @@
 import * as React from 'react';
 import './App.css';
 import io from "socket.io-client";
-import { Chat } from './Chat'
-import { Const, Core } from './models-shared';
-import cookie from 'react-cookies'
-//import { Util } from './models-client';
-
-export namespace Util
-{
-	const oneYear = 31536000;
-	export function LoadSaveDefaultCookie(key: string, defaultValue: string): string
-	{
-		let val = cookie.load(key);
-		if (val === null || val === undefined)
-		{
-			val = defaultValue;
-			cookie.save(key, val, { expires: new Date(Date.now() + oneYear) });
-		}
-		return val;
-	}
-	export function SaveCookie(key: string, val: string)
-	{
-		cookie.save(key, val, { expires: new Date(Date.now() + oneYear) });
-	}
-	export function GetUniqueId(len: number)
-	{
-		var result = '';
-		var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-		var charactersLength = characters.length;
-		for (var i = 0; i < len; i++)
-		{
-			result += characters.charAt(Math.floor(Math.random() * charactersLength));
-		}
-		return result;
-	}
-}
+import { ChatComp } from './Chat'
+import { Const, Core, Util } from './models-shared';
+import { ReactNode } from 'react';
 
 
 console.log('App loading')
@@ -77,12 +46,14 @@ class App extends React.Component<Props, State>
 		// document.body.appendChild(script);
 	}
 
-	componentWillUnmount()
+	componentWillUnmount(): ReactNode
 	{
 		this.socket.disconnect();
 		// need to unsubscribe from socket
+
+		return null;
 	}
-	render()
+	render(): ReactNode
 	{
 		console.log('App render.')
 		const nickname = Util.LoadSaveDefaultCookie(Const.CookieNickname, "Rando");
@@ -90,7 +61,7 @@ class App extends React.Component<Props, State>
 		return (
 			<div className="chatComp">
 				{/**<LobbyJoin socket={this.socket} />**/}
-				<Chat nickname={nickname} socket={this.socket} />
+				<ChatComp nickname={nickname} socket={this.socket} />
 			</div>
 		);
 	}
