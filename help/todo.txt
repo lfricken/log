@@ -1,5 +1,6 @@
 
 Player name with (23) player number after
+max 6 characters
 LobbyJoin needs submit event
 redo Chat with onChange and propper submit event
 
