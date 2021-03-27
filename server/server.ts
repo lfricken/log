@@ -88,7 +88,7 @@ function SendMessage(socket: io.Socket, message: Player.ChatMessage)
 	// Put all API endpoints under '/api'
 	expWrap.get("/api/passwords", async (req: exp.Request, res: exp.Response) =>
 	{
-		let xy = new Player.TurnActions(0);
+		let xy = new Player.TurnState(0);
 		const data = [];
 		const databaseRes = await pool.query("SELECT * FROM horses;"); //, (err, res) =>
 		for (const row of databaseRes.rows)
