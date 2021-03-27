@@ -49,7 +49,7 @@ const games: { [lobbyId: string]: number } = {};
 			const authObj = socket.handshake.auth as Core.IAuth;
 			Chat.Message.Validate(message);
 
-			// change name notifications
+			// change name notification
 			if (message.Nickname !== authObj.Nickname)
 			{
 				SendMessage(
