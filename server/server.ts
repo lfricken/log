@@ -4,7 +4,8 @@ import * as io from "socket.io";
 import * as path from "path";
 import * as pg from "pg";
 import * as dotenv from "dotenv";
-import { Const, Core, Chat, Model } from "../client/src/models-shared";
+import { Const, Core, Chat, ViewModel, UniqueId } from "../client/src/models-shared";
+import { Model } from "./models-server";
 import express from "express";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,53 +26,131 @@ global.custom = {
 const expWrap = express();
 const httpServer = http.createServer(expWrap);
 
-const games: { [lobbyId: string]: number } = {};
-// socket.io
+const g = new Model.Games();
+const ioWrap = new io.Server(httpServer);
 {
-	const ioWrap = new io.Server(httpServer);
-	ioWrap.on("connection", (socket: io.Socket) =>
+	ioWrap.on("connect", (socket: io.Socket) =>
 	{
-		const authObj = socket.handshake.auth as Core.IAuth;
-		socket.join(authObj.LobbyId);
+		const auth = socket.handshake.auth as Core.IAuth;
+		socket.join(auth.LobbyId);
+		const { game, player, turn, makeLeader, type } = ModelsOnConnection(g, auth, socket.id);
+		const pnum = player.Number;
+		console.log(`Socket ${socket.id} connected. Number:${pnum} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
 
-		SendMessage(socket, new Chat.Message("", `Player ${authObj.Nickname} connected.`));
-		console.log(`User ${0} connected to lobby ${authObj.LobbyId}.`);
+		// lobby leader
+		if (makeLeader)
+		{
+			player.IsLobbyLeader = true;
+			SendMessage(game, socket, Chat.Message.LeaderMsg(player));
+		}
 
+		// reconnect
+		if (type === Core.ConnectionType.NewPlayer)
+		{
+			SendMessage(game, socket, Chat.Message.JoinMsg(player));
+		}
+		else if (type === Core.ConnectionType.Reconnect)
+		{
+			SendMessage(game, socket, Chat.Message.ReconnectMsg(player));
+		}
 
 		socket.on("disconnect", () =>
 		{
-			SendMessage(socket, new Chat.Message("", `Player ${authObj.Nickname} disconnected.`));
+			console.log(`Socket ${socket.id} disconnected. Number:${pnum} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
 
-			console.log(`User ${0} disconnected.`);
+			const timeout = setTimeout(() =>
+			{
+				SendMessage(game, socket, Chat.Message.DisconnectMsg(player));
+				player.IsConnected = false;
+
+				// pick new lobby leader
+				if (player.IsLobbyLeader)
+				{
+					for (const p of game.Players.values())
+					{
+						if (p.IsConnected)
+						{
+							p.IsLobbyLeader = true;
+							SendMessage(game, socket, Chat.Message.LeaderMsg(p));
+							break;
+						}
+					}
+				}
+
+			}, Const.DisconnectTimeoutMilliseconds);
+			player.SetTimeout(timeout);
 		});
 		socket.on(Const.Chat, (message: Chat.Message) =>
 		{
-			const authObj = socket.handshake.auth as Core.IAuth;
 			Chat.Message.Validate(message);
 
 			// change name notification
-			if (message.Nickname !== authObj.Nickname)
+			if (message.Sender !== player.Nickname)
 			{
-				SendMessage(
-					socket,
-					new Chat.Message("", `${authObj.Nickname} changed name to ${message.Nickname}.`)
-				);
-				authObj.Nickname = message.Nickname;
+				SendMessage(game, socket, Chat.Message.ChangeNameMsg(player, message.Sender));
+				player.Nickname = message.Sender;
 			}
 
-			message.Nickname = authObj.Nickname;
-			SendMessage(socket, message);
-
-			console.log('message: ' + Chat.Message.DisplayString(message));
+			SendMessage(game, socket, Chat.Message.PlayerMsg(player, message));
 		});
 	});
 }
 
-
-function SendMessage(socket: io.Socket, message: Chat.Message): void
+function ModelsOnConnection(g: Model.Games, auth: Core.IAuth, socketId: string):
+	{ game: Model.Game, player: Model.Player, turn: Model.Turn, makeLeader: boolean, type: Core.ConnectionType }
 {
-	const authObj = socket.handshake.auth as Core.IAuth;
-	socket.broadcast.to(authObj.LobbyId).emit(Const.Chat, message);
+	const lid = auth.LobbyId;
+	const uid = auth.UniqueId;
+	const nickname = auth.Nickname;
+
+	// create new game
+	let makeLeader = false;
+	if (!g.Games.has(lid))
+	{
+		makeLeader = true;
+		g.Games.set(lid, new Model.Game(lid));
+	}
+	const game = g.Games.get(lid)!;
+
+	// create new player
+	let newPlayer = false;
+	if (!game?.Players.has(uid))
+	{
+		newPlayer = true;
+		game.Players.set(uid, new Model.Player(game.NumPlayers, nickname));
+	}
+	const player = game.Players.get(uid)!;
+
+	// handle delayed timeout
+	player.ClearTimeout();
+
+	// ensure socket is correct
+	player.SocketId = socketId;
+
+	// check what kind of connection this was
+	let type = Core.ConnectionType.NewPlayer;
+	if (!newPlayer)
+	{
+		if (!player.IsConnected)
+		{
+			type = Core.ConnectionType.Reconnect;
+		}
+		else
+		{
+			type = Core.ConnectionType.NewSocket;
+		}
+	}
+	player.IsConnected = true;
+
+	const turn = player.LastTurn;
+
+	return { game: game, player: player, turn: turn, makeLeader: makeLeader, type: type };
+}
+function SendMessage(game: Model.Game, socket: io.Socket, mes: Chat.Message): void
+{
+	const targetIds = Chat.Message.GetDestinations(mes.Text, game.Players);
+	if (targetIds.length > 0)
+		ioWrap.to(targetIds).emit(Const.Chat, mes);
 }
 
 

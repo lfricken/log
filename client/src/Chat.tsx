@@ -53,7 +53,6 @@ export class ChatComp extends React.Component<Props, State>
 		if (nickname !== "" && text !== "")
 		{
 			this.props.socket.emit(Const.Chat, message);
-			this.onNewMessage(message);
 			this.chatInput.value = '';
 		}
 	}
@@ -80,9 +79,9 @@ export class ChatComp extends React.Component<Props, State>
 				<div className="chatView" id="chatView">
 					{messages.map((message, idx: number) =>
 						<div
-							className={message.Nickname === "" ? 'official_message' : ''}
+							className={message.Sender === "" ? 'official_message' : ''}
 							key={idx}>
-							{Chat.Message.DisplayString(message)}
+							{message.Text}
 						</div>
 					)}
 				</div>

@@ -30,16 +30,6 @@
 			"presentation": {
 				"hidden": true
 			},
-			"name": "server start and attach",
-			"type": "node-terminal",
-			"request": "launch",
-			"command": "yarn start_watch",
-			"cwd": "${workspaceFolder}"
-		},
-		{
-			"presentation": {
-				"hidden": true
-			},
 			"name": "test server",
 			"type": "node-terminal",
 			"request": "launch",
@@ -58,7 +48,17 @@
 		},
 		{
 			"presentation": {
-				"hidden": true
+				"hidden": false
+			},
+			"name": "server start and attach",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "yarn start_watch",
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"presentation": {
+				"hidden": false
 			},
 			"name": "client start",
 			"type": "node-terminal",
@@ -76,7 +76,7 @@
 				"--remote-debugging-port=8080"
 			],
 			"type": "pwa-chrome",
-			"url": "http://localhost:3000",
+			"url": "http://localhost:3000/a",
 			"webRoot": "${workspaceFolder}"
 		},
 		{

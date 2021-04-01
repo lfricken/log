@@ -38,7 +38,8 @@ class App extends React.Component<Props, State>
 
 		const authObj: Core.IAuth = { UniqueId: uniqueId, Nickname: nickname, LobbyId: this.lobbyId };
 
-		this.socket = io.connect({ reconnection: false, auth: authObj });
+		this.socket = io({ autoConnect: false, reconnection: false, auth: authObj });
+		this.socket.connect();
 		// TODO this could use more explanation
 		// const script = document.createElement('script');
 		// script.src = "/socket.io/socket.io.js";

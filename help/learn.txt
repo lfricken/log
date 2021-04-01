@@ -39,3 +39,13 @@ React wont let you pick a different baseUrl for typescript, so we'll just stick 
 
 If a javascript file is in the same folder as the tsx stuff, it will glitch out about there being no exports. Solution is to build to another folder outside the react folder.
 
+
+
+Finally found the cause of double connections
+https://github.com/reactjs/reactjs.org/issues/3601
+
+
+
+
+
+

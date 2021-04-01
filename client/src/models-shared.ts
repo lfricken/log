@@ -1,31 +1,42 @@
 /* eslint-disable no-magic-numbers */
 import sanitize from "sanitize-html";
-import cookie from 'react-cookies'
+import cookie from 'react-cookies';
+
+export type UniqueId = string;
+export type LobbyId = string;
 
 export namespace Const
 {
+	export const DisconnectTimeoutMilliseconds = 2000;
 	export const UniqueIdLength = 8;
+
+	/** Player messages (sending player messages) */
 	export const Chat = 'm';
+	/** Lobby events (players leaving and joining) */
+	export const Log = 'l';
+	/** Player action (like modifying trade posture) */
+	export const Action = 'a';
+
+	export const CookieDurationSeconds = 31536000;
 	export const CookieUniqueId = "uniqueid";
 	export const CookieNickname = "nickname";
 }
 
 export namespace Util
 {
-	const oneYear = 31536000;
 	export function LoadSaveDefaultCookie(key: keyof (Core.ICookie), defaultValue: string): string
 	{
 		let val = cookie.load(key);
 		if (val === null || val === undefined)
 		{
 			val = defaultValue;
-			cookie.save(key, val, { expires: new Date(Date.now() + oneYear) });
+			cookie.save(key, val, { expires: new Date(Date.now() + Const.CookieDurationSeconds) });
 		}
 		return val;
 	}
 	export function SaveCookie(key: keyof (Core.ICookie), val: string): void
 	{
-		cookie.save(key, val, { expires: new Date(Date.now() + oneYear) });
+		cookie.save(key, val, { expires: new Date(Date.now() + Const.CookieDurationSeconds) });
 	}
 	export function GetUniqueId(len: number): string
 	{
@@ -42,31 +53,38 @@ export namespace Util
 
 export namespace Core
 {
+	export enum ConnectionType
+	{
+		NewPlayer,
+		NewSocket,
+		Reconnect,
+	}
+
 	export interface ICookie
 	{
-		uniqueid: string;
+		uniqueid: UniqueId;
 		nickname: string;
 	}
 
 	export interface IAuth
 	{
-		UniqueId: string;
+		UniqueId: UniqueId;
 		Nickname: string;
-		LobbyId: string;
+		LobbyId: LobbyId;
 	}
 }
 
-export namespace Model
+export namespace ViewModel
 {
 	export class Games
 	{
 		public constructor()
 		{
-			this.Games = new Map<string, Game>();
+			this.Games = new Map<LobbyId, Game>();
 		}
 
 		/** LobbyId > Game */
-		public Games!: Map<string, Game>;
+		public Games!: Map<LobbyId, Game>;
 	}
 
 	/**
@@ -74,13 +92,20 @@ export namespace Model
 	 */
 	export class Game
 	{
-		public constructor()
+		public constructor(lobbyId: string)
 		{
-			this.Players = new Map<string, Player>();
+			this.LobbyId = lobbyId;
+			this.Players = new Map<UniqueId, Player>();
 		}
 
 		/** UniqueId (socket) > Player */
-		public Players!: Map<string, Player>;
+		public Players!: Map<UniqueId, Player>;
+		public LobbyId!: string;
+
+		public get NumPlayers(): number
+		{
+			return this.Players.size;
+		}
 	}
 
 	/**
@@ -88,26 +113,55 @@ export namespace Model
 	 */
 	export class Player
 	{
-		public constructor()
+		public constructor(num: number, nickname: string)
 		{
-			this.Turns = new Map<number, Turn>();
+			this.Number = num;
+			this.Nickname = nickname;
+			this.IsConnected = true;
+			this.Turns = [new Turn()];
+			this.Timeout = null;
 		}
-
-		/** Turn Number > Turn Data */
-		public Turns!: Map<number, Turn>;
 		/** The order this player joined in.  */
 		public Number!: number;
 		/** Id of the socket this player is using. */
 		public SocketId!: string;
-		/** True if this player has control of the lobby. */
-		public IsLobbyLeader!: boolean;
+		/** The name this player goes by. */
+		public Nickname!: string;
 		/** 
 		 * True if this player is currently connected. We don't use the socket because we
 		 * want them to be able to switch sockets without anyone noticing.
 		 */
 		public IsConnected!: boolean
-		/** The name this player goes by. */
-		public Nickname!: string;
+		/** Turn Number > Turn Data */
+		public Turns!: Turn[];
+		public get LastTurn(): Turn
+		{
+			return this.Turns[this.Turns.length - 1];
+		}
+		public SetTimeout(value: NodeJS.Timeout): void
+		{
+			// handle old timeout
+			this.ClearTimeout();
+			this.Timeout = value;
+		}
+		public ClearTimeout(): void
+		{
+			if (this.Timeout !== null)
+			{
+				clearTimeout(this.Timeout);
+				this.Timeout = null;
+			}
+		}
+		public get DisplayName(): string
+		{
+			return `${this.Nickname}(${this.Number})`;
+		}
+		/** Id of the socket this player is using. */
+		public Timeout!: NodeJS.Timeout | null;
+
+
+		/** True if this player has control of the lobby. */
+		public IsLobbyLeader!: boolean;
 	}
 
 	/**
@@ -127,11 +181,11 @@ export namespace Chat
 		public static readonly MaxLenName: number = 7;
 		public static readonly MaxLenMessage: number = 120;
 
-		Nickname: string;
-		Text: string;
-		public constructor(name: string, message: string)
+		public Sender!: string;
+		public Text!: string;
+		public constructor(nickname: string, message: string)
 		{
-			this.Nickname = name;
+			this.Sender = nickname;
 			this.Text = message;
 			Message.Validate(this);
 		}
@@ -139,43 +193,76 @@ export namespace Chat
 
 		public static Validate(data: Message): boolean
 		{
-			data.Nickname = data.Nickname.slice(0, Message.MaxLenName)
+			data.Sender = data.Sender.slice(0, Message.MaxLenName)
 			data.Text = data.Text.slice(0, Message.MaxLenMessage)
-			data.Nickname = sanitize(data.Nickname);
+			data.Sender = sanitize(data.Sender);
 			data.Text = sanitize(data.Text);
 
-			if (data.Nickname.length < 2) return false;
+			if (data.Sender.length < 2) return false;
 			if (data.Text.length < 2) return false;
 
 			return true;
 		}
-		public static GetDestinations(data: Message, players: Map<string, Model.Player>): string[] | null
+		public static GetDestinations(text: string, players: Map<UniqueId, ViewModel.Player>): string[]
 		{
+			const targetIds: string[] = [];
+
 			// given format #,#,#...@message
 			// send to only player numbers
-			const split = data.Text.split('@');
+			let split = text.split('@');
 			if (split.length > 1)
 			{
-				const targets = split[0].split(',');
+				const targets = split[0].split(' ');
 				// if a players number is contained in the targets list, add the target socket id
 				for (const p of players.values())
 				{
 					if (targets.includes(p.Number.toString()))
 					{
-						targets.push(p.SocketId);
+						targetIds.push(p.SocketId);
 					}
 				}
-				return targets;
 			}
 			else
-				return null; // all
+			{
+				for (const p of players.values())
+				{
+					targetIds.push(p.SocketId);
+				}
+			}
+
+			return targetIds;
 		}
-		public static DisplayString(data: Message): string
+		public static NameString(nickname: string, num: number): string
 		{
-			if (data.Nickname.length === 0)
-				return data.Text;
-			else
-				return data.Nickname + ": " + data.Text;
+			return `${nickname}(${num})`;
+		}
+		public static PlayerMsg(player: ViewModel.Player, msg: Message): Message
+		{
+			return new Message(player.Nickname, `${Message.NameString(player.Nickname, player.Number)}: ${msg.Text}`);
+		}
+		public static JoinMsg(player: ViewModel.Player): Message
+		{
+			return new Message("", `${Message.NameString(player.Nickname, player.Number)} joined.`);
+		}
+		public static ReconnectMsg(player: ViewModel.Player): Message
+		{
+			return new Message("", `${Message.NameString(player.Nickname, player.Number)} reconnected.`);
+		}
+		public static DisconnectMsg(player: ViewModel.Player): Message
+		{
+			return new Message("", `${Message.NameString(player.Nickname, player.Number)} disconnected.`);
+		}
+		public static ChangeNameMsg(player: ViewModel.Player, newName: string): Message
+		{
+			return new Message("",
+				Message.NameString(player.Nickname, player.Number)
+				+ " changed their name to "
+				+ Message.NameString(newName, player.Number)
+			);
+		}
+		public static LeaderMsg(player: ViewModel.Player): Message
+		{
+			return new Message("", `${Message.NameString(player.Nickname, player.Number)} is the new lobby leader.`);
 		}
 	}
 }
