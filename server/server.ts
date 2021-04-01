@@ -4,9 +4,10 @@ import * as io from "socket.io";
 import * as path from "path";
 import * as pg from "pg";
 import * as dotenv from "dotenv";
-import { Const, Core, Chat, ViewModel, UniqueId } from "../client/src/models-shared";
-import { Model } from "./models-server";
 import express from "express";
+import * as ViewModels from "../client/src/viewmodels";
+import * as Models from "./models";
+import * as Shared from "../client/src/shared";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const process: any;
@@ -26,12 +27,12 @@ global.custom = {
 const expWrap = express();
 const httpServer = http.createServer(expWrap);
 
-const g = new Model.Games();
+const g = new Models.Games();
 const ioWrap = new io.Server(httpServer);
 {
 	ioWrap.on("connect", (socket: io.Socket) =>
 	{
-		const auth = socket.handshake.auth as Core.IAuth;
+		const auth = socket.handshake.auth as Shared.IAuth;
 		socket.join(auth.LobbyId);
 		const { game, player, turn, makeLeader, type } = ModelsOnConnection(g, auth, socket.id);
 		const pnum = player.Number;
@@ -41,17 +42,17 @@ const ioWrap = new io.Server(httpServer);
 		if (makeLeader)
 		{
 			player.IsLobbyLeader = true;
-			SendMessage(game, socket, Chat.Message.LeaderMsg(player));
+			SendMessage(game, socket, ViewModels.Message.LeaderMsg(player.DisplayName));
 		}
 
 		// reconnect
-		if (type === Core.ConnectionType.NewPlayer)
+		if (type === Shared.ConnectionType.NewPlayer)
 		{
-			SendMessage(game, socket, Chat.Message.JoinMsg(player));
+			SendMessage(game, socket, ViewModels.Message.JoinMsg(player.DisplayName));
 		}
-		else if (type === Core.ConnectionType.Reconnect)
+		else if (type === Shared.ConnectionType.Reconnect)
 		{
-			SendMessage(game, socket, Chat.Message.ReconnectMsg(player));
+			SendMessage(game, socket, ViewModels.Message.ReconnectMsg(player.DisplayName));
 		}
 
 		socket.on("disconnect", () =>
@@ -60,7 +61,7 @@ const ioWrap = new io.Server(httpServer);
 
 			const timeout = setTimeout(() =>
 			{
-				SendMessage(game, socket, Chat.Message.DisconnectMsg(player));
+				SendMessage(game, socket, ViewModels.Message.DisconnectMsg(player.DisplayName));
 				player.IsConnected = false;
 
 				// pick new lobby leader
@@ -71,33 +72,35 @@ const ioWrap = new io.Server(httpServer);
 						if (p.IsConnected)
 						{
 							p.IsLobbyLeader = true;
-							SendMessage(game, socket, Chat.Message.LeaderMsg(p));
+							SendMessage(game, socket, ViewModels.Message.LeaderMsg(player.DisplayName));
 							break;
 						}
 					}
 				}
 
-			}, Const.DisconnectTimeoutMilliseconds);
+			}, Shared.DisconnectTimeoutMilliseconds);
 			player.SetTimeout(timeout);
 		});
-		socket.on(Const.Chat, (message: Chat.Message) =>
+		socket.on(Shared.Chat, (message: ViewModels.Message) =>
 		{
-			Chat.Message.Validate(message);
+			ViewModels.Message.Validate(message);
 
 			// change name notification
 			if (message.Sender !== player.Nickname)
 			{
-				SendMessage(game, socket, Chat.Message.ChangeNameMsg(player, message.Sender));
+				const oldName = player.DisplayName;
 				player.Nickname = message.Sender;
+				const newName = player.DisplayName;
+				SendMessage(game, socket, ViewModels.Message.ChangeNameMsg(oldName, newName));
 			}
 
-			SendMessage(game, socket, Chat.Message.PlayerMsg(player, message));
+			SendMessage(game, socket, ViewModels.Message.PlayerMsg(player.DisplayName, message));
 		});
 	});
 }
 
-function ModelsOnConnection(g: Model.Games, auth: Core.IAuth, socketId: string):
-	{ game: Model.Game, player: Model.Player, turn: Model.Turn, makeLeader: boolean, type: Core.ConnectionType }
+function ModelsOnConnection(g: Models.Games, auth: Shared.IAuth, socketId: string):
+	{ game: Models.Game, player: Models.Player, turn: Models.Turn, makeLeader: boolean, type: Shared.ConnectionType }
 {
 	const lid = auth.LobbyId;
 	const uid = auth.UniqueId;
@@ -108,7 +111,7 @@ function ModelsOnConnection(g: Model.Games, auth: Core.IAuth, socketId: string):
 	if (!g.Games.has(lid))
 	{
 		makeLeader = true;
-		g.Games.set(lid, new Model.Game(lid));
+		g.Games.set(lid, new Models.Game(lid));
 	}
 	const game = g.Games.get(lid)!;
 
@@ -117,7 +120,7 @@ function ModelsOnConnection(g: Model.Games, auth: Core.IAuth, socketId: string):
 	if (!game?.Players.has(uid))
 	{
 		newPlayer = true;
-		game.Players.set(uid, new Model.Player(game.NumPlayers, nickname));
+		game.Players.set(uid, new Models.Player(game.NumPlayers, nickname));
 	}
 	const player = game.Players.get(uid)!;
 
@@ -128,16 +131,16 @@ function ModelsOnConnection(g: Model.Games, auth: Core.IAuth, socketId: string):
 	player.SocketId = socketId;
 
 	// check what kind of connection this was
-	let type = Core.ConnectionType.NewPlayer;
+	let type = Shared.ConnectionType.NewPlayer;
 	if (!newPlayer)
 	{
 		if (!player.IsConnected)
 		{
-			type = Core.ConnectionType.Reconnect;
+			type = Shared.ConnectionType.Reconnect;
 		}
 		else
 		{
-			type = Core.ConnectionType.NewSocket;
+			type = Shared.ConnectionType.NewSocket;
 		}
 	}
 	player.IsConnected = true;
@@ -146,11 +149,11 @@ function ModelsOnConnection(g: Model.Games, auth: Core.IAuth, socketId: string):
 
 	return { game: game, player: player, turn: turn, makeLeader: makeLeader, type: type };
 }
-function SendMessage(game: Model.Game, socket: io.Socket, mes: Chat.Message): void
+function SendMessage(game: Models.Game, socket: io.Socket, mes: ViewModels.Message): void
 {
-	const targetIds = Chat.Message.GetDestinations(mes.Text, game.Players);
+	const targetIds = game.GetDestinations(mes.Text);
 	if (targetIds.length > 0)
-		ioWrap.to(targetIds).emit(Const.Chat, mes);
+		ioWrap.to(targetIds).emit(Shared.Chat, mes);
 }
 
 
@@ -167,7 +170,7 @@ function SendMessage(game: Model.Game, socket: io.Socket, mes: Chat.Message): vo
 	// Put all API endpoints under '/api'
 	expWrap.get("/api/passwords", async (req: exp.Request, res: exp.Response) =>
 	{
-		let xy = new Model.Turn();
+		let xy = new Models.Turn();
 		const data = [];
 		const databaseRes = await pool.query("SELECT * FROM horses;"); //, (err, res) =>
 		for (const row of databaseRes.rows)

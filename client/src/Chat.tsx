@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { ReactNode } from 'react';
 import './Chat.css';
-import { Util, Const, Chat } from "./models-shared";
+import * as ViewModels from "./viewmodels";
+import * as Shared from "./shared";
+import * as Client from "./client";
 
 console.log('Chat loading')
 interface Props
@@ -12,7 +14,7 @@ interface Props
 interface State
 {
 	nickname: string;
-	messages: Chat.Message[];
+	messages: ViewModels.Message[];
 }
 export class ChatComp extends React.Component<Props, State>
 {
@@ -36,7 +38,7 @@ export class ChatComp extends React.Component<Props, State>
 		this.chatInput = document.getElementById('chatInput') as HTMLInputElement;
 		this.nameInput = document.getElementById('nameInput') as HTMLInputElement;
 
-		this.props.socket.on(Const.Chat, this.onNewMessage.bind(this));
+		this.props.socket.on(Shared.Chat, this.onNewMessage.bind(this));
 
 		var chatForm = document.getElementById('chatForm') as HTMLFormElement;
 		chatForm.addEventListener('submit', this.onSubmitMessage.bind(this));
@@ -47,16 +49,16 @@ export class ChatComp extends React.Component<Props, State>
 		e.preventDefault();
 		const text = this.chatInput.value;
 		const nickname = this.nameInput.value;
-		const message = new Chat.Message(nickname, text);
-		Util.SaveCookie(Const.CookieNickname, nickname);
+		const message = new ViewModels.Message(nickname, text);
+		Client.SaveCookie(Client.CookieNickname, nickname);
 
 		if (nickname !== "" && text !== "")
 		{
-			this.props.socket.emit(Const.Chat, message);
+			this.props.socket.emit(Shared.Chat, message);
 			this.chatInput.value = '';
 		}
 	}
-	private onNewMessage(m: Chat.Message): void
+	private onNewMessage(m: ViewModels.Message): void
 	{
 		// follow the bottom of the chat if they are already looking there
 		const pixelRange = 80;
@@ -100,4 +102,4 @@ export class ChatComp extends React.Component<Props, State>
 	}
 }
 
-export default Chat;
+export default ChatComp;

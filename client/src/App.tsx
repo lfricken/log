@@ -2,8 +2,9 @@ import * as React from 'react';
 import './App.css';
 import io from "socket.io-client";
 import { ChatComp } from './Chat'
-import { Const, Core, Util } from './models-shared';
 import { ReactNode } from 'react';
+import * as Shared from './shared';
+import * as Client from './client';
 
 
 console.log('App loading')
@@ -33,10 +34,10 @@ class App extends React.Component<Props, State>
 		const splitUrl = window.location.href.split('/');
 		this.lobbyId = splitUrl[splitUrl.length - 1];
 
-		const uniqueId = Util.LoadSaveDefaultCookie(Const.CookieUniqueId, Util.GetUniqueId(Const.UniqueIdLength));
-		const nickname = Util.LoadSaveDefaultCookie(Const.CookieNickname, "Rando");
+		const uniqueId = Client.LoadSaveDefaultCookie(Client.CookieUniqueId, Client.GetUniqueId(Shared.UniqueIdLength));
+		const nickname = Client.LoadSaveDefaultCookie(Client.CookieNickname, "Rando");
 
-		const authObj: Core.IAuth = { UniqueId: uniqueId, Nickname: nickname, LobbyId: this.lobbyId };
+		const authObj: Shared.IAuth = { UniqueId: uniqueId, Nickname: nickname, LobbyId: this.lobbyId };
 
 		this.socket = io({ autoConnect: false, reconnection: false, auth: authObj });
 		this.socket.connect();
@@ -57,7 +58,7 @@ class App extends React.Component<Props, State>
 	render(): ReactNode
 	{
 		console.log('App render.')
-		const nickname = Util.LoadSaveDefaultCookie(Const.CookieNickname, "Rando");
+		const nickname = Client.LoadSaveDefaultCookie(Client.CookieNickname, "Rando");
 
 		return (
 			<div className="chatComp">

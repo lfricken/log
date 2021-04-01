@@ -1,4 +1,4 @@
-import * as real from "./models-shared";
+import * as real from "./viewmodels";
 
 test('Targetted message gets sockets.', () =>
 {
@@ -7,7 +7,7 @@ test('Targetted message gets sockets.', () =>
 
 test('Message has max length after validation.', () =>
 {
-	const mes = new real.Chat.Message(
+	const mes = new real.Message(
 		"a name that is too long",
 		"a message that is too longa message that is too longa message that is too longa message"
 		+ "that is too longa message that is too longa message that is too longa message that is to"
@@ -16,6 +16,6 @@ test('Message has max length after validation.', () =>
 		+ "o longa message that is too longa message that is too longa message that is too long"
 	)
 
-	expect(mes.Text.length <= real.Chat.Message.MaxLenMessage).toBe(true);
+	expect(mes.Text.length <= real.Message.MaxLenMessage).toBe(true);
 });
 
