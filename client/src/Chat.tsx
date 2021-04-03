@@ -88,26 +88,14 @@ export class ChatComp extends React.Component<Props, State>
 					)}
 				</div>
 				<div className="wrapper">
-					<div className="aside ord1" >
-						<input id="nameInput" autoComplete="off" defaultValue={name} />
+					<div className="aside ord1 wid1" >
+						<input className="textInput" id="nameInput" autoComplete="off" defaultValue={name} />
 					</div>
-					<div className="aside ord2" >
+					<div className="aside ord2 wid3" >
 						<form id="chatForm">
-							<input id="chatInput" autoComplete="off" />
+							<input className="textInput" id="chatInput" autoComplete="off" />
 						</form>
 					</div>
-				</div>
-				<div className="wrapper">
-					<header className="header">Header</header>
-					<article className="main">
-						<p>Pellentesque habitant morbi tristique senectus et netus et
-						malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae,
-						ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper.
-							Aenean ultricies mi vitae est. Mauris placerat eleifend leo.</p>
-					</article>
-					<div className="aside aside-1">Aside 1</div>
-					<aside className="aside aside-2">Aside 2</aside>
-					<footer className="footer">Footer</footer>
 				</div>
 			</div>
 		);

@@ -14,6 +14,11 @@
 	overflow-y: scroll;
 }
 
+.textInput {
+	width: 100%;
+	box-sizing: border-box; 
+}
+
 .wrapper {
 	display: flex;
 	flex-flow: row wrap;
@@ -34,31 +39,22 @@
    */
   
   /* Medium screens */
-  @media all and (min-width: 60px) {
+  @media all and (min-width: 0px) {
 	/* We tell both sidebars to share a row */
 	.aside { flex: 1 auto; }
   }
   
   /* Large screens */
-  @media all and (min-width: 80px) {
+  @media all and (min-width: 0px) {
 	/* We invert order of first sidebar and main
 	 * And tell the main element to take twice as much width as the other two sidebars 
 	 */
-	.ord1 { order: 1; }
+	.ord1 { order: 1; margin-right: 4px; }
 	.ord2 { order: 2; }
-	.main { flex: 2 0px; }
-	.aside-1 { order: 1; }
-	.main    { order: 2; }
-	.aside-2 { order: 3; }
-	.footer  { order: 4; }
+	.wid1 { flex: 1 0px; }
+	.wid3 { flex: 3 0px; }
   }
 
-/* Clear floats after the columns */
-.row:after {
-	content: "";
-	display: table;
-	clear: both;
-}
 .official_message
 {
 	font-style: italic;
