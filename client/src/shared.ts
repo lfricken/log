@@ -1,3 +1,4 @@
+/** Shared logic between client and server. */
 
 export type UniqueId = string;
 export type LobbyId = string;

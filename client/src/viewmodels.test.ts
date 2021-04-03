@@ -1,4 +1,4 @@
-import * as real from "./viewmodels";
+import * as real from "./viewmodel";
 
 test('Targetted message gets sockets.', () =>
 {

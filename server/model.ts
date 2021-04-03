@@ -1,15 +1,6 @@
+/** Server side model. View Viewmodel (Model) */
+
 import * as Shared from "../client/src/shared";
-
-export class Games
-{
-	public constructor()
-	{
-		this.Games = new Map<Shared.LobbyId, Game>();
-	}
-
-	/** LobbyId > Game */
-	public Games!: Map<Shared.LobbyId, Game>;
-}
 
 /**
  * Data about a given game, indexed on LobbyId.
