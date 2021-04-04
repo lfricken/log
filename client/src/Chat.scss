@@ -33,9 +33,9 @@
 /* Large screens */
 @media all and (min-width: 0px) {
 	/* We invert order of first sidebar and main
-	 * And tell the main element to take twice as much width as the other two sidebars 
+	 * And tell the main element to take twice as much width as the other two sidebars
 	 */
-	.ord1 { order: 1; max-width: 6em; }
+	.ord1 { order: 1; max-width: 16em; }
 	.ord2 { order: 2; }
 	.wid1 { flex: 1 0px; }
 	.wid3 { flex: 3 0px; }

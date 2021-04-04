@@ -32,11 +32,11 @@
 /* Large screens */
 @media all and (min-width: 0px) {
   /* We invert order of first sidebar and main
-   * And tell the main element to take twice as much width as the other two sidebars 
+   * And tell the main element to take twice as much width as the other two sidebars
    */
   .ord1 {
     order: 1;
-    max-width: 6em;
+    max-width: 16em;
   }
 
   .ord2 {

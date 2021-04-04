@@ -2,20 +2,34 @@
 	"version": "0.2.0",
 	"compounds": [
 		{
-			"name": "Debug",
+			"name": "Build",
 			"configurations": [
-				"client launch chrome",
-				"client attach chrome",
-				"client start sass",
-				"server start and attach",
-				"client start"
+				"build all"
+			]
+		},
+		{
+			"name": "Debug Built",
+			"configurations": [
+				"chrome launch",
+				"chrome attach",
+				"watch server"
+			]
+		},
+		{
+			"name": "Debug React",
+			"configurations": [
+				"chrome launch react",
+				"chrome attach",
+				"watch server",
+				"watch sass",
+				"watch client"
 			]
 		},
 		{
 			"name": "Heroku Sim",
 			"configurations": [
-				"start heroku",
-				"client launch chrome"
+				"heroku start",
+				"chrome launch"
 			]
 		},
 		{
@@ -49,9 +63,9 @@
 		},
 		{
 			"presentation": {
-				"hidden": false
+				"hidden": true
 			},
-			"name": "server start and attach",
+			"name": "watch server",
 			"type": "node-terminal",
 			"request": "launch",
 			"command": "yarn start_watch",
@@ -59,9 +73,9 @@
 		},
 		{
 			"presentation": {
-				"hidden": false
+				"hidden": true
 			},
-			"name": "client start",
+			"name": "watch client",
 			"type": "node-terminal",
 			"request": "launch",
 			"command": "yarn start_watch",
@@ -69,9 +83,9 @@
 		},
 		{
 			"presentation": {
-				"hidden": false
+				"hidden": true
 			},
-			"name": "client start sass",
+			"name": "watch sass",
 			"type": "node-terminal",
 			"request": "launch",
 			"command": "yarn build_sass --watch",
@@ -81,7 +95,30 @@
 			"presentation": {
 				"hidden": true
 			},
-			"name": "client launch chrome",
+			"name": "build all",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "yarn heroku-postbuild",
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"presentation": {
+				"hidden": true
+			},
+			"name": "chrome launch",
+			"request": "launch",
+			"runtimeArgs": [
+				"--remote-debugging-port=8080"
+			],
+			"type": "pwa-chrome",
+			"url": "http://localhost:3001/a",
+			"webRoot": "${workspaceFolder}"
+		},
+		{
+			"presentation": {
+				"hidden": true
+			},
+			"name": "chrome launch react",
 			"request": "launch",
 			"runtimeArgs": [
 				"--remote-debugging-port=8080"
@@ -94,7 +131,7 @@
 			"presentation": {
 				"hidden": true
 			},
-			"name": "client attach chrome",
+			"name": "chrome attach",
 			"port": 8080,
 			"timeout": 5000,
 			"request": "attach",
@@ -105,7 +142,7 @@
 			"presentation": {
 				"hidden": true
 			},
-			"name": "start heroku",
+			"name": "heroku start",
 			"type": "node-terminal",
 			"request": "launch",
 			"command": "yarn heroku-sim",
