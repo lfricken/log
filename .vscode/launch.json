@@ -33,6 +33,12 @@
 			]
 		},
 		{
+			"name": "Clean All",
+			"configurations": [
+				"clean all"
+			]
+		},
+		{
 			"name": "Debug Tests",
 			"configurations": [
 				"test client",
@@ -49,6 +55,16 @@
 			"type": "node-terminal",
 			"request": "launch",
 			"command": "yarn test",
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"presentation": {
+				"hidden": true
+			},
+			"name": "clean all",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "./clean_all.bat",
 			"cwd": "${workspaceFolder}"
 		},
 		{
