@@ -57,6 +57,8 @@ export class Game
  */
 export class Player
 {
+	public static NoSocket = "";
+
 	public constructor(num: number, nickname: string)
 	{
 		this.Number = num;
@@ -64,16 +66,18 @@ export class Player
 		this.IsConnected = true;
 		this.Turns = [new Turn()];
 		this.Timeout = null;
+		this.SocketId = Player.NoSocket;
 	}
 	/** The order this player joined in.  */
 	public Number!: number;
-	/** Id of the socket this player is using. */
+	/** Id of the socket this player is using. Empty string if no socket. */
 	public SocketId!: string;
 	/** The name this player goes by. */
 	public Nickname!: string;
 	/** 
-	 * True if this player is currently connected. We don't use the socket because we
-	 * want them to be able to switch sockets without anyone noticing.
+	 * True if this player has not timed out. Does not imply a live socket.
+	 * We don't use the socket because we want them to be able to switch sockets 
+	 * without anyone noticing (refresh).
 	 */
 	public IsConnected!: boolean
 	/** Turn Number > Turn Data */

@@ -24,7 +24,7 @@ export class ModelWireup
 	{
 		const auth = socket.handshake.auth as Shared.IAuth;
 		socket.join(auth.LobbyId);
-		const { game, player, makeLeader, type } = this.GetConnectionData(this, auth, socket.id);
+		const { game, player, makeLeader, type, isDoubleSocket } = this.GetConnectionData(this, auth, socket.id);
 		const pnum = player.Number;
 		console.log(`Socket ${socket.id} connected. Number:${pnum} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
 
@@ -44,11 +44,15 @@ export class ModelWireup
 		{
 			this.SendMessage(game, socket, ViewModel.Message.ReconnectMsg(player.DisplayName));
 		}
+		if (isDoubleSocket)
+		{
+			this.SendMessage(game, socket, ViewModel.Message.DoubleSocketMsg(player.Number));
+		}
 
 		socket.on("disconnect", () =>
 		{
 			console.log(`Socket ${socket.id} disconnected. Number:${pnum} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
-
+			player.SocketId = Player.NoSocket;
 			const timeout = setTimeout(() =>
 			{
 				this.SendMessage(game, socket, ViewModel.Message.DisconnectMsg(player.DisplayName));
@@ -62,7 +66,7 @@ export class ModelWireup
 						if (p.IsConnected)
 						{
 							p.IsLobbyLeader = true;
-							this.SendMessage(game, socket, ViewModel.Message.LeaderMsg(player.DisplayName));
+							this.SendMessage(game, socket, ViewModel.Message.LeaderMsg(p.DisplayName));
 							break;
 						}
 					}
@@ -93,13 +97,15 @@ export class ModelWireup
 	}
 
 	private GetConnectionData(g: ModelWireup, auth: Shared.IAuth, socketId: string):
-		{ game: Game, player: Player, makeLeader: boolean, type: Shared.ConnectionType }
+		{ game: Game, player: Player, makeLeader: boolean, type: Shared.ConnectionType, isDoubleSocket: boolean }
 	{
+		/**lobby id */
 		const lid = auth.LobbyId;
+		/** unique cookie id */
 		const uid = auth.UniqueId;
 		const nickname = auth.Nickname;
 
-		// create new game
+		// try create new game
 		let makeLeader = false;
 		if (!g.Games.has(lid))
 		{
@@ -108,7 +114,7 @@ export class ModelWireup
 		}
 		const game = g.Games.get(lid)!;
 
-		// create new player
+		// try create new player
 		let newPlayer = false;
 		if (!game?.Players.has(uid))
 		{
@@ -121,7 +127,10 @@ export class ModelWireup
 		player.ClearTimeout();
 
 		// ensure socket is correct
-		player.SocketId = socketId;
+		let isDoubleSocket = false;
+		if (player.SocketId !== Player.NoSocket)
+			isDoubleSocket = true; // double connections
+		player.SocketId = socketId; // the second connection is always right
 
 		// check what kind of connection this was
 		let type = Shared.ConnectionType.NewPlayer;
@@ -138,7 +147,7 @@ export class ModelWireup
 		}
 		player.IsConnected = true;
 
-		return { game: game, player: player, makeLeader: makeLeader, type: type };
+		return { game: game, player: player, makeLeader: makeLeader, type: type, isDoubleSocket };
 	}
 	private SendMessage(game: Game, socket: io.Socket, mes: ViewModel.Message): void
 	{

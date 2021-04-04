@@ -98,6 +98,10 @@ export class Message
 	{
 		return new Message("", `${name} reconnected.`);
 	}
+	public static DoubleSocketMsg(target: number): Message
+	{
+		return new Message("", `${target}@You joined twice!`);
+	}
 	public static DisconnectMsg(name: string): Message
 	{
 		return new Message("", `${name} disconnected.`);

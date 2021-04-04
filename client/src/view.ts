@@ -1,4 +1,4 @@
-/** Code only shared amongst the web client. (View) Viewmodel Model */
+/** Code only shared amongst the client. (View) Viewmodel Model */
 
 import cookie from 'react-cookies';
 import * as Shared from './shared';
