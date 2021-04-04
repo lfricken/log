@@ -1,0 +1,38 @@
+
+.chatComp {
+	text-align: center;
+	font-family: "Courier New", monospace;
+	width: 45%;
+	height: 30%;
+}
+
+.textInput {
+	width: 100%;
+	box-sizing: border-box; 
+}
+
+.wrapper {
+	display: flex;
+	flex-flow: row wrap;
+	gap: 4px;
+}
+
+/* We tell all items to be 100% width, via flex-basis */
+.wrapper > * {
+	flex: 1 100%;
+}
+
+.item { 
+	min-height: 200px;
+}
+
+/* Large screens */
+@media all and (min-width: 200px) {
+	/* We invert order of first sidebar and main
+	 * And tell the main element to take twice as much width as the other two sidebars 
+	 */
+	.ord1 { order: 1; max-width: 6em; }
+	.ord2 { order: 2; }
+	.wid1 { flex: 1 0px; }
+	.wid3 { flex: 3 0px; }
+}
