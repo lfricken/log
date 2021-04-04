@@ -40,8 +40,8 @@ export class ChatComp extends React.Component<Props, State>
 
 		this.props.socket.on(Shared.Chat, this.onNewMessage.bind(this));
 
-		var chatForm = document.getElementById('chatForm') as HTMLFormElement;
-		chatForm.addEventListener('submit', this.onSubmitMessage.bind(this));
+		//var chatForm = document.getElementById('chatForm') as HTMLFormElement;
+		//chatForm.addEventListener('submit', this.onSubmitMessage.bind(this));
 		return null;
 	}
 	private onSubmitMessage(e: Event): void
@@ -78,32 +78,35 @@ export class ChatComp extends React.Component<Props, State>
 		const maxNameLen = ViewModel.Message.MaxLenName;
 
 		return (
-			<div className="chat">
-				<div className="chatView" id="chatView">
-					{messages.map((message, idx: number) =>
-						<div
-							className={message.Sender === "" ? 'official_message' : ''}
-							key={idx}>
-							{message.Text}
+			<div className="chatCompSize">
+				<div className="chat component flexfiller">
+					<div className="main chatView" id="chatView">
+						{messages.map((message, idx: number) =>
+							<div
+								className={message.Sender === "" ? 'official_message' : ''}
+								key={idx}>
+								{message.Text}
+							</div>
+						)}
+					</div>
+					<div className="fillmaxed flexwrapper padchildren">
+						<div className="wrap wrapmaxed flexwrapper" >
+							<input
+								className="innerMax"
+								id="nameInput"
+								autoComplete="off"
+								maxLength={maxNameLen}
+								defaultValue={name}
+							/>
 						</div>
-					)}
-				</div>
-				<div className="wrapper">
-					<div className="aside ord1 wid1" >
-						<input
-							className="textInput"
-							id="nameInput"
-							autoComplete="off"
-							maxLength={maxNameLen}
-							defaultValue={name} />
-					</div>
-					<div className="aside ord2 wid3" >
-						<form id="chatForm">
-							<input className="textInput" id="chatInput" autoComplete="off" />
-						</form>
+						<div className="wrap flexwrapper" >
+							<form className="flexwrapper" id="chatForm">
+								<input id="chatInput" autoComplete="off" />
+							</form>
+						</div>
 					</div>
 				</div>
-			</div>
+			</div >
 		);
 	}
 }

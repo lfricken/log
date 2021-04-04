@@ -2,40 +2,21 @@
 	"version": "0.2.0",
 	"compounds": [
 		{
-			"name": "Build",
+			"name": "Debug React",
 			"configurations": [
-				"build all"
+				"watch server",
+				"watch sass",
+				"watch client",
+				"chrome launch 3000",
+				"chrome attach"
 			]
 		},
 		{
 			"name": "Debug Built",
 			"configurations": [
-				"chrome launch",
-				"chrome attach",
-				"watch server"
-			]
-		},
-		{
-			"name": "Debug React",
-			"configurations": [
-				"chrome launch react",
-				"chrome attach",
 				"watch server",
-				"watch sass",
-				"watch client"
-			]
-		},
-		{
-			"name": "Heroku Sim",
-			"configurations": [
-				"heroku start",
-				"chrome launch"
-			]
-		},
-		{
-			"name": "Clean All",
-			"configurations": [
-				"clean all"
+				"chrome launch 3001",
+				"chrome attach"
 			]
 		},
 		{
@@ -44,19 +25,28 @@
 				"test client",
 				"test server"
 			]
+		},
+		{
+			"name": "Heroku Sim",
+			"configurations": [
+				"heroku start",
+				"chrome launch 3000"
+			]
+		},
+		{
+			"name": "All Build",
+			"configurations": [
+				"build all"
+			]
+		},
+		{
+			"name": "All Clean",
+			"configurations": [
+				"clean all"
+			]
 		}
 	],
 	"configurations": [
-		{
-			"presentation": {
-				"hidden": true
-			},
-			"name": "test server",
-			"type": "node-terminal",
-			"request": "launch",
-			"command": "yarn test",
-			"cwd": "${workspaceFolder}"
-		},
 		{
 			"presentation": {
 				"hidden": true
@@ -71,11 +61,41 @@
 			"presentation": {
 				"hidden": true
 			},
+			"name": "build all",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "yarn heroku-postbuild",
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"presentation": {
+				"hidden": true
+			},
+			"name": "heroku start",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "yarn heroku-sim",
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"presentation": {
+				"hidden": true
+			},
 			"name": "test client",
 			"type": "node-terminal",
 			"request": "launch",
 			"command": "yarn test",
 			"cwd": "${workspaceFolder}/client"
+		},
+		{
+			"presentation": {
+				"hidden": true
+			},
+			"name": "test server",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "yarn test",
+			"cwd": "${workspaceFolder}"
 		},
 		{
 			"presentation": {
@@ -111,42 +131,6 @@
 			"presentation": {
 				"hidden": true
 			},
-			"name": "build all",
-			"type": "node-terminal",
-			"request": "launch",
-			"command": "yarn heroku-postbuild",
-			"cwd": "${workspaceFolder}"
-		},
-		{
-			"presentation": {
-				"hidden": true
-			},
-			"name": "chrome launch",
-			"request": "launch",
-			"runtimeArgs": [
-				"--remote-debugging-port=8080"
-			],
-			"type": "pwa-chrome",
-			"url": "http://localhost:3001/a",
-			"webRoot": "${workspaceFolder}"
-		},
-		{
-			"presentation": {
-				"hidden": true
-			},
-			"name": "chrome launch react",
-			"request": "launch",
-			"runtimeArgs": [
-				"--remote-debugging-port=8080"
-			],
-			"type": "pwa-chrome",
-			"url": "http://localhost:3000/a",
-			"webRoot": "${workspaceFolder}"
-		},
-		{
-			"presentation": {
-				"hidden": true
-			},
 			"name": "chrome attach",
 			"port": 8080,
 			"timeout": 5000,
@@ -158,11 +142,27 @@
 			"presentation": {
 				"hidden": true
 			},
-			"name": "heroku start",
-			"type": "node-terminal",
+			"name": "chrome launch 3001",
 			"request": "launch",
-			"command": "yarn heroku-sim",
-			"cwd": "${workspaceFolder}"
+			"runtimeArgs": [
+				"--remote-debugging-port=8080"
+			],
+			"type": "pwa-chrome",
+			"url": "http://localhost:3001/b",
+			"webRoot": "${workspaceFolder}"
+		},
+		{
+			"presentation": {
+				"hidden": true
+			},
+			"name": "chrome launch 3000",
+			"request": "launch",
+			"runtimeArgs": [
+				"--remote-debugging-port=8080"
+			],
+			"type": "pwa-chrome",
+			"url": "http://localhost:3000/a",
+			"webRoot": "${workspaceFolder}"
 		}
 	]
 }
