@@ -61,9 +61,9 @@ class App extends React.Component<Props, State>
 		const nickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
 
 		return (
-			<div className="chatComp">
-				{/**<LobbyJoin socket={this.socket} />**/}
-				<ChatComp nickname={nickname} socket={this.socket} />
+			<div className="wrapper">
+				<div className="item ord2"><ChatComp nickname={nickname} socket={this.socket} /></div>
+				<div className="item ord2"><ChatComp nickname={nickname} socket={this.socket} /></div>
 			</div>
 		);
 	}

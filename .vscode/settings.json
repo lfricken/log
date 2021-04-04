@@ -12,6 +12,7 @@
 		"**/*.lock": true,
 		"**/*.js": true,
 		"**/*.json": true,
+		"**/*.css.map": true,
 		"**/obj": true,
 		"**/bin": true,
 		"**/node_modules": true,

@@ -1,7 +1,7 @@
 /** Models that transfer data between client and server. View (Viewmodel) Model */
 
 /* eslint-disable no-magic-numbers */
-import sanitize from "sanitize-html";
+import ViewModel from "sanitize-html";
 import { LobbyId, UniqueId } from "./shared";
 
 
@@ -74,8 +74,8 @@ export class Message
 	{
 		data.Sender = data.Sender.slice(0, Message.MaxLenName)
 		data.Text = data.Text.slice(0, Message.MaxLenMessage)
-		data.Sender = sanitize(data.Sender);
-		data.Text = sanitize(data.Text);
+		data.Sender = ViewModel(data.Sender);
+		data.Text = ViewModel(data.Text);
 
 		if (data.Sender.length < 2) return false;
 		if (data.Text.length < 2) return false;

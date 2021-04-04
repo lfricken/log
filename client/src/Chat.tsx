@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ReactNode } from 'react';
 import './Chat.css';
-import * as ViewModels from "./viewmodel";
+import * as ViewModel from "./viewmodel";
 import * as Shared from "./shared";
 import * as View from "./view";
 
@@ -14,7 +14,7 @@ interface Props
 interface State
 {
 	nickname: string;
-	messages: ViewModels.Message[];
+	messages: ViewModel.Message[];
 }
 export class ChatComp extends React.Component<Props, State>
 {
@@ -49,7 +49,7 @@ export class ChatComp extends React.Component<Props, State>
 		e.preventDefault();
 		const text = this.chatInput.value;
 		const nickname = this.nameInput.value;
-		const message = new ViewModels.Message(nickname, text);
+		const message = new ViewModel.Message(nickname, text);
 		View.SaveCookie(View.CookieNickname, nickname);
 
 		if (nickname !== "" && text !== "")
@@ -58,7 +58,7 @@ export class ChatComp extends React.Component<Props, State>
 			this.chatInput.value = '';
 		}
 	}
-	private onNewMessage(m: ViewModels.Message): void
+	private onNewMessage(m: ViewModel.Message): void
 	{
 		// follow the bottom of the chat if they are already looking there
 		const pixelRange = 80;
@@ -75,6 +75,7 @@ export class ChatComp extends React.Component<Props, State>
 	{
 		console.log('Chat render')
 		const { nickname: name, messages } = this.state;
+		const maxNameLen = ViewModel.Message.MaxLenName;
 
 		return (
 			<div className="chat">
@@ -89,7 +90,12 @@ export class ChatComp extends React.Component<Props, State>
 				</div>
 				<div className="wrapper">
 					<div className="aside ord1 wid1" >
-						<input className="textInput" id="nameInput" autoComplete="off" defaultValue={name} />
+						<input
+							className="textInput"
+							id="nameInput"
+							autoComplete="off"
+							maxLength={maxNameLen}
+							defaultValue={name} />
 					</div>
 					<div className="aside ord2 wid3" >
 						<form id="chatForm">

@@ -6,6 +6,7 @@
 			"configurations": [
 				"client launch chrome",
 				"client attach chrome",
+				"client start sass",
 				"server start and attach",
 				"client start"
 			]
@@ -64,6 +65,16 @@
 			"type": "node-terminal",
 			"request": "launch",
 			"command": "yarn start_watch",
+			"cwd": "${workspaceFolder}/client"
+		},
+		{
+			"presentation": {
+				"hidden": false
+			},
+			"name": "client start sass",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "yarn build_sass --watch",
 			"cwd": "${workspaceFolder}/client"
 		},
 		{
