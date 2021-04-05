@@ -1,44 +1,16 @@
 @use 'Main';
 
 
-.chatComp {
-	text-align: center;
-	font-family: "Courier New", monospace;
-	width: 100%;
-	height: 100%;
-	box-sizing: border-box;
-}
-
-
-.chatView {
+.message-view {
 	text-align: left;
 	font-size: small;
 	overflow-y: scroll;
 }
-
-
-.official_message
+.server-message
 {
 	font-style: italic;
 	font-weight: bold;
 }
-
-/* fill horizontal space */
-.flexwrapper-max {
-	display: flex;  
-	flex-flow: row wrap;
-}
-/* children of flexwrapper should automatically fill the whole row */
-.flex-max > * { 
-	flex: 1 1 100%;
-}
-.flexfiller- > * {
-	flex: 1;
-}
-
-/* if page is big enough, let things marked with wrap */
-@media all and (min-width: 600px) {
-	.wrap { flex-basis: 0; } /* take up fraction of row only */
-	.wrapfixed { flex: 0 0 0; } /*just have default size of content */
-	.innerMax { width: 7em; }
+.nickname-box-width {
+	width: 7em;
 }

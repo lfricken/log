@@ -1,12 +1,13 @@
+/** The component that lets players message eachother. */
+
 import * as React from 'react';
 import { ReactNode } from 'react';
-import './Chat.css';
-import './Main.css';
 import * as ViewModel from "./viewmodel";
 import * as Shared from "./shared";
 import * as View from "./view";
+import './Chat.css';
+import './Main.css';
 
-console.log('Chat loading')
 interface Props
 {
 	nickname: string;
@@ -74,25 +75,24 @@ export class ChatComp extends React.Component<Props, State>
 	}
 	render(): ReactNode
 	{
-		console.log('Chat render')
 		const { nickname: name, messages } = this.state;
 		const maxNameLen = ViewModel.Message.MaxLenName;
 
 		return (
-			<div className="chatComp flexfiller">
-				<div className="flex chatView" id="chatView">
+			<div className="full-size flex-column">
+				<div className="flex message-view" id="chatView">
 					{messages.map((message, idx: number) =>
 						<div
-							className={message.Sender === "" ? 'official_message' : ''}
+							className={message.Sender === "" ? 'server-message' : ''}
 							key={idx}>
 							{message.Text}
 						</div>
 					)}
 				</div>
-				<div className="flexfixed padding flexwrapper">
-					<div className="flexfixed wrap flexwrapper" >
+				<div className="flex-row">
+					<div className="padding-small flex-row" >
 						<input
-							className="innerMax"
+							className="nickname-box-width"
 							id="nameInput"
 							autoComplete="off"
 							autoCapitalize="off"
@@ -100,8 +100,8 @@ export class ChatComp extends React.Component<Props, State>
 							defaultValue={name}
 						/>
 					</div>
-					<div className="flex wrap no-min-width flexwrapper" >
-						<form className="flex flexwrapper" id="chatForm">
+					<div className="flex no-min-width padding-small flex-row" >
+						<form className="flex flex-row" id="chatForm">
 							<input className="flex" id="chatInput" autoComplete="off" />
 						</form>
 					</div>

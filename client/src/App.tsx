@@ -1,13 +1,14 @@
+/** Primary Component. Index should only render this component. */
+
 import * as React from 'react';
-import './App.css';
 import io from "socket.io-client";
 import { ChatComp } from './Chat'
 import { ReactNode } from 'react';
 import * as Shared from './shared';
 import * as View from './view';
+import './App.css';
 
 
-console.log('App loading')
 interface Props
 {
 
@@ -41,37 +42,27 @@ class App extends React.Component<Props, State>
 
 		this.socket = io({ autoConnect: false, reconnection: false, auth: authObj });
 		this.socket.connect();
-		// TODO this could use more explanation
-		// const script = document.createElement('script');
-		// script.src = "/socket.io/socket.io.js";
-		// script.async = true;
-		// document.body.appendChild(script);
 	}
 
 	componentWillUnmount(): ReactNode
 	{
 		this.socket.disconnect();
-		// need to unsubscribe from socket
-
 		return null;
 	}
 	render(): ReactNode
 	{
-		console.log('App render.')
 		const nickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
 
 		return (
-			<div className="core">
-				<div className="flexwrapper">
-					<div className="flex flexfiller">
-						<div className="chat component"><ChatComp nickname={nickname} socket={this.socket} /></div>
-						<div className="log component"></div>
-					</div>
-					<div className="flex flexfiller">
-						<div className="lobby component"></div>
-						<div className="actions component"></div>
-						<div className="other component"></div>
-					</div>
+			<div className="padding-small flex-row with-gaps">
+				<div className="flex flex-column with-gaps">
+					<div className="chat component"><ChatComp nickname={nickname} socket={this.socket} /></div>
+					<div className="log component"></div>
+				</div>
+				<div className="flex flex-column with-gaps">
+					<div className="lobby component"></div>
+					<div className="actions component"></div>
+					<div className="other component"></div>
 				</div>
 			</div>
 		);

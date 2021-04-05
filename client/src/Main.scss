@@ -3,40 +3,26 @@
 
 
 /* fill horizontal space */
-.flexwrapper {
+.flex-row {
 	display: flex;  
 	flex-flow: row wrap;
 }
-/* adjust to fill remaining space */
-.flex { 
-	flex: 1;
-}
-/* adjust to fill all space */
-.flex-max > * { 
-	flex: 1 1 100%;
-}
-/* have size of content */
-.flexfixed {
-	flex: 0 0 0; 
-}
-/* if page is big enough, let things marked with wrap */
-@media all and (min-width: 700px) {
-	.wrap { flex-basis: 0; } /* take up fraction of row only */
-	.wrapfixed { flex: 0 0 0; } /*just have default size of content */
-	.innerMax { width: 7em; }
-}
-
-
-
 /* fill vertical space */
-.flexfiller {
+.flex-column {
 	display: flex;
 	flex-flow: column wrap;
 }
-/* these are the flex items, automatically marked with flex */
-// .flexfiller > * {
-// 	flex: 1;
-// }
+.with-gaps {
+	gap: 2px;
+}
+/* adjust to with other flex elements */
+.flex { 
+	flex: 1;
+}
+/* fill all space */
+.flex-max { 
+	flex: 1 1 100%;
+}
 
 
 
@@ -44,8 +30,12 @@
 	min-width: 0px;
 }
 /* content seperation inside element */
-.padding > * {
-	padding: 4px; 
+.padding-small {
+	margin: 2px; 
+}
+.full-size {
+	width: 100%;
+	height: 100%;
 }
 
 

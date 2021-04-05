@@ -1,18 +1,16 @@
+/** Entry point of client side program. Should only be rendering the primary App. */
 
 import * as React from 'react';
 import * as ReactDom from 'react-dom';
-import './index.css';
 import App from './App';
-//import Chat from './Chat';
+import './index.css';
 
-console.log('Client start rendering App in browser.')
 ReactDom.render(
 	<React.StrictMode>
 		<App />
 	</React.StrictMode>,
 	document.getElementById('root')
 );
-console.log('Client end rendering App in browser')
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
