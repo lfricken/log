@@ -1,7 +1,6 @@
 /** Code only shared amongst the client. (View) Viewmodel Model */
 
 import cookie from 'react-cookies';
-import * as Shared from './shared';
 
 
 export const CookieDurationSeconds = 31536000;
@@ -10,7 +9,7 @@ export const CookieNickname = "nickname";
 
 export interface ICookie
 {
-	uniqueid: Shared.UniqueId;
+	uniqueid: string;
 	nickname: string;
 }
 export function LoadSaveDefaultCookie(key: keyof (ICookie), defaultValue: string): string
