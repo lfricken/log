@@ -1,54 +1,26 @@
+@use 'Main';
 
-
-  .flexwrapper {
-	display: flex;  
-	flex-flow: row wrap;
-  }
-  .flexwrapper > * { /* default child values */
-	flex: 1 1 100%; /* default take up entire row */
-  }
-  .padchildren > * { /* default child values */
-	padding: 4px; /* inner content seperation */
-  }
-  
-  /* if page is at least */
-  @media all and (min-width: 700px) {
-	.wrap { flex-basis: 0; } /* take up fraction of row only */
-	.wrapmaxed { flex: 0 0 0; } /*just have default size of content */
-	.innerMax { width: 7em; }
-  }
-  
-  
-  
-  .flexfiller {
-	display: flex;
-	flex-direction: column;
-  }
-  .flexfiller > * {
-	/* these are the flex items */
-	flex: 1;
-  }
-  .fillmaxed {
-	 flex: 0 0 0; /*just have default size of content */
-  }
-  
-  /* contains a component */
-  .component {
+.core {
 	width: 100%;
 	height: 100%;
-	padding: 4px;
-	box-sizing: border-box;
-  }
-  
-  /* contains a component */
-  .component {
-	width: 100%;
-	height: 100%;
-	padding: 4px;
-	box-sizing: border-box;
-  }
+}
+.component {
+	min-width: 400px;
+	height: 150px;
+}
+.chat { 
+	background-color: lightblue;
+}
+.log { 
+	background-color: tomato;
+}
+.lobby { 
+	background-color: cyan;
+}
+.actions { 
+	background-color: lightgreen;
+}
+.other { 
+	background-color: gold;
+}
 
-  /* contains a component */
-  .min40per {
-	min-height: 40%;
-  }

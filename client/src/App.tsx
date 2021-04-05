@@ -61,9 +61,18 @@ class App extends React.Component<Props, State>
 		const nickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
 
 		return (
-			<div className="flexwrapper">
-				<div className="wrap"><ChatComp nickname={nickname} socket={this.socket} /></div>
-				<div className="wrap"><ChatComp nickname={nickname} socket={this.socket} /></div>
+			<div className="core">
+				<div className="flexwrapper">
+					<div className="flex flexfiller">
+						<div className="chat component"><ChatComp nickname={nickname} socket={this.socket} /></div>
+						<div className="log component"></div>
+					</div>
+					<div className="flex flexfiller">
+						<div className="lobby component"></div>
+						<div className="actions component"></div>
+						<div className="other component"></div>
+					</div>
+				</div>
 			</div>
 		);
 	}

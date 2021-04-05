@@ -1,0 +1,51 @@
+/* css shared by all client */
+
+
+
+/* fill horizontal space */
+.flexwrapper {
+	display: flex;  
+	flex-flow: row wrap;
+}
+/* adjust to fill remaining space */
+.flex { 
+	flex: 1;
+}
+/* adjust to fill all space */
+.flex-max > * { 
+	flex: 1 1 100%;
+}
+/* have size of content */
+.flexfixed {
+	flex: 0 0 0; 
+}
+/* if page is big enough, let things marked with wrap */
+@media all and (min-width: 700px) {
+	.wrap { flex-basis: 0; } /* take up fraction of row only */
+	.wrapfixed { flex: 0 0 0; } /*just have default size of content */
+	.innerMax { width: 7em; }
+}
+
+
+
+/* fill vertical space */
+.flexfiller {
+	display: flex;
+	flex-flow: column wrap;
+}
+/* these are the flex items, automatically marked with flex */
+// .flexfiller > * {
+// 	flex: 1;
+// }
+
+
+
+.no-min-width {
+	min-width: 0px;
+}
+/* content seperation inside element */
+.padding > * {
+	padding: 4px; 
+}
+
+

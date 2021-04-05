@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ReactNode } from 'react';
 import './Chat.css';
+import './Main.css';
 import * as ViewModel from "./viewmodel";
 import * as Shared from "./shared";
 import * as View from "./view";
@@ -40,8 +41,8 @@ export class ChatComp extends React.Component<Props, State>
 
 		this.props.socket.on(Shared.Chat, this.onNewMessage.bind(this));
 
-		//var chatForm = document.getElementById('chatForm') as HTMLFormElement;
-		//chatForm.addEventListener('submit', this.onSubmitMessage.bind(this));
+		var chatForm = document.getElementById('chatForm') as HTMLFormElement;
+		chatForm.addEventListener('submit', this.onSubmitMessage.bind(this));
 		return null;
 	}
 	private onSubmitMessage(e: Event): void
@@ -78,35 +79,34 @@ export class ChatComp extends React.Component<Props, State>
 		const maxNameLen = ViewModel.Message.MaxLenName;
 
 		return (
-			<div className="chatCompSize">
-				<div className="chat component flexfiller">
-					<div className="main chatView" id="chatView">
-						{messages.map((message, idx: number) =>
-							<div
-								className={message.Sender === "" ? 'official_message' : ''}
-								key={idx}>
-								{message.Text}
-							</div>
-						)}
+			<div className="chatComp flexfiller">
+				<div className="flex chatView" id="chatView">
+					{messages.map((message, idx: number) =>
+						<div
+							className={message.Sender === "" ? 'official_message' : ''}
+							key={idx}>
+							{message.Text}
+						</div>
+					)}
+				</div>
+				<div className="flexfixed padding flexwrapper">
+					<div className="flexfixed wrap flexwrapper" >
+						<input
+							className="innerMax"
+							id="nameInput"
+							autoComplete="off"
+							autoCapitalize="off"
+							maxLength={maxNameLen}
+							defaultValue={name}
+						/>
 					</div>
-					<div className="fillmaxed flexwrapper padchildren">
-						<div className="wrap wrapmaxed flexwrapper" >
-							<input
-								className="innerMax"
-								id="nameInput"
-								autoComplete="off"
-								maxLength={maxNameLen}
-								defaultValue={name}
-							/>
-						</div>
-						<div className="wrap flexwrapper" >
-							<form className="flexwrapper" id="chatForm">
-								<input id="chatInput" autoComplete="off" />
-							</form>
-						</div>
+					<div className="flex wrap no-min-width flexwrapper" >
+						<form className="flex flexwrapper" id="chatForm">
+							<input className="flex" id="chatInput" autoComplete="off" />
+						</form>
 					</div>
 				</div>
-			</div >
+			</div>
 		);
 	}
 }
