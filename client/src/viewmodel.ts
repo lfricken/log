@@ -2,57 +2,9 @@
 
 /* eslint-disable no-magic-numbers */
 import ViewModel from "sanitize-html";
-import { LobbyId, UniqueId } from "./shared";
+import { IPlayer } from "./shared";
 
-
-export class Games
-{
-	public constructor()
-	{
-		this.Games = new Map<LobbyId, Game>();
-	}
-
-	/** LobbyId > Game */
-	public Games!: Map<LobbyId, Game>;
-}
-
-/**
- * Data about a given game, indexed on LobbyId.
- */
-export class Game
-{
-	public constructor(lobbyId: string)
-	{
-		this.LobbyId = lobbyId;
-		this.Players = new Map<UniqueId, Player>();
-	}
-
-	/** UniqueId (socket) > Player */
-	public Players!: Map<UniqueId, Player>;
-	public LobbyId!: string;
-
-	public get NumPlayers(): number
-	{
-		return this.Players.size;
-	}
-}
-
-/**
- * Data about the player, indexed on UniqueId.
- */
-export class Player
-{
-
-}
-
-/**
- * Data about a players turn, indexed on turn number.
- */
-export class TurnAction
-{
-
-}
-
+type UniqueId = string;
 
 // A message sent out to every client.
 export class Message
@@ -62,11 +14,12 @@ export class Message
 
 	public Sender!: string;
 	public Text!: string;
-	public constructor(nickname: string, message: string)
+	public constructor(nickname: string, message: string, needsValidation: boolean = false)
 	{
 		this.Sender = nickname;
 		this.Text = message;
-		Message.Validate(this);
+		if (needsValidation)
+			Message.Validate(this);
 	}
 
 
@@ -113,5 +66,34 @@ export class Message
 	public static LeaderMsg(name: string): Message
 	{
 		return new Message("", `${name} is the new lobby leader.`);
+	}
+	public static GetDestinations(text: string, players: Map<UniqueId, IPlayer>): string[]
+	{
+		const targetIds: string[] = [];
+
+		// given format #,#,#...@message
+		// send to only player numbers
+		let split = text.split('@');
+		if (split.length > 1)
+		{
+			const targets = split[0].split(/(?:,| )+/);
+			// if a players number is contained in the targets list, add the target socket id
+			for (const p of players.values())
+			{
+				if (targets.includes(p.Number.toString()))
+				{
+					targetIds.push(p.SocketId);
+				}
+			}
+		}
+		else
+		{
+			for (const p of players.values())
+			{
+				targetIds.push(p.SocketId);
+			}
+		}
+
+		return targetIds;
 	}
 }

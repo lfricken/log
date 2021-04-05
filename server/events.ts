@@ -3,13 +3,14 @@
 import * as io from "socket.io";
 import * as ViewModel from "../client/src/viewmodel";
 import * as Shared from "../client/src/shared";
-import { Game, Turn, Player } from "./model";
+import { Game, Player } from "./model";
 
+type LobbyId = string;
 
 export class ModelWireup
 {
 	/** LobbyId > Game */
-	public Games!: Map<Shared.LobbyId, Game>;
+	public Games!: Map<LobbyId, Game>;
 	public ioWrap: io.Server;
 
 	public constructor(ioWrap: io.Server)
@@ -17,7 +18,7 @@ export class ModelWireup
 		this.ioWrap = ioWrap;
 		this.ioWrap.on("connect", (socket: io.Socket) => { this.OnConnection(socket); });
 
-		this.Games = new Map<Shared.LobbyId, Game>();
+		this.Games = new Map<LobbyId, Game>();
 	}
 
 	private OnConnection(socket: io.Socket): void
@@ -88,12 +89,12 @@ export class ModelWireup
 				this.SendMessage(game, socket, ViewModel.Message.ChangeNameMsg(oldName, newName));
 			}
 
-			this.SendMessage(game, socket, ViewModel.Message.PlayerMsg(player.DisplayName, message));
+			this.SendMessage(game, socket, ViewModel.Message.PlayerMsg(player.DisplayName, message), player.SocketId);
 		});
-		socket.on(Shared.Action, (message: ViewModel.TurnAction) =>
-		{
+		// socket.on(Shared.Action, (message: ViewModel.TurnAction) =>
+		// {
 
-		});
+		// });
 	}
 
 	private GetConnectionData(g: ModelWireup, auth: Shared.IAuth, socketId: string):
@@ -149,9 +150,10 @@ export class ModelWireup
 
 		return { game: game, player: player, makeLeader: makeLeader, type: type, isDoubleSocket };
 	}
-	private SendMessage(game: Game, socket: io.Socket, mes: ViewModel.Message): void
+	private SendMessage(game: Game, socket: io.Socket, mes: ViewModel.Message, additionalTarget: string = ""): void
 	{
-		const targetIds = game.GetDestinations(mes.Text);
+		const targetIds = ViewModel.Message.GetDestinations(mes.Text, game.Players);
+		targetIds.push(additionalTarget);
 		if (targetIds.length > 0)
 			this.ioWrap.to(targetIds).emit(Shared.Chat, mes);
 	}

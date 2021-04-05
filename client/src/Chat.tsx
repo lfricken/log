@@ -1,7 +1,6 @@
 /** The component that lets players message eachother. */
 
 import * as React from 'react';
-import { ReactNode } from 'react';
 import * as ViewModel from "./viewmodel";
 import * as Shared from "./shared";
 import * as View from "./view";
@@ -20,7 +19,6 @@ interface State
 }
 export class ChatComp extends React.Component<Props, State>
 {
-	// Initialize state
 	state!: State;
 	chatInput!: HTMLInputElement;
 	nameInput!: HTMLInputElement;
@@ -34,7 +32,7 @@ export class ChatComp extends React.Component<Props, State>
 			messages: []
 		};
 	}
-	componentDidMount(): ReactNode
+	componentDidMount(): React.ReactNode
 	{
 		this.chatView = document.getElementById('chatView') as HTMLDivElement;
 		this.chatInput = document.getElementById('chatInput') as HTMLInputElement;
@@ -51,7 +49,7 @@ export class ChatComp extends React.Component<Props, State>
 		e.preventDefault();
 		const text = this.chatInput.value;
 		const nickname = this.nameInput.value;
-		const message = new ViewModel.Message(nickname, text);
+		const message = new ViewModel.Message(nickname, text, true);
 		View.SaveCookie(View.CookieNickname, nickname);
 
 		if (nickname !== "" && text !== "")
@@ -63,8 +61,8 @@ export class ChatComp extends React.Component<Props, State>
 	private onNewMessage(m: ViewModel.Message): void
 	{
 		// follow the bottom of the chat if they are already looking there
-		const pixelRange = 80;
-		const follow = (this.chatView.scrollHeight - this.chatView.offsetHeight - this.chatView.scrollTop) < pixelRange;
+		const pixelFollowRange = 80;
+		const follow = (this.chatView.scrollHeight - this.chatView.offsetHeight - this.chatView.scrollTop) < pixelFollowRange;
 
 		const messages = this.state.messages;
 		messages.push(m);
@@ -73,10 +71,9 @@ export class ChatComp extends React.Component<Props, State>
 		if (follow)
 			this.chatView.scrollTop = this.chatView.scrollHeight;
 	}
-	render(): ReactNode
+	render(): React.ReactNode
 	{
 		const { nickname: name, messages } = this.state;
-		const maxNameLen = ViewModel.Message.MaxLenName;
 
 		return (
 			<div className="full-size flex-column">
@@ -94,15 +91,20 @@ export class ChatComp extends React.Component<Props, State>
 						<input
 							className="nickname-box-width"
 							id="nameInput"
+							maxLength={ViewModel.Message.MaxLenName}
 							autoComplete="off"
-							autoCapitalize="off"
-							maxLength={maxNameLen}
+							autoCapitalize="on"
 							defaultValue={name}
 						/>
 					</div>
 					<div className="flex no-min-width padding-small flex-row" >
 						<form className="flex flex-row" id="chatForm">
-							<input className="flex" id="chatInput" autoComplete="off" />
+							<input
+								className="flex"
+								id="chatInput"
+								maxLength={ViewModel.Message.MaxLenMessage}
+								autoComplete="off"
+							/>
 						</form>
 					</div>
 				</div>
