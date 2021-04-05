@@ -3,6 +3,7 @@
 import * as React from 'react';
 import io from "socket.io-client";
 import { ChatComp } from './Chat'
+import { AttacksComp } from './Attacks'
 import { ReactNode } from 'react';
 import * as Shared from './shared';
 import * as View from './view';
@@ -57,7 +58,7 @@ class App extends React.Component<Props, State>
 			<div className="padding-small flex-row with-gaps">
 				<div className="flex flex-column with-gaps">
 					<div className="chat component"><ChatComp nickname={nickname} socket={this.socket} /></div>
-					<div className="log component"></div>
+					<div className="log component"><AttacksComp /></div>
 				</div>
 				<div className="flex flex-column with-gaps">
 					<div className="lobby component"></div>
