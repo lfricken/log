@@ -45,6 +45,11 @@ class App extends React.Component<Props, State>
 		this.socket.connect();
 	}
 
+	public onAttackChange(attacks: number[]): void
+	{
+
+	}
+
 	componentWillUnmount(): ReactNode
 	{
 		this.socket.disconnect();
@@ -53,12 +58,19 @@ class App extends React.Component<Props, State>
 	render(): ReactNode
 	{
 		const nickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
+		const playerNames = ["You(0)"];
 
 		return (
 			<div className="padding-small flex-row with-gaps">
 				<div className="flex flex-column with-gaps">
-					<div className="chat component"><ChatComp nickname={nickname} socket={this.socket} /></div>
-					<div className="log component"><AttacksComp /></div>
+					<div className="chat component"><ChatComp
+						nickname={nickname}
+						socket={this.socket} />
+					</div>
+					<div className="log component"><AttacksComp
+						onAttackChange={this.onAttackChange.bind(this)}
+						playerNames={playerNames} />
+					</div>
 				</div>
 				<div className="flex flex-column with-gaps">
 					<div className="lobby component"></div>

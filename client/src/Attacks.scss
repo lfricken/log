@@ -1,4 +1,10 @@
 @use 'Main';
 
-
-
+.attack-container {
+	font: "monospace";
+}
+.attack-input {
+	width: 3em;
+	text-align: center;
+	margin: auto;
+}
