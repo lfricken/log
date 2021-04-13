@@ -1,10 +1,14 @@
 
 
+models need events or something?
 
-add to ideas: (global project that earns all surviving players extra stuff)
+add to ideas: 
+(global project that earns all surviving players extra stuff)
 pass events to player server player functions
-Player list
-Game model implementation
+dynamic trading (each player has more than 2 options)
+Send each other money. For instance: The target recieves your gift + 50%. So two players send 4 each but get 6 back.
+
+
 
 LobbyJoin needs submit event
 redo Chat with onChange and propper submit event

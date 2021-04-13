@@ -11,7 +11,7 @@ const AttackMin = 0;
 const AttackMax = 9;
 interface Props
 {
-	playerNames: string[];
+	orderedPlayers: ViewModel.Player[];
 	onAttackChange: (attacks: number[]) => void;
 }
 interface State
@@ -26,7 +26,7 @@ export class AttacksComp extends React.Component<Props, State>
 	{
 		super(props);
 		const Attacks = new Array<number>();
-		for (var i = 0; i < props.playerNames.length; i++)
+		for (var i = 0; i < props.orderedPlayers.length; i++)
 		{
 			Attacks.push(0);
 		}
@@ -70,10 +70,10 @@ export class AttacksComp extends React.Component<Props, State>
 	{
 		const { Attacks } = this.state;
 
-		const attackDivList = this.props.playerNames.map((name, idx) =>
+		const attackRows = this.props.orderedPlayers.map((p, idx) =>
 			<tr>
 				<td>
-					{name}
+					{ViewModel.Player.DisplayName(p)}
 				</td>
 				<td>
 					<div id={"attack-div-" + idx} className="attack-container">
@@ -87,11 +87,13 @@ export class AttacksComp extends React.Component<Props, State>
 
 		return (
 			<table>
-				<tr>
-					<th>Name</th>
-					<th>Attacks</th>
-				</tr>
-				{attackDivList}
+				<tbody>
+					<tr>
+						<th>Name</th>
+						<th>Attacks</th>
+					</tr>
+					{attackRows}
+				</tbody>
 			</table >
 		);
 	}

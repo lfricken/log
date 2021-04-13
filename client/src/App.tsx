@@ -8,6 +8,7 @@ import { ReactNode } from 'react';
 import * as Shared from './shared';
 import * as View from './view';
 import './App.css';
+import * as ViewModel from './viewmodel';
 
 
 interface Props
@@ -44,12 +45,14 @@ class App extends React.Component<Props, State>
 		this.socket = io({ autoConnect: false, reconnection: false, auth: authObj });
 		this.socket.connect();
 	}
-
 	public onAttackChange(attacks: number[]): void
 	{
 
 	}
+	public onGameChange(game: ViewModel.Game): void
+	{
 
+	}
 	componentWillUnmount(): ReactNode
 	{
 		this.socket.disconnect();
@@ -58,7 +61,7 @@ class App extends React.Component<Props, State>
 	render(): ReactNode
 	{
 		const nickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
-		const playerNames = ["You(0)"];
+		const orderedPlayers: ViewModel.Player[] = [];
 
 		return (
 			<div className="padding-small flex-row with-gaps">
@@ -69,7 +72,7 @@ class App extends React.Component<Props, State>
 					</div>
 					<div className="log component"><AttacksComp
 						onAttackChange={this.onAttackChange.bind(this)}
-						playerNames={playerNames} />
+						orderedPlayers={orderedPlayers} />
 					</div>
 				</div>
 				<div className="flex flex-column with-gaps">

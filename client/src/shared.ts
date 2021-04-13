@@ -1,6 +1,5 @@
 /** Shared logic between client and server. */
 
-
 /** When a new connection is made, how should we treat it? */
 export enum ConnectionType
 {
@@ -21,13 +20,6 @@ export interface IAuth
 	LobbyId: string;
 }
 
-/** Fields a player must have. */
-export interface IPlayer
-{
-	SocketId: string;
-	Number: number;
-}
-
 export const DisconnectTimeoutMilliseconds = 2000;
 /** Currently 62^8 (218 trillion) combinations. */
 export const UniqueIdLength = 8;
@@ -38,7 +30,4 @@ export const Chat = 'm';
 export const Log = 'l';
 /** Player action (like modifying trade posture) */
 export const Action = 'a';
-
-
-
 

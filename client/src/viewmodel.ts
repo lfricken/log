@@ -1,19 +1,81 @@
-/** Models that transfer data between client and server. View (Viewmodel) Model */
+/** 
+ * Models that transfer data between client and server. View (Viewmodel) Model 
+ * ViewModels can only have constructors, fields, and static methods.
+*/
 
 /* eslint-disable no-magic-numbers */
 import ViewModel from "sanitize-html";
-import { IPlayer } from "./shared";
 
 type UniqueId = string;
 
-// A message sent out to every client.
+export class Game
+{
+	/** Player number > player */
+	public PlayerConnections!: Player[];
+	/** Dictates player order */
+	public Eras!: Era[];
+}
+
+/** Data about a players turn, indexed on turn number. */
+export class Era
+{
+	/** Maps (order > player number) */
+	public Order!: number[];
+}
+
+/** Fields a player must have. */
+export class Player
+{
+	/** The order this player joined in.  */
+	public Plid!: number;
+	/** The name this player goes by. */
+	public Nickname!: string;
+
+	public static DisplayName(player: Player): string
+	{
+		return `${player.Nickname}(${player.Plid})`;
+	}
+}
+
+/** Data that should go on a player, but is private to each player. */
+export class PlayerPrivate
+{
+	/** Turn Number > Turn Data */
+	public TurnStates!: TurnState[];
+	/** Turn Number > Turn Data */
+	public TurnActions!: TurnAction[];
+
+	public static DisplayName(player: Player): string
+	{
+		return `${player.Nickname}(${player.Plid})`;
+	}
+}
+
+/** Data about a player at the beginning of their turn. */
+export class TurnState
+{
+	/** Any techs this player has unlocked. */
+	//public UnlockedTechnologies!: string[];
+	/** Resources the player has available to use. */
+	public Money!: number;
+}
+
+/** Data about actions a player wants to take on their turn. */
+export class TurnAction
+{
+	/** Maps (order > attack) */
+	public Attacks!: number[];
+	public Trades!: number[];
+}
+
+/** A message sent out to clients. */
 export class Message
 {
 	public static readonly MaxLenName: number = 7;
 	public static readonly MaxLenMessage: number = 120;
-
 	public Sender!: string;
 	public Text!: string;
+
 	public constructor(nickname: string, message: string, needsValidation: boolean = false)
 	{
 		this.Sender = nickname;
@@ -66,34 +128,5 @@ export class Message
 	public static LeaderMsg(name: string): Message
 	{
 		return new Message("", `${name} is the new lobby leader.`);
-	}
-	public static GetDestinations(text: string, players: Map<UniqueId, IPlayer>): string[]
-	{
-		const targetIds: string[] = [];
-
-		// given format #,#,#...@message
-		// send to only player numbers
-		let split = text.split('@');
-		if (split.length > 1)
-		{
-			const targets = split[0].split(/(?:,| )+/);
-			// if a players number is contained in the targets list, add the target socket id
-			for (const p of players.values())
-			{
-				if (targets.includes(p.Number.toString()))
-				{
-					targetIds.push(p.SocketId);
-				}
-			}
-		}
-		else
-		{
-			for (const p of players.values())
-			{
-				targetIds.push(p.SocketId);
-			}
-		}
-
-		return targetIds;
 	}
 }

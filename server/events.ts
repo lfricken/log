@@ -3,7 +3,7 @@
 import * as io from "socket.io";
 import * as ViewModel from "../client/src/viewmodel";
 import * as Shared from "../client/src/shared";
-import { Game, Player } from "./model";
+import { Game, Player, PlayerConnection } from "./model";
 
 type LobbyId = string;
 
@@ -25,44 +25,46 @@ export class ModelWireup
 	{
 		const auth = socket.handshake.auth as Shared.IAuth;
 		socket.join(auth.LobbyId);
-		const { game, player, makeLeader, type, isDoubleSocket } = this.GetConnectionData(this, auth, socket.id);
-		const pnum = player.Number;
-		console.log(`Socket ${socket.id} connected. Number:${pnum} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
+		const { game, player: playerConn, makeLeader, type, isDoubleSocket } = this.GetConnectionData(this, auth, socket.id);
+		const plid = playerConn.Plid;
+		console.log(`Socket ${socket.id} connected. Number:${plid} Name:${playerConn.Nickname} Lobby:${auth.LobbyId}.`);
+
+		const t = playerConn.ToVm();
 
 		// lobby leader
 		if (makeLeader)
 		{
-			player.IsLobbyLeader = true;
-			this.SendMessage(game, socket, ViewModel.Message.LeaderMsg(player.DisplayName));
+			playerConn.IsLobbyLeader = true;
+			this.SendMessage(game, socket, ViewModel.Message.LeaderMsg(playerConn.DisplayName));
 		}
 
 		// reconnect
 		if (type === Shared.ConnectionType.NewPlayer)
 		{
-			this.SendMessage(game, socket, ViewModel.Message.JoinMsg(player.DisplayName));
+			this.SendMessage(game, socket, ViewModel.Message.JoinMsg(playerConn.DisplayName));
 		}
 		else if (type === Shared.ConnectionType.Reconnect)
 		{
-			this.SendMessage(game, socket, ViewModel.Message.ReconnectMsg(player.DisplayName));
+			this.SendMessage(game, socket, ViewModel.Message.ReconnectMsg(playerConn.DisplayName));
 		}
 		if (isDoubleSocket)
 		{
-			this.SendMessage(game, socket, ViewModel.Message.DoubleSocketMsg(player.Number));
+			this.SendMessage(game, socket, ViewModel.Message.DoubleSocketMsg(playerConn.Plid));
 		}
 
 		socket.on("disconnect", () =>
 		{
-			console.log(`Socket ${socket.id} disconnected. Number:${pnum} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
-			player.SocketId = Player.NoSocket;
+			console.log(`Socket ${socket.id} disconnected. Number:${plid} Name:${playerConn.Nickname} Lobby:${auth.LobbyId}.`);
+			playerConn.SocketId = PlayerConnection.NoSocket;
 			const timeout = setTimeout(() =>
 			{
-				this.SendMessage(game, socket, ViewModel.Message.DisconnectMsg(player.DisplayName));
-				player.IsConnected = false;
+				this.SendMessage(game, socket, ViewModel.Message.DisconnectMsg(playerConn.DisplayName));
+				playerConn.IsConnected = false;
 
 				// pick new lobby leader
-				if (player.IsLobbyLeader)
+				if (playerConn.IsLobbyLeader)
 				{
-					for (const p of game.Players.values())
+					for (const p of game.PlayerConnections.values())
 					{
 						if (p.IsConnected)
 						{
@@ -74,22 +76,22 @@ export class ModelWireup
 				}
 
 			}, Shared.DisconnectTimeoutMilliseconds);
-			player.SetTimeout(timeout);
+			playerConn.SetTimeout(timeout);
 		});
 		socket.on(Shared.Chat, (message: ViewModel.Message) =>
 		{
 			ViewModel.Message.Validate(message);
 
 			// change name notification
-			if (message.Sender !== player.Nickname)
+			if (message.Sender !== playerConn.Nickname)
 			{
-				const oldName = player.DisplayName;
-				player.Nickname = message.Sender;
-				const newName = player.DisplayName;
+				const oldName = playerConn.DisplayName;
+				playerConn.Nickname = message.Sender;
+				const newName = playerConn.DisplayName;
 				this.SendMessage(game, socket, ViewModel.Message.ChangeNameMsg(oldName, newName));
 			}
 
-			this.SendMessage(game, socket, ViewModel.Message.PlayerMsg(player.DisplayName, message), player.SocketId);
+			this.SendMessage(game, socket, ViewModel.Message.PlayerMsg(playerConn.DisplayName, message), playerConn.SocketId);
 		});
 		// socket.on(Shared.Action, (message: ViewModel.TurnAction) =>
 		// {
@@ -98,7 +100,7 @@ export class ModelWireup
 	}
 
 	private GetConnectionData(g: ModelWireup, auth: Shared.IAuth, socketId: string):
-		{ game: Game, player: Player, makeLeader: boolean, type: Shared.ConnectionType, isDoubleSocket: boolean }
+		{ game: Game, player: PlayerConnection, makeLeader: boolean, type: Shared.ConnectionType, isDoubleSocket: boolean }
 	{
 		/**lobby id */
 		const lid = auth.LobbyId;
@@ -111,25 +113,25 @@ export class ModelWireup
 		if (!g.Games.has(lid))
 		{
 			makeLeader = true;
-			g.Games.set(lid, new Game(lid));
+			g.Games.set(lid, new Game());
 		}
 		const game = g.Games.get(lid)!;
 
 		// try create new player
 		let newPlayer = false;
-		if (!game?.Players.has(uid))
+		if (!game?.PlayerConnections.has(uid))
 		{
 			newPlayer = true;
-			game.Players.set(uid, new Player(game.NumPlayers, nickname));
+			game.PlayerConnections.set(uid, new PlayerConnection(game.NumPlayers, nickname));
 		}
-		const player = game.Players.get(uid)!;
+		const player = game.PlayerConnections.get(uid)!;
 
 		// handle delayed timeout
 		player.ClearTimeout();
 
 		// ensure socket is correct
 		let isDoubleSocket = false;
-		if (player.SocketId !== Player.NoSocket)
+		if (player.SocketId !== PlayerConnection.NoSocket)
 			isDoubleSocket = true; // double connections
 		player.SocketId = socketId; // the second connection is always right
 
@@ -152,7 +154,7 @@ export class ModelWireup
 	}
 	private SendMessage(game: Game, socket: io.Socket, mes: ViewModel.Message, additionalTarget: string = ""): void
 	{
-		const targetIds = ViewModel.Message.GetDestinations(mes.Text, game.Players);
+		const targetIds = game.GetDestinations(mes.Text);
 		targetIds.push(additionalTarget);
 		if (targetIds.length > 0)
 			this.ioWrap.to(targetIds).emit(Shared.Chat, mes);
