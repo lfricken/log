@@ -85,7 +85,9 @@ test('Eras, Turns, and Players get created', () =>
 
 test('EndTurn produces new Turn', () =>
 {
+	const g = setupGame(2);
 
+	g.EndTurn();
 });
 
 test('EndTurn produces new Era', () =>

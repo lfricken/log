@@ -104,22 +104,22 @@ export class ModelWireup
 			g.Games.set(lid, new Game());
 		}
 		const game = g.Games.get(lid)!;
-		const { player, isNewPlayer } = game.GetConnection(uid, nickname);
+		const { connection, isNewPlayer } = game.GetConnection(uid, nickname);
 
 		// handle delayed timeout
-		player.ClearTimeout();
+		connection.ClearTimeout();
 
 		// ensure socket is correct
 		let isDoubleSocket = false;
-		if (player.SocketId !== PlayerConnection.NoSocket)
+		if (connection.SocketId !== PlayerConnection.NoSocket)
 			isDoubleSocket = true; // double connections
-		player.SocketId = socketId; // the second connection is always right
+		connection.SocketId = socketId; // the second connection is always right
 
 		// check what kind of connection this was
 		let type = Shared.ConnectionType.NewPlayer;
 		if (!isNewPlayer)
 		{
-			if (!player.IsConnected)
+			if (!connection.IsConnected)
 			{
 				type = Shared.ConnectionType.Reconnect;
 			}
@@ -128,9 +128,9 @@ export class ModelWireup
 				type = Shared.ConnectionType.NewSocket;
 			}
 		}
-		player.IsConnected = true;
+		connection.IsConnected = true;
 
-		return { game, player, isNewPlayer, type, isDoubleSocket };
+		return { game, player: connection, isNewPlayer, type, isDoubleSocket };
 	}
 	private SendMessage(game: Game, socket: io.Socket, mes: ViewModel.Message, additionalTarget: string = ""): void
 	{
