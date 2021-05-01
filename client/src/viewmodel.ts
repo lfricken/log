@@ -37,10 +37,18 @@ export class Player
 	/** The name this player goes by. */
 	public Nickname!: string;
 
-	public constructor()
+	public constructor(old: null | Player)
 	{
-		this.Plid = 0;
-		this.Nickname = "";
+		if (old === null)
+		{
+			this.Plid = 0;
+			this.Nickname = "";
+		}
+		else
+		{
+			this.Plid = old.Plid;
+			this.Nickname = old.Nickname;
+		}
 	}
 
 	public static DisplayName(player: Player): string

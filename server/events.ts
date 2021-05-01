@@ -3,7 +3,7 @@
 import * as io from "socket.io";
 import * as ViewModel from "../client/src/viewmodel";
 import * as Shared from "../client/src/shared";
-import { Game, Player, PlayerConnection } from "./model";
+import { Game, PlayerTurn, PlayerConnection } from "./model";
 
 type LobbyId = string;
 

@@ -188,7 +188,7 @@ export class PlayerConnection implements IToVm<ViewModel.Player>
 	}
 	public ToVm(): ViewModel.Player
 	{
-		const vm = new ViewModel.Player();
+		const vm = new ViewModel.Player(this);
 		return vm;
 	}
 	/** Sets up so we can disconnect this player after some time. */
@@ -222,19 +222,20 @@ export class Era implements IToVm<ViewModel.Era>
 	/** Maps (turn number > turn data) */
 	private Turns: Map<number, Turn>;
 
-	public constructor(old: Era | null)
+	public constructor(old: null | Era)
 	{
 		this.Turns = new Map<number, Turn>();
 		if (old === null)
 		{
-			this.Turns.set(0, new Turn(null));
+			this.Turns.set(0, new Turn(null, true));
 
 			this.Order = new Map<number, number>();
 		}
 		else
 		{
-			this.Turns.set(0, new Turn(old.CurrentTurn));
+			this.Turns.set(0, new Turn(old.CurrentTurn, true));
 
+			// create new random order
 			this.Order = new Map<number, number>();
 			const order = Array.from(old.Order.values());
 			shuffle(order);
@@ -243,6 +244,13 @@ export class Era implements IToVm<ViewModel.Era>
 				this.Order.set(plid, order[plid]);
 			}
 		}
+	}
+	/** Ends the turn and advances the game state by one unit. */
+	public EndTurn(): void
+	{
+		const old = this.CurrentTurn;
+		const turn = new Turn(old, false);
+		this.Turns.set(this.Turns.size, turn);
 	}
 	/** Gets the active Turn. */
 	public get CurrentTurn(): Turn
@@ -266,35 +274,43 @@ export class Era implements IToVm<ViewModel.Era>
 export class Turn implements IToVm<ViewModel.Era>
 {
 	/** Maps (plid > player) */
-	public Players: Map<number, Player>;
+	public Players!: Map<number, PlayerTurn>;
 
-	public constructor(obj: Turn | PlayerConnection | null)
+	/** Pass old turn if it exists which will compute the new turn state. */
+	public constructor(obj: null | Turn, isNewEra: boolean)
 	{
-		this.Players = new Map<number, Player>();
+		this.Players = new Map<number, PlayerTurn>();
 		if (obj === null)
 		{
-		}
-		else if (obj instanceof Turn)
-		{
-			const turn = obj as Turn;
-			for (let plid = 0; plid < turn.Players.size; ++plid)
-			{
-				this.Players.set(plid, new Player(turn.Players.get(plid)!));
-			}
-		}
-		else if (obj instanceof PlayerConnection)
-		{
-			const connection = obj as PlayerConnection;
 
 		}
+		else
+		{
+			this.ComputeNewTurn(obj, isNewEra);
+		}
+	}
+	private ComputeNewTurn(old: Turn, isNewEra: boolean): void
+	{
+		// copy player data
+		for (let plid = 0; plid < old.Players.size; ++plid)
+		{
+			this.Players.set(plid, this.ComputeNewPlayer(old, plid));
+		}
+	}
+	private ComputeNewPlayer(old: Turn, plid: number): PlayerTurn
+	{
+		const p = new PlayerTurn(old.Players.get(plid)!);
+
+		return p;
 	}
 	/** Adds a new player to this Turn. */
 	public AddNewPlayer(connection: PlayerConnection): void
 	{
-		const player = new Player(null);
+		const player = new PlayerTurn(null);
 
 		this.Players.set(connection.Plid, player);
 	}
+
 
 	public ToVm(): ViewModel.Era
 	{
@@ -304,22 +320,31 @@ export class Turn implements IToVm<ViewModel.Era>
 }
 
 /** Data about the player, indexed on UniqueId. */
-export class Player extends ViewModel.Player implements IToVm<ViewModel.Player>
+export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Player>
 {
 	/** Turn Number > Turn Data */
-	public TurnState: TurnState;
+	public Money: number;
 	/** Turn Number > Turn Data */
-	public TurnActions: TurnAction;
+	/** Maps (order > attack) */
+	public MilitaryAttacks: Map<number, number>;
+	public MilitaryStanding: number;
+	public MilitaryInvestments: number;
+	/** Maps (possible trades > trade decision) */
+	public Trades: Map<number, number>;
 
-	public constructor(old: Player | null)
+	public constructor(old: PlayerTurn | null)
 	{
-		super();
-		this.TurnState = new TurnState();
-		this.TurnActions = new TurnAction();
+		super(old);
+
+		this.Money = 0;
+		this.MilitaryInvestments = 0;
+		this.MilitaryStanding = 0;
+		this.MilitaryAttacks = new Map<number, number>();
+		this.Trades = new Map<number, number>();
 	}
 	public ToVm(): ViewModel.Player
 	{
-		const vm = new ViewModel.Player();
+		const vm = new ViewModel.Player(this);
 		return vm;
 	}
 	// public ToVmPrivate(): ViewModel.PlayerPrivate
@@ -336,50 +361,5 @@ export class Player extends ViewModel.Player implements IToVm<ViewModel.Player>
 		return ViewModel.Player.DisplayName(this);
 	}
 }
-
-/** Data about a player at the beginning of their turn. */
-export class TurnState implements IToVm<ViewModel.TurnState>
-{
-	/** Resources */
-	public Money: number;
-
-	public constructor()
-	{
-		this.Money = 0;
-	}
-	public ToVm(): ViewModel.TurnState
-	{
-		const vm = new ViewModel.TurnState();
-		vm.Money = this.Money;
-		return vm;
-	}
-}
-
-/** Data about actions a player wants to take on their turn. */
-export class TurnAction implements IToVm<ViewModel.TurnAction>
-{
-	/** Maps (order > attack) */
-	public Attacks: number[];
-	/** Maps (possible trades > trade decision) */
-	public Trades: number[];
-
-	public constructor()
-	{
-		this.Attacks = [];
-		this.Trades = [];
-	}
-	public ToVm(): ViewModel.TurnAction
-	{
-		const vm = new ViewModel.TurnAction();
-		// vm = 
-		// 	Attacks: [...this.Attacks],
-		// 	Trades: [...this.Trades],
-		// }
-		return vm;
-	}
-}
-
-
-
 
 

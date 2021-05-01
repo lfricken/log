@@ -87,7 +87,20 @@ test('EndTurn produces new Turn', () =>
 {
 	const g = setupGame(2);
 
+
+	const t0 = g.CurrentEra.CurrentTurn;
+	const p0 = t0.Players.get(0)!;
+	p0.Money = 7;
+	p0.MilitaryInvestments = 5;
+
+	// new turn
 	g.EndTurn();
+	const t1 = g.CurrentEra.CurrentTurn;
+
+
+
+	// attack 1th player for 3
+	//p0.TurnActions.MilitaryAttacks.set(1, 3);
 });
 
 test('EndTurn produces new Era', () =>
