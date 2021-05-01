@@ -14,12 +14,33 @@ interface IToVm<V>
 /** Maps a Map of models to an array of their view models. */
 function MapVmMap<X, M extends IToVm<V>, V>(a: Map<X, M>): V[]
 {
-	return Array.from(a.values()).map((m: M) => { return m.ToVm() });
+	return Array.from(a.values()).map((m: M) => { return m.ToVm(); });
 }
 /** Maps an array of models to an array of their view models. */
 function MapVmArray<M extends IToVm<V>, V>(a: Array<M>): V[]
 {
-	return a.map((m: M) => { return m.ToVm() });
+	return a.map((m: M) => { return m.ToVm(); });
+}
+function shuffle<T>(array: T[]): T[]
+{
+	let currentIndex = array.length;
+	let temp: T;
+	let randomIndex: number;
+
+	// While there remain elements to shuffle...
+	while (currentIndex !== 0)
+	{
+		// Pick a remaining element...
+		randomIndex = Math.floor(Math.random() * currentIndex);
+		currentIndex -= 1;
+
+		// And swap it with the current element.
+		temp = array[currentIndex];
+		array[currentIndex] = array[randomIndex];
+		array[randomIndex] = temp;
+	}
+
+	return array;
 }
 
 
@@ -28,22 +49,74 @@ function MapVmArray<M extends IToVm<V>, V>(a: Array<M>): V[]
 export class Game implements IToVm<ViewModel.Game>
 {
 	/** UniqueId > Player */
-	public PlayerConnections: Map<UniqueId, PlayerConnection>;
+	private PlayerConnections: Map<UniqueId, PlayerConnection>;
 	/** Dictates player order */
-	public Eras: Map<number, Era>;
+	private Eras: Map<number, Era>;
 
 	public constructor()
 	{
 		this.PlayerConnections = new Map<UniqueId, PlayerConnection>();
 		this.Eras = new Map<number, Era>();
+		this.Eras.set(0, new Era(null));
 	}
 	public ToVm(): ViewModel.Game
 	{
 		const vm = new ViewModel.Game();
+
+		vm.PlayerConnections = MapVmMap(this.PlayerConnections);
+		vm.CurrentEra = this.CurrentEra.ToVm();
+
 		return vm;
 	}
+	public get CurrentEra(): Era
+	{
+		return this.Eras.get(this.Eras.size - 1)!;
+	}
+	/** Will create or retrieve a player. */
+	public GetConnection(uid: UniqueId, nickname: string): { connection: PlayerConnection, isNewPlayer: boolean }
+	{
+		let isNewPlayer = false;
+		if (!this.PlayerConnections.has(uid))
+		{
+			isNewPlayer = true;
+			this.PlayerConnections.set(uid, new PlayerConnection(this.NumPlayers, nickname));
 
+			if (this.PlayerConnections.size === 1)
+				this.ConsiderNewLobbyLeader();
 
+			this.CurrentEra.AddNewPlayer(this.PlayerConnections.get(uid)!);
+		}
+		const connection = this.PlayerConnections.get(uid)!;
+
+		return { connection, isNewPlayer };
+	}
+
+	public EndTurn(): void
+	{
+		// compute next turn state
+
+		// check to see if we should make a new Era
+
+	}
+	public ConsiderNewLobbyLeader(): string
+	{
+		let newLeaderName = "";
+		let needLeader = true;
+		for (const p of this.PlayerConnections.values())
+		{
+			if (needLeader && p.IsConnected)
+			{
+				needLeader = false;
+				newLeaderName = p.DisplayName;
+				p.IsLobbyLeader = true;
+			}
+			else
+			{
+				p.IsLobbyLeader = false;
+			}
+		}
+		return newLeaderName;
+	}
 	public get NumPlayers(): number
 	{
 		return this.PlayerConnections.size;
@@ -57,7 +130,7 @@ export class Game implements IToVm<ViewModel.Game>
 		let split = text.split('@');
 		if (split.length > 1)
 		{
-			const targets = split[0].split(/(?:,| )+/);
+			const targets = split[0].split(/(?:,| )+/); // split on comma and space
 			// if a players number is contained in the targets list, add the target socket id
 			for (const p of this.PlayerConnections.values())
 			{
@@ -87,14 +160,14 @@ export class PlayerConnection implements IToVm<ViewModel.Player>
 	public Plid: number;
 	/** Id of the socket this player is using. Empty string if no socket. */
 	public SocketId: string;
-	/** True if this player has control of the lobby. */
-	public IsLobbyLeader: boolean;
 	/** 
 	 * True if this player has not timed out. Does not imply a live socket.
 	 * We don't use the socket because we want them to be able to switch sockets 
 	 * without anyone noticing (refresh).
 	 */
 	public IsConnected: boolean
+	/** True if this player has control of the lobby. */
+	public IsLobbyLeader: boolean;
 	/** The name this player goes by. */
 	public Nickname: string;
 	/** Callback for a timed disconnect. */
@@ -104,8 +177,8 @@ export class PlayerConnection implements IToVm<ViewModel.Player>
 	{
 		this.Plid = plid;
 		this.SocketId = PlayerConnection.NoSocket;
-		this.IsLobbyLeader = false;
 		this.IsConnected = true;
+		this.IsLobbyLeader = false;
 		this.Nickname = nickname;
 		this.Timeout = null;
 	}
@@ -138,15 +211,44 @@ export class PlayerConnection implements IToVm<ViewModel.Player>
 export class Era implements IToVm<ViewModel.Era>
 {
 	/** Maps (order > player number) */
-	public Order: Map<number, number>;
+	private Order: Map<number, number>;
 	/** Maps (turn number > turn data) */
-	public Turns: Map<number, number>;
+	private Turns: Map<number, Turn>;
 
-	public constructor()
+	public constructor(old: Era | null)
 	{
-		this.Order = new Map<number, number>();
-		this.Turns = new Map<number, number>();
+		this.Turns = new Map<number, Turn>();
+		if (old === null)
+		{
+			this.Turns.set(0, new Turn(null));
+
+			this.Order = new Map<number, number>();
+		}
+		else
+		{
+			this.Turns.set(0, new Turn(old.CurrentTurn));
+
+			this.Order = new Map<number, number>();
+			const order = Array.from(old.Order.values());
+			shuffle(order);
+			for (let plid = 0; plid < order.length; ++plid)
+			{
+				this.Order.set(plid, order[plid]);
+			}
+		}
 	}
+
+	public get CurrentTurn(): Turn
+	{
+		return this.Turns.get(this.Turns.size - 1)!;
+	}
+
+	public AddNewPlayer(connection: PlayerConnection): void
+	{
+		this.Order.set(connection.Plid, connection.Plid);
+		this.CurrentTurn.AddNewPlayer(connection);
+	}
+
 	public ToVm(): ViewModel.Era
 	{
 		const vm = new ViewModel.Era();
@@ -160,10 +262,34 @@ export class Turn implements IToVm<ViewModel.Era>
 	/** Maps (plid > player) */
 	public Players: Map<number, Player>;
 
-	public constructor()
+	public constructor(obj: Turn | PlayerConnection | null)
 	{
 		this.Players = new Map<number, Player>();
+		if (obj === null)
+		{
+		}
+		else if (obj instanceof Turn)
+		{
+			const turn = obj as Turn;
+			for (let plid = 0; plid < turn.Players.size; ++plid)
+			{
+				this.Players.set(plid, new Player(turn.Players.get(plid)!));
+			}
+		}
+		else if (obj instanceof PlayerConnection)
+		{
+			const connection = obj as PlayerConnection;
+
+		}
 	}
+
+	public AddNewPlayer(connection: PlayerConnection): void
+	{
+		const player = new Player(null);
+
+		this.Players.set(connection.Plid, player);
+	}
+
 	public ToVm(): ViewModel.Era
 	{
 		const vm = new ViewModel.Era();
@@ -175,29 +301,29 @@ export class Turn implements IToVm<ViewModel.Era>
 export class Player extends ViewModel.Player implements IToVm<ViewModel.Player>
 {
 	/** Turn Number > Turn Data */
-	public TurnStates: TurnState[];
+	public TurnState: TurnState;
 	/** Turn Number > Turn Data */
-	public TurnActions: TurnAction[];
+	public TurnActions: TurnAction;
 
-	public constructor()
+	public constructor(old: Player | null)
 	{
 		super();
-		this.TurnStates = [];
-		this.TurnActions = [];
+		this.TurnState = new TurnState();
+		this.TurnActions = new TurnAction();
 	}
 	public ToVm(): ViewModel.Player
 	{
 		const vm = new ViewModel.Player();
 		return vm;
 	}
-	public ToVmPrivate(): ViewModel.PlayerPrivate
-	{
-		const vm = {
-			TurnStates: this.TurnStates,
-			TurnActions: this.TurnActions
-		};
-		return vm;
-	}
+	// public ToVmPrivate(): ViewModel.PlayerPrivate
+	// {
+	// 	const vm = {
+	// 		TurnStates: this.TurnState,
+	// 		TurnActions: this.TurnActions
+	// 	};
+	// 	return vm;
+	// }
 	public get DisplayName(): string
 	{
 		return ViewModel.Player.DisplayName(this);

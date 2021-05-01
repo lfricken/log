@@ -14,7 +14,7 @@ test('Message has max length after validation.', () =>
 		+ "o longa message that is too longa message that is too longa message that is too long"
 		+ "o longa message that is too longa message that is too longa message that is too long"
 		+ "o longa message that is too longa message that is too longa message that is too long"
-	)
+	);
 
 	expect(mes.Text.length <= real.Message.MaxLenMessage).toBe(true);
 });

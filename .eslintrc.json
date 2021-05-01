@@ -39,6 +39,7 @@
     "no-extra-semi": "warn",
     "eqeqeq": "warn",
     "no-irregular-whitespace": "warn",
+	"semi": "warn",
     "max-len": [
       "warn",
       130,

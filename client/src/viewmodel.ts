@@ -13,7 +13,13 @@ export class Game
 	/** Player number > player */
 	public PlayerConnections!: Player[];
 	/** Dictates player order */
-	public Eras!: Era[];
+	public CurrentEra!: Era;
+
+	public constructor()
+	{
+		this.PlayerConnections = [];
+		this.CurrentEra = new Era;
+	}
 }
 
 /** Data about a players turn, indexed on turn number. */
@@ -30,6 +36,12 @@ export class Player
 	public Plid!: number;
 	/** The name this player goes by. */
 	public Nickname!: string;
+
+	public constructor()
+	{
+		this.Plid = 0;
+		this.Nickname = "";
+	}
 
 	public static DisplayName(player: Player): string
 	{
@@ -87,8 +99,8 @@ export class Message
 
 	public static Validate(data: Message): boolean
 	{
-		data.Sender = data.Sender.slice(0, Message.MaxLenName)
-		data.Text = data.Text.slice(0, Message.MaxLenMessage)
+		data.Sender = data.Sender.slice(0, Message.MaxLenName);
+		data.Text = data.Text.slice(0, Message.MaxLenMessage);
 		data.Sender = ViewModel(data.Sender);
 		data.Text = ViewModel(data.Text);
 
