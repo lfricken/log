@@ -83,12 +83,12 @@ test('Eras, Turns, and Players get created', () =>
 	expect(c0.connection.Nickname).toBe(name0);
 });
 
-test('ViewModels get created', () =>
+test('EndTurn produces new Turn', () =>
 {
 
 });
 
-test('EndTurn', () =>
+test('EndTurn produces new Era', () =>
 {
 
 });

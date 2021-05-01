@@ -68,6 +68,7 @@ export class Game implements IToVm<ViewModel.Game>
 
 		return vm;
 	}
+	/** Obtains the current Era. */
 	public get CurrentEra(): Era
 	{
 		return this.Eras.get(this.Eras.size - 1)!;
@@ -90,7 +91,7 @@ export class Game implements IToVm<ViewModel.Game>
 
 		return { connection, isNewPlayer };
 	}
-
+	/** Ends the turn and advances the game state by one unit. */
 	public EndTurn(): void
 	{
 		// compute next turn state
@@ -98,6 +99,7 @@ export class Game implements IToVm<ViewModel.Game>
 		// check to see if we should make a new Era
 
 	}
+	/** Will make the first player that is connected the lobby leader, and anyone else not. */
 	public ConsiderNewLobbyLeader(): string
 	{
 		let newLeaderName = "";
@@ -117,10 +119,12 @@ export class Game implements IToVm<ViewModel.Game>
 		}
 		return newLeaderName;
 	}
+	/** How many players are in this game, regardless of connection status. */
 	public get NumPlayers(): number
 	{
 		return this.PlayerConnections.size;
 	}
+	/** Given a message, returns list of target SocketIds. */
 	public GetDestinations(text: string): string[]
 	{
 		const targetIds: string[] = [];
@@ -187,12 +191,14 @@ export class PlayerConnection implements IToVm<ViewModel.Player>
 		const vm = new ViewModel.Player();
 		return vm;
 	}
+	/** Sets up so we can disconnect this player after some time. */
 	public SetTimeout(value: NodeJS.Timeout): void
 	{
 		// handle old timeout
 		this.ClearTimeout();
 		this.Timeout = value;
 	}
+	/** Removes any timeout object. */
 	public ClearTimeout(): void
 	{
 		if (this.Timeout !== null)
@@ -201,6 +207,7 @@ export class PlayerConnection implements IToVm<ViewModel.Player>
 			this.Timeout = null;
 		}
 	}
+	/** Name that will be displayed to all players. */
 	public get DisplayName(): string
 	{
 		return ViewModel.Player.DisplayName(this);
@@ -237,18 +244,17 @@ export class Era implements IToVm<ViewModel.Era>
 			}
 		}
 	}
-
+	/** Gets the active Turn. */
 	public get CurrentTurn(): Turn
 	{
 		return this.Turns.get(this.Turns.size - 1)!;
 	}
-
+	/** Adds a new player to this Era. */
 	public AddNewPlayer(connection: PlayerConnection): void
 	{
 		this.Order.set(connection.Plid, connection.Plid);
 		this.CurrentTurn.AddNewPlayer(connection);
 	}
-
 	public ToVm(): ViewModel.Era
 	{
 		const vm = new ViewModel.Era();
@@ -282,7 +288,7 @@ export class Turn implements IToVm<ViewModel.Era>
 
 		}
 	}
-
+	/** Adds a new player to this Turn. */
 	public AddNewPlayer(connection: PlayerConnection): void
 	{
 		const player = new Player(null);
@@ -324,6 +330,7 @@ export class Player extends ViewModel.Player implements IToVm<ViewModel.Player>
 	// 	};
 	// 	return vm;
 	// }
+	/** Name that will be displayed to all other players. */
 	public get DisplayName(): string
 	{
 		return ViewModel.Player.DisplayName(this);
