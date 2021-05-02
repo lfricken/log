@@ -1,7 +1,6 @@
 /* eslint-disable no-magic-numbers */
 import * as Models from "./model";
 
-
 const uid0 = "uid0";
 const uid1 = "uid1";
 const name0 = "name0";
@@ -85,17 +84,47 @@ test('Eras, Turns, and Players get created', () =>
 
 test('EndTurn produces new Turn', () =>
 {
+	const delta = 2;
+	const startMoney = 7;
+	const startMilMoney = 5;
+
+	// new turn, 0
 	const g = setupGame(2);
+	{
+		const t = g.CurrentEra.CurrentTurn;
 
+		const p0 = t.Players.get(0)!;
+		p0.Money = startMoney;
+		p0.MilitaryMoney = startMilMoney;
+	}
 
-	const t0 = g.CurrentEra.CurrentTurn;
-	const p0 = t0.Players.get(0)!;
-	p0.Money = 7;
-	p0.MilitaryInvestments = 5;
+	// new turn, 1
+	{
+		const prevEra = g.CurrentEra;
+		g.EndTurn();
+		const t = g.CurrentEra.CurrentTurn;
+		const p0 = t.Players.get(0)!;
 
-	// new turn
-	g.EndTurn();
-	const t1 = g.CurrentEra.CurrentTurn;
+		expect(g.CurrentEra).toBe(prevEra);
+
+		expect(p0.Money).toBe(startMoney);
+		expect(p0.MilitaryMoney).toBe(startMilMoney);
+
+		p0.MilitaryDelta = delta;
+	}
+
+	// new turn, 2
+	{
+		const prevEra = g.CurrentEra;
+		g.EndTurn();
+		const t = g.CurrentEra.CurrentTurn;
+		const p0 = t.Players.get(0)!;
+
+		expect(g.CurrentEra).toBe(prevEra);
+
+		expect(p0.Money).toBe(startMoney - delta);
+		expect(p0.MilitaryMoney).toBe(startMilMoney + delta);
+	}
 
 
 

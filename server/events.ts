@@ -68,7 +68,7 @@ export class ModelWireup
 			}, Shared.DisconnectTimeoutMilliseconds);
 			player.SetTimeout(timeout);
 		});
-		socket.on(Shared.Chat, (message: ViewModel.Message) =>
+		socket.on(Shared.Actions.Chat, (message: ViewModel.Message) =>
 		{
 			ViewModel.Message.Validate(message);
 
@@ -137,7 +137,7 @@ export class ModelWireup
 		const targetIds = game.GetDestinations(mes.Text);
 		targetIds.push(additionalTarget);
 		if (targetIds.length > 0)
-			this.ioWrap.to(targetIds).emit(Shared.Chat, mes);
+			this.ioWrap.to(targetIds).emit(Shared.Actions.Chat, mes);
 	}
 }
 

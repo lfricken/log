@@ -1,6 +1,7 @@
 /** Server side model. View Viewmodel (Model) */
 
 import * as ViewModel from '../client/src/viewmodel';
+import * as Shared from "../client/src/shared";
 
 type UniqueId = string;
 
@@ -43,11 +44,15 @@ function shuffle<T>(array: T[]): T[]
 	return array;
 }
 
-
+export class Settings
+{
+	public RandomMilTax: boolean = false;
+}
 
 /** Data about a given game, indexed on LobbyId. */
 export class Game implements IToVm<ViewModel.Game>
 {
+	public Settings: Settings;
 	/** UniqueId > Player */
 	private PlayerConnections: Map<UniqueId, PlayerConnection>;
 	/** Dictates player order */
@@ -55,6 +60,7 @@ export class Game implements IToVm<ViewModel.Game>
 
 	public constructor()
 	{
+		this.Settings = new Settings();
 		this.PlayerConnections = new Map<UniqueId, PlayerConnection>();
 		this.Eras = new Map<number, Era>();
 		this.Eras.set(0, new Era(null));
@@ -95,6 +101,7 @@ export class Game implements IToVm<ViewModel.Game>
 	public EndTurn(): void
 	{
 		// compute next turn state
+		this.CurrentEra.EndTurn();
 
 		// check to see if we should make a new Era
 
@@ -294,14 +301,40 @@ export class Turn implements IToVm<ViewModel.Era>
 		// copy player data
 		for (let plid = 0; plid < old.Players.size; ++plid)
 		{
-			this.Players.set(plid, this.ComputeNewPlayer(old, plid));
+			this.Players.set(plid, old.ComputeNewPlayerTurn(old, plid));
 		}
 	}
-	private ComputeNewPlayer(old: Turn, plid: number): PlayerTurn
+	private ComputeNewPlayerTurn(old: Turn, plid: number): PlayerTurn
 	{
-		const p = new PlayerTurn(old.Players.get(plid)!);
+		const pOld = old.Players.get(plid)!;
+		const p = new PlayerTurn(pOld);
+
+		p.Money += this.TradeDelta(plid);//+ MilitaryDelta(plid);
+		p.Money -= pOld.MilitaryDelta;
+
+		p.MilitaryMoney += pOld.MilitaryDelta;
 
 		return p;
+	}
+
+	public TradeDelta(plid: number): number
+	{
+		let delta = 0;
+		const p = this.Players.get(plid)!;
+
+		for (let plidOther = 0; plidOther < this.Players.size; ++plidOther)
+		{
+			// get trade decisions
+			const us = p.Trades.get(plidOther);
+			const them = p.Trades.get(plidOther);
+
+			if (us === undefined || them === undefined)
+				continue; // no trade route
+
+			delta += Shared.Trade.GetDelta(us, them);
+		}
+
+		return delta;
 	}
 	/** Adds a new player to this Turn. */
 	public AddNewPlayer(connection: PlayerConnection): void
@@ -322,14 +355,15 @@ export class Turn implements IToVm<ViewModel.Era>
 /** Data about the player, indexed on UniqueId. */
 export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Player>
 {
-	/** Turn Number > Turn Data */
+	/** This player has this much money on this turn. */
 	public Money: number;
-	/** Turn Number > Turn Data */
-	/** Maps (order > attack) */
+	/** Total money this player has in military. */
+	public MilitaryMoney: number;
+	/** How much money this player is trying to add to their military. */
+	public MilitaryDelta: number;
+	/** Maps (plid > attack) */
 	public MilitaryAttacks: Map<number, number>;
-	public MilitaryStanding: number;
-	public MilitaryInvestments: number;
-	/** Maps (possible trades > trade decision) */
+	/** Maps (plid > trade decision). */
 	public Trades: Map<number, number>;
 
 	public constructor(old: PlayerTurn | null)
@@ -337,10 +371,17 @@ export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Play
 		super(old);
 
 		this.Money = 0;
-		this.MilitaryInvestments = 0;
-		this.MilitaryStanding = 0;
+		this.MilitaryMoney = 0;
+
+		this.MilitaryDelta = 0;
 		this.MilitaryAttacks = new Map<number, number>();
 		this.Trades = new Map<number, number>();
+
+		if (old !== null)
+		{
+			this.Money = old.Money;
+			this.MilitaryMoney = old.MilitaryMoney;
+		}
 	}
 	public ToVm(): ViewModel.Player
 	{
