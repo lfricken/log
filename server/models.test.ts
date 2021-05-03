@@ -105,8 +105,10 @@ test('EndTurn produces new Turn', () =>
 		const t = g.CurrentEra.CurrentTurn;
 		const p0 = t.Players.get(0)!;
 
+		// nobody died so the era should not end
 		expect(g.CurrentEra).toBe(prevEra);
 
+		// no military delta
 		expect(p0.Money).toBe(startMoney);
 		expect(p0.MilitaryMoney).toBe(startMilMoney);
 
@@ -116,12 +118,37 @@ test('EndTurn produces new Turn', () =>
 	// new turn, 2
 	{
 		const prevEra = g.CurrentEra;
+		const prevTurn = g.CurrentEra.CurrentTurn;
 		g.EndTurn();
 		const t = g.CurrentEra.CurrentTurn;
 		const p0 = t.Players.get(0)!;
 
+		// nobody died so the era should not end
 		expect(g.CurrentEra).toBe(prevEra);
+		// but the turn should be different
+		expect(t === prevTurn).toBe(false);
+		expect(t === t).toBe(true);
 
+		// military delta
+		expect(p0.Money).toBe(startMoney - delta);
+		expect(p0.MilitaryMoney).toBe(startMilMoney + delta);
+	}
+
+	// new turn, 3
+	{
+		const prevEra = g.CurrentEra;
+		const prevTurn = g.CurrentEra.CurrentTurn;
+		g.EndTurn();
+		const t = g.CurrentEra.CurrentTurn;
+		const p0 = t.Players.get(0)!;
+
+		// nobody died so the era should not end
+		expect(g.CurrentEra).toBe(prevEra);
+		// but the turn should be different
+		expect(t === prevTurn).toBe(false);
+		expect(t === t).toBe(true);
+
+		// military delta
 		expect(p0.Money).toBe(startMoney - delta);
 		expect(p0.MilitaryMoney).toBe(startMilMoney + delta);
 	}
