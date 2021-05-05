@@ -24,7 +24,12 @@ export interface IAuth
 export const DisconnectTimeoutMilliseconds = 2000;
 /** Currently 62^8 (218 trillion) combinations. */
 export const UniqueIdLength = 8;
-/** Trade */
+
+export class Rules
+{
+	public static EraMinDeadPercentage = 0.5;
+}
+
 export class Actions
 {
 	public static Cooperate = 1;
@@ -74,4 +79,26 @@ export class Military
 	/** How much each player can invest per turn in military. */
 	public static MaxDelta = 2;
 	public static Upkeep = 0.1;
+
+	public static GetDelta(standingMilitary0: number, attacks0: number, attacks1: number):
+		{ militaryDelta: number, moneyDelta: number, }
+	{
+		let militaryDelta = 0;
+		let moneyDelta = 0;
+		let remainingAttack = attacks1;
+
+		remainingAttack -= attacks0;
+		if (remainingAttack > 0) // some attacks remain after counter attacks
+		{
+			militaryDelta = -Math.min(remainingAttack, standingMilitary0);
+
+			remainingAttack -= standingMilitary0;
+			if (remainingAttack > 0) // some attacks remain after standing military
+			{
+				moneyDelta = -Military.PillageMultiplier * remainingAttack;
+			}
+		}
+
+		return { militaryDelta, moneyDelta, };
+	}
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/strict-boolean-expressions */
 /** Server side model. View Viewmodel (Model) */
 
 import * as ViewModel from '../client/src/viewmodel';
@@ -65,15 +66,6 @@ export class Game implements IToVm<ViewModel.Game>
 		this.Eras = new Map<number, Era>();
 		this.Eras.set(0, new Era(null));
 	}
-	public ToVm(): ViewModel.Game
-	{
-		const vm = new ViewModel.Game();
-
-		vm.PlayerConnections = MapVmMap(this.PlayerConnections);
-		vm.CurrentEra = this.CurrentEra.ToVm();
-
-		return vm;
-	}
 	/** Obtains the current Era. */
 	public get CurrentEra(): Era
 	{
@@ -104,7 +96,10 @@ export class Game implements IToVm<ViewModel.Game>
 		this.CurrentEra.EndTurn();
 
 		// check to see if we should make a new Era
-
+		if (this.CurrentEra.IsOver)
+		{
+			this.Eras.set(this.Eras.size, new Era(this.CurrentEra));
+		}
 	}
 	/** Will make the first player that is connected the lobby leader, and anyone else not. */
 	public ConsiderNewLobbyLeader(): string
@@ -161,6 +156,15 @@ export class Game implements IToVm<ViewModel.Game>
 
 		return targetIds;
 	}
+	public ToVm(): ViewModel.Game
+	{
+		const vm = new ViewModel.Game();
+
+		vm.PlayerConnections = MapVmMap(this.PlayerConnections);
+		vm.CurrentEra = this.CurrentEra.ToVm();
+
+		return vm;
+	}
 }
 
 /** Data about the player, indexed on UniqueId. */
@@ -193,11 +197,6 @@ export class PlayerConnection implements IToVm<ViewModel.Player>
 		this.Nickname = nickname;
 		this.Timeout = null;
 	}
-	public ToVm(): ViewModel.Player
-	{
-		const vm = new ViewModel.Player(this);
-		return vm;
-	}
 	/** Sets up so we can disconnect this player after some time. */
 	public SetTimeout(value: NodeJS.Timeout): void
 	{
@@ -218,6 +217,11 @@ export class PlayerConnection implements IToVm<ViewModel.Player>
 	public get DisplayName(): string
 	{
 		return ViewModel.Player.DisplayName(this);
+	}
+	public ToVm(): ViewModel.Player
+	{
+		const vm = new ViewModel.Player(null);
+		return vm;
 	}
 }
 
@@ -264,6 +268,14 @@ export class Era implements IToVm<ViewModel.Era>
 	{
 		return this.Turns.get(this.Turns.size - 1)!;
 	}
+	/** True if this Era should end, and a new one should begin. */
+	public get IsOver(): boolean
+	{
+		// at least this many players need to be dead
+		const minDead = Math.floor(this.CurrentTurn.Players.size * Shared.Rules.EraMinDeadPercentage);
+
+		return this.CurrentTurn.NumDead >= minDead;
+	}
 	/** Adds a new player to this Era. */
 	public AddNewPlayer(connection: PlayerConnection): void
 	{
@@ -301,22 +313,46 @@ export class Turn implements IToVm<ViewModel.Era>
 		// copy player data
 		for (let plid = 0; plid < old.Players.size; ++plid)
 		{
-			this.Players.set(plid, old.ComputeNewPlayerTurn(old, plid));
+			this.Players.set(plid, old.ComputeNewPlayerTurn(old, plid, isNewEra));
+		}
+		if (!isNewEra)
+		{
+			for (let plid = 0; plid < old.Players.size; ++plid)
+			{
+				this.ApplyCombat(plid);
+			}
 		}
 	}
-	private ComputeNewPlayerTurn(old: Turn, plid: number): PlayerTurn
+	private ComputeNewPlayerTurn(old: Turn, plid: number, isNewEra: boolean): PlayerTurn
 	{
 		const pOld = old.Players.get(plid)!;
-		const p = new PlayerTurn(pOld);
 
-		p.Money += this.TradeDelta(plid);//+ MilitaryDelta(plid);
-		p.Money -= pOld.MilitaryDelta;
+		if (isNewEra)
+		{
+			const p = new PlayerTurn(null);
 
-		p.MilitaryMoney += pOld.MilitaryDelta;
+			return p;
+		}
+		else
+		{
+			const p = new PlayerTurn(pOld);
 
-		return p;
+			// do trades
+			p.Money += this.TradeDelta(plid);
+
+			// allocate military
+			p.Money -= pOld.MilitaryDelta;
+			p.MilitaryMoney += pOld.MilitaryDelta;
+
+			// allocate attacks
+			for (let plidOther = 0; plidOther < old.Players.size; ++plidOther)
+			{
+				p.MilitaryMoney -= p.MilitaryAttacks.get(plidOther) || 0;
+			}
+
+			return p;
+		}
 	}
-
 	public TradeDelta(plid: number): number
 	{
 		let delta = 0;
@@ -325,8 +361,9 @@ export class Turn implements IToVm<ViewModel.Era>
 		for (let plidOther = 0; plidOther < this.Players.size; ++plidOther)
 		{
 			// get trade decisions
+			const pOther = this.Players.get(plidOther)!;
 			const us = p.Trades.get(plidOther);
-			const them = p.Trades.get(plidOther);
+			const them = pOther.Trades.get(plid);
 
 			if (us === undefined || them === undefined)
 				continue; // no trade route
@@ -336,6 +373,23 @@ export class Turn implements IToVm<ViewModel.Era>
 
 		return delta;
 	}
+	private ApplyCombat(plid: number): PlayerTurn
+	{
+		const p = this.Players.get(plid)!;
+
+		// do any combat
+		for (let plidOther = 0; plidOther < this.Players.size; ++plidOther)
+		{
+			const pOther = this.Players.get(plidOther)!;
+			// get trade decisions
+			const us = p.MilitaryAttacks.get(plidOther) || 0;
+			const them = pOther.MilitaryAttacks.get(plidOther) || 0;
+
+			//p += 
+		}
+
+		return p;
+	}
 	/** Adds a new player to this Turn. */
 	public AddNewPlayer(connection: PlayerConnection): void
 	{
@@ -344,6 +398,16 @@ export class Turn implements IToVm<ViewModel.Era>
 		this.Players.set(connection.Plid, player);
 	}
 
+	public get NumDead(): number
+	{
+		let numDead = 0;
+		for (let i = 0; i < this.Players.size; ++i)
+		{
+			if (this.Players.get(i)!.IsDead)
+				numDead += 1;
+		}
+		return numDead;
+	}
 
 	public ToVm(): ViewModel.Era
 	{
@@ -355,10 +419,6 @@ export class Turn implements IToVm<ViewModel.Era>
 /** Data about the player, indexed on UniqueId. */
 export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Player>
 {
-	/** This player has this much money on this turn. */
-	public Money: number;
-	/** Total money this player has in military. */
-	public MilitaryMoney: number;
 	/** How much money this player is trying to add to their military. */
 	public MilitaryDelta: number;
 	/** Maps (plid > attack) */
@@ -366,27 +426,25 @@ export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Play
 	/** Maps (plid > trade decision). */
 	public Trades: Map<number, number>;
 
-	public constructor(old: PlayerTurn | null)
+	public constructor(old: null | PlayerTurn)
 	{
 		super(old);
 
-		this.Money = 0;
 		this.MilitaryMoney = 0;
 
 		this.MilitaryDelta = 0;
 		this.MilitaryAttacks = new Map<number, number>();
 		this.Trades = new Map<number, number>();
 
-		if (old !== null)
+		if (old === null)
+		{
+			this.Money = 10;
+		}
+		else
 		{
 			this.Money = old.Money;
 			this.MilitaryMoney = old.MilitaryMoney;
 		}
-	}
-	public ToVm(): ViewModel.Player
-	{
-		const vm = new ViewModel.Player(this);
-		return vm;
 	}
 	// public ToVmPrivate(): ViewModel.PlayerPrivate
 	// {
@@ -400,6 +458,16 @@ export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Play
 	public get DisplayName(): string
 	{
 		return ViewModel.Player.DisplayName(this);
+	}
+	/** True if this player has met the death condition. */
+	public get IsDead(): boolean
+	{
+		return this.Money <= 0;
+	}
+	public ToVm(): ViewModel.Player
+	{
+		const vm = new ViewModel.Player(this);
+		return vm;
 	}
 }
 

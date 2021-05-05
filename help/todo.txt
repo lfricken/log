@@ -2,7 +2,7 @@
 
 
 
-transfer $6,888.67 to dads account
+invest $6,888.67 of dads account
 
 models need events or something?
 

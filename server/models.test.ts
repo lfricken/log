@@ -1,5 +1,10 @@
 /* eslint-disable no-magic-numbers */
+
+// https://stackoverflow.com/q/35987055/2167822
+
+
 import * as Models from "./model";
+import * as Shared from "../client/src/shared";
 
 const uid0 = "uid0";
 const uid1 = "uid1";
@@ -29,7 +34,7 @@ test('GetConnection adds a player', () =>
 	expect(c1.isNewPlayer).toBe(true);
 });
 
-test('ConsiderNewLobbyLeader', () =>
+test('New Lobby Leader', () =>
 {
 	const g = setupGame(2);
 
@@ -60,7 +65,7 @@ test('ConsiderNewLobbyLeader', () =>
 	expect(c1.connection.IsLobbyLeader).toBe(true);
 });
 
-test('Eras, Turns, and Players get created', () =>
+test('Models Created', () =>
 {
 	const g = setupGame(1);
 
@@ -82,7 +87,7 @@ test('Eras, Turns, and Players get created', () =>
 	expect(c0.connection.Nickname).toBe(name0);
 });
 
-test('EndTurn produces new Turn', () =>
+test('New Turn', () =>
 {
 	const delta = 2;
 	const startMoney = 7;
@@ -152,15 +157,114 @@ test('EndTurn produces new Turn', () =>
 		expect(p0.Money).toBe(startMoney - delta);
 		expect(p0.MilitaryMoney).toBe(startMilMoney + delta);
 	}
-
-
-
-	// attack 1th player for 3
-	//p0.TurnActions.MilitaryAttacks.set(1, 3);
 });
 
-test('EndTurn produces new Era', () =>
+test('Trades', () =>
 {
 
+});
+
+test('Attacks', () =>
+{
+	{
+		const { militaryDelta, moneyDelta, } = Shared.Military.GetDelta(2, 0, 0);
+		// attacks do nothing
+		expect(militaryDelta).toBe(0);
+		expect(moneyDelta).toBe(0);
+	}
+	{
+		const { militaryDelta, moneyDelta, } = Shared.Military.GetDelta(2, 3, 1);
+		// attacks overcome enemy
+		expect(militaryDelta).toBe(0);
+		expect(moneyDelta).toBe(0);
+	}
+	{
+		const { militaryDelta, moneyDelta, } = Shared.Military.GetDelta(2, 3, 4);
+		// enemy attacks damage our military
+		expect(militaryDelta).toBe(-1);
+		expect(moneyDelta).toBe(0);
+	}
+	{
+		const { militaryDelta, moneyDelta, } = Shared.Military.GetDelta(2, 3, 8);
+		// enemy attacks destroy our military and pillage
+		expect(militaryDelta).toBe(-2);
+		expect(moneyDelta).toBe(-6);
+	}
+
+
+
+
+	const g = setupGame(2);
+	{
+		const t = g.CurrentEra.CurrentTurn;
+		const p0 = t.Players.get(0)!;
+		const p1 = t.Players.get(1)!;
+
+		// player should not start era dead
+		expect(p0.IsDead).toBe(false);
+		expect(p1.IsDead).toBe(false);
+
+		p0.Money = 0;
+
+		// player 1 should now be dead
+		expect(p0.IsDead).toBe(true);
+		expect(p1.IsDead).toBe(false);
+	}
+
+	{
+		const prevEra = g.CurrentEra;
+		g.EndTurn();
+
+		// new era should be different
+		expect(g.CurrentEra === prevEra).toBe(false);
+
+		const t = g.CurrentEra.CurrentTurn;
+		const p0 = t.Players.get(0)!;
+		const p1 = t.Players.get(1)!;
+
+		// should have produced a new era 
+		expect(g.CurrentEra === prevEra).toBe(false);
+		// players should not start era dead
+		expect(p0.IsDead).toBe(false);
+		expect(p1.IsDead).toBe(false);
+	}
+});
+
+test('New Era', () =>
+{
+	const g = setupGame(2);
+	{
+		const t = g.CurrentEra.CurrentTurn;
+		const p0 = t.Players.get(0)!;
+		const p1 = t.Players.get(1)!;
+
+		// player should not start era dead
+		expect(p0.IsDead).toBe(false);
+		expect(p1.IsDead).toBe(false);
+
+		p0.Money = 0;
+
+		// player 1 should now be dead
+		expect(p0.IsDead).toBe(true);
+		expect(p1.IsDead).toBe(false);
+	}
+
+	{
+		const prevEra = g.CurrentEra;
+		g.EndTurn();
+
+		// new era should be different
+		expect(g.CurrentEra === prevEra).toBe(false);
+
+		const t = g.CurrentEra.CurrentTurn;
+		const p0 = t.Players.get(0)!;
+		const p1 = t.Players.get(1)!;
+
+		// should have produced a new era 
+		expect(g.CurrentEra === prevEra).toBe(false);
+		// players should not start era dead
+		expect(p0.IsDead).toBe(false);
+		expect(p1.IsDead).toBe(false);
+	}
 });
 

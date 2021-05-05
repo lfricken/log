@@ -36,6 +36,10 @@ export class Player
 	public Plid!: number;
 	/** The name this player goes by. */
 	public Nickname!: string;
+	/** This player has this much money on this turn. */
+	public Money!: number;
+	/** Total money this player has in military. */
+	public MilitaryMoney!: number;
 
 	public constructor(old: null | Player)
 	{
@@ -51,7 +55,7 @@ export class Player
 		}
 	}
 
-	public static DisplayName(player: Player): string
+	public static DisplayName(player: { Nickname: string, Plid: number, }): string
 	{
 		return `${player.Nickname}(${player.Plid})`;
 	}
