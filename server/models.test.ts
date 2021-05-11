@@ -161,6 +161,26 @@ test('New Turn', () =>
 
 test('Trades', () =>
 {
+	{
+		const delta = Shared.Trade.GetDelta(Shared.Actions.Cooperate, Shared.Actions.Cooperate);
+		expect(delta).toBe(Shared.Trade.CooperateBoth);
+	}
+	{
+		const delta = Shared.Trade.GetDelta(Shared.Actions.Cooperate, Shared.Actions.Defect);
+		expect(delta).toBe(Shared.Trade.DefectLose);
+	}
+	{
+		const delta = Shared.Trade.GetDelta(Shared.Actions.Defect, Shared.Actions.Cooperate);
+		expect(delta).toBe(Shared.Trade.DefectWin);
+	}
+	{
+		const delta = Shared.Trade.GetDelta(Shared.Actions.Defect, Shared.Actions.Defect);
+		expect(delta).toBe(Shared.Trade.DefectBoth);
+	}
+});
+
+test('Turn Trades', () =>
+{
 
 });
 
@@ -190,11 +210,71 @@ test('Attacks', () =>
 		expect(militaryDelta).toBe(-2);
 		expect(moneyDelta).toBe(-6);
 	}
+});
 
-
-
-
+test('Turn Attacks', () =>
+{
 	const g = setupGame(2);
+	{
+		const t = g.CurrentEra.CurrentTurn;
+		let p0 = t.Players.get(0)!;
+		const p1 = t.Players.get(1)!;
+
+		p0.Money = 9;
+
+		p1.Money = 10;
+		p1.MilitaryMoney = 2;
+
+		p0 = g.CurrentEra.CurrentTurn.Players.get(0)!;
+		p0.MilitaryDelta = 1;
+		g.EndTurn();
+		p0 = g.CurrentEra.CurrentTurn.Players.get(0)!;
+		p0.MilitaryDelta = 1;
+		g.EndTurn();
+		p0 = g.CurrentEra.CurrentTurn.Players.get(0)!;
+		p0.MilitaryDelta = 1;
+		g.EndTurn();
+		p0 = g.CurrentEra.CurrentTurn.Players.get(0)!;
+		p0.MilitaryDelta = 1;
+		g.EndTurn();
+		p0 = g.CurrentEra.CurrentTurn.Players.get(0)!;
+		p0.MilitaryDelta = 1;
+		g.EndTurn();
+	}
+
+	{
+		const t = g.CurrentEra.CurrentTurn;
+		const p0 = t.Players.get(0)!;
+		const p1 = t.Players.get(1)!;
+
+		// player should now have military
+		expect(p0.Money).toBe(4);
+		expect(p0.MilitaryMoney).toBe(5);
+		// other play should be as is
+		expect(p1.Money).toBe(10);
+		expect(p1.MilitaryMoney).toBe(2);
+
+		p0.MilitaryAttacks.set(1, 4);
+		g.EndTurn();
+	}
+
+	{
+		const t = g.CurrentEra.CurrentTurn;
+		const p0 = t.Players.get(0)!;
+		const p1 = t.Players.get(1)!;
+
+		// player should now have military
+		expect(p0.Money).toBe(4);
+		expect(p0.MilitaryMoney).toBe(1);
+		// other play should be as is
+		expect(p1.Money).toBe(2);
+		expect(p1.MilitaryMoney).toBe(0);
+	}
+});
+
+test('Player Stays Dead', () =>
+{
+	const g = setupGame(4);
 	{
 		const t = g.CurrentEra.CurrentTurn;
 		const p0 = t.Players.get(0)!;
@@ -206,26 +286,23 @@ test('Attacks', () =>
 
 		p0.Money = 0;
 
-		// player 1 should now be dead
-		expect(p0.IsDead).toBe(true);
+		// player 1 shouldn't be dead yet
+		expect(p0.IsDead).toBe(false);
 		expect(p1.IsDead).toBe(false);
 	}
 
 	{
 		const prevEra = g.CurrentEra;
 		g.EndTurn();
-
-		// new era should be different
-		expect(g.CurrentEra === prevEra).toBe(false);
+		// should have produced a new era
+		expect(g.CurrentEra === prevEra).toBe(true);
 
 		const t = g.CurrentEra.CurrentTurn;
 		const p0 = t.Players.get(0)!;
 		const p1 = t.Players.get(1)!;
 
-		// should have produced a new era 
-		expect(g.CurrentEra === prevEra).toBe(false);
 		// players should not start era dead
-		expect(p0.IsDead).toBe(false);
+		expect(p0.IsDead).toBe(true);
 		expect(p1.IsDead).toBe(false);
 	}
 });
@@ -244,8 +321,8 @@ test('New Era', () =>
 
 		p0.Money = 0;
 
-		// player 1 should now be dead
-		expect(p0.IsDead).toBe(true);
+		// player 1 shouldn't be dead yet
+		expect(p0.IsDead).toBe(false);
 		expect(p1.IsDead).toBe(false);
 	}
 

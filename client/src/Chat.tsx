@@ -38,7 +38,7 @@ export class ChatComp extends React.Component<Props, State>
 		this.chatInput = document.getElementById('chatInput') as HTMLInputElement;
 		this.nameInput = document.getElementById('nameInput') as HTMLInputElement;
 
-		this.props.socket.on(Shared.Chat, this.onNewMessage.bind(this));
+		this.props.socket.on(Shared.Actions.Chat, this.onNewMessage.bind(this));
 
 		var chatForm = document.getElementById('chatForm') as HTMLFormElement;
 		chatForm.addEventListener('submit', this.onSubmitMessage.bind(this));
@@ -54,7 +54,7 @@ export class ChatComp extends React.Component<Props, State>
 
 		if (nickname !== "" && text !== "")
 		{
-			this.props.socket.emit(Shared.Chat, message);
+			this.props.socket.emit(Shared.Actions.Chat, message);
 			this.chatInput.value = '';
 		}
 	}

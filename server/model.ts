@@ -322,6 +322,13 @@ export class Turn implements IToVm<ViewModel.Era>
 				this.ApplyCombat(plid);
 			}
 		}
+
+
+		for (let plid = 0; plid < old.Players.size; ++plid)
+		{
+			const p = this.Players.get(plid)!;
+			p.CheckIsDead();
+		}
 	}
 	private ComputeNewPlayerTurn(old: Turn, plid: number, isNewEra: boolean): PlayerTurn
 	{
@@ -347,7 +354,7 @@ export class Turn implements IToVm<ViewModel.Era>
 			// allocate attacks
 			for (let plidOther = 0; plidOther < old.Players.size; ++plidOther)
 			{
-				p.MilitaryMoney -= p.MilitaryAttacks.get(plidOther) || 0;
+				p.MilitaryMoney -= pOld.MilitaryAttacks.get(plidOther) || 0;
 			}
 
 			return p;
@@ -385,7 +392,10 @@ export class Turn implements IToVm<ViewModel.Era>
 			const us = p.MilitaryAttacks.get(plidOther) || 0;
 			const them = pOther.MilitaryAttacks.get(plidOther) || 0;
 
-			//p += 
+			const { militaryDelta, moneyDelta, } = Shared.Military.GetDelta(p.MilitaryMoney, us, them);
+
+			p.MilitaryMoney += militaryDelta;
+			p.Money += moneyDelta;
 		}
 
 		return p;
@@ -425,6 +435,7 @@ export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Play
 	public MilitaryAttacks: Map<number, number>;
 	/** Maps (plid > trade decision). */
 	public Trades: Map<number, number>;
+	private isDead: boolean;
 
 	public constructor(old: null | PlayerTurn)
 	{
@@ -438,12 +449,14 @@ export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Play
 
 		if (old === null)
 		{
-			this.Money = 10;
+			this.isDead = false;
+			this.Money = Shared.Rules.StartMoney;
 		}
 		else
 		{
 			this.Money = old.Money;
 			this.MilitaryMoney = old.MilitaryMoney;
+			this.isDead = old.isDead;
 		}
 	}
 	// public ToVmPrivate(): ViewModel.PlayerPrivate
@@ -459,10 +472,16 @@ export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Play
 	{
 		return ViewModel.Player.DisplayName(this);
 	}
+	public CheckIsDead(): boolean
+	{
+		const oldValue = this.isDead;
+		this.isDead = this.Money <= 0;
+		return oldValue !== this.isDead; // true if value changed
+	}
 	/** True if this player has met the death condition. */
 	public get IsDead(): boolean
 	{
-		return this.Money <= 0;
+		return this.isDead;
 	}
 	public ToVm(): ViewModel.Player
 	{

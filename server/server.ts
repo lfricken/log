@@ -21,7 +21,7 @@ if (process.argv.length > use_env_arg)
 
 global.custom = {
 	__root_static: path.join(process.cwd(), "/client/build/")
-}
+};
 
 const expWrap = express();
 const httpServer = http.createServer(expWrap);
@@ -44,7 +44,7 @@ const g = new Events.ModelWireup(ioWrap);
 	// Put all API endpoints under '/api'
 	expWrap.get("/api/passwords", async (req: exp.Request, res: exp.Response) =>
 	{
-		let xy = new Model.Turn();
+		//let xy = new Model.Turn();
 		const data = [];
 		const databaseRes = await pool.query("SELECT * FROM horses;"); //, (err, res) =>
 		for (const row of databaseRes.rows)

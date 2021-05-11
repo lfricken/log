@@ -28,6 +28,8 @@ export const UniqueIdLength = 8;
 export class Rules
 {
 	public static EraMinDeadPercentage = 0.5;
+	public static StartMoney = 10;
+	public static StartMaxMilitaryPerTurn = 1;
 }
 
 export class Actions
