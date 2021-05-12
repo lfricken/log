@@ -82,22 +82,22 @@ export class Military
 	public static MaxDelta = 2;
 	public static Upkeep = 0.1;
 
-	public static GetDelta(standingMilitary0: number, attacks0: number, attacks1: number):
+	public static GetDelta(ourMilitary: number, ourAttacks: number, enemyAttacks: number):
 		{ militaryDelta: number, moneyDelta: number, }
 	{
 		let militaryDelta = 0;
 		let moneyDelta = 0;
-		let remainingAttack = attacks1;
+		let remainingIncomingAttack = enemyAttacks;
 
-		remainingAttack -= attacks0;
-		if (remainingAttack > 0) // some attacks remain after counter attacks
+		remainingIncomingAttack -= ourAttacks;
+		if (remainingIncomingAttack > 0) // some attacks remain after counter attacks
 		{
-			militaryDelta = -Math.min(remainingAttack, standingMilitary0);
+			militaryDelta = -Math.min(remainingIncomingAttack, ourMilitary);
 
-			remainingAttack -= standingMilitary0;
-			if (remainingAttack > 0) // some attacks remain after standing military
+			remainingIncomingAttack -= ourMilitary;
+			if (remainingIncomingAttack > 0) // some attacks remain after standing military
 			{
-				moneyDelta = -Military.PillageMultiplier * remainingAttack;
+				moneyDelta = -Military.PillageMultiplier * remainingIncomingAttack;
 			}
 		}
 

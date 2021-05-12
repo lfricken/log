@@ -33,23 +33,23 @@ export class Era
 export class Player
 {
 	/** The order this player joined in.  */
-	public Plid!: number;
+	public Plid: number;
+	/** The order this player joined in.  */
+	public Score: number;
 	/** The name this player goes by. */
-	public Nickname!: string;
-	/** This player has this much money on this turn. */
-	public Money!: number;
-	/** Total money this player has in military. */
-	public MilitaryMoney!: number;
+	public Nickname: string;
 
-	public constructor(old: null | Player)
+	public constructor(old: Player)
 	{
 		if (old === null)
 		{
+			this.Score = 0;
 			this.Plid = 0;
 			this.Nickname = "";
 		}
 		else
 		{
+			this.Score = old.Score;
 			this.Plid = old.Plid;
 			this.Nickname = old.Nickname;
 		}
@@ -127,7 +127,7 @@ export class Message
 	}
 	public static PlayerMsg(name: string, msg: Message): Message
 	{
-		return new Message(name, `${name}: ${msg.Text}`);
+		return new Message(name, `${name}: ${msg.Text}`, true);
 	}
 	public static JoinMsg(name: string): Message
 	{

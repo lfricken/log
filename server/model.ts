@@ -64,7 +64,7 @@ export class Game implements IToVm<ViewModel.Game>
 		this.Settings = new Settings();
 		this.PlayerConnections = new Map<UniqueId, PlayerConnection>();
 		this.Eras = new Map<number, Era>();
-		this.Eras.set(0, new Era(null));
+		this.Eras.set(0, new Era(this.Eras.size, null));
 	}
 	/** Obtains the current Era. */
 	public get CurrentEra(): Era
@@ -98,7 +98,7 @@ export class Game implements IToVm<ViewModel.Game>
 		// check to see if we should make a new Era
 		if (this.CurrentEra.IsOver)
 		{
-			this.Eras.set(this.Eras.size, new Era(this.CurrentEra));
+			this.Eras.set(this.Eras.size, new Era(this.Eras.size, this.CurrentEra));
 		}
 	}
 	/** Will make the first player that is connected the lobby leader, and anyone else not. */
@@ -160,7 +160,7 @@ export class Game implements IToVm<ViewModel.Game>
 	{
 		const vm = new ViewModel.Game();
 
-		vm.PlayerConnections = MapVmMap(this.PlayerConnections);
+		//vm.PlayerConnections = MapVmMap(this.PlayerConnections);
 		vm.CurrentEra = this.CurrentEra.ToVm();
 
 		return vm;
@@ -168,11 +168,12 @@ export class Game implements IToVm<ViewModel.Game>
 }
 
 /** Data about the player, indexed on UniqueId. */
-export class PlayerConnection implements IToVm<ViewModel.Player>
+export class PlayerConnection// implements IToVm<ViewModel.Player>
 {
 	public static NoSocket = "";
-	/** The order this player joined in.  */
+	/** The order this player joined in. */
 	public Plid: number;
+	public Score = 0;
 	/** Id of the socket this player is using. Empty string if no socket. */
 	public SocketId: string;
 	/** 
@@ -218,11 +219,6 @@ export class PlayerConnection implements IToVm<ViewModel.Player>
 	{
 		return ViewModel.Player.DisplayName(this);
 	}
-	public ToVm(): ViewModel.Player
-	{
-		const vm = new ViewModel.Player(null);
-		return vm;
-	}
 }
 
 /** Data about a players turn, indexed on turn number. */
@@ -232,9 +228,11 @@ export class Era implements IToVm<ViewModel.Era>
 	private Order: Map<number, number>;
 	/** Maps (turn number > turn data) */
 	private Turns: Map<number, Turn>;
+	public Eid: number;
 
-	public constructor(old: null | Era)
+	public constructor(eid: number, old: null | Era)
 	{
+		this.Eid = eid;
 		this.Turns = new Map<number, Turn>();
 		if (old === null)
 		{
@@ -268,7 +266,7 @@ export class Era implements IToVm<ViewModel.Era>
 	{
 		return this.Turns.get(this.Turns.size - 1)!;
 	}
-	/** True if this Era should end, and a new one should begin. */
+	/** True if this Era should end. */
 	public get IsOver(): boolean
 	{
 		// at least this many players need to be dead
@@ -308,69 +306,28 @@ export class Turn implements IToVm<ViewModel.Era>
 			this.ComputeNewTurn(obj, isNewEra);
 		}
 	}
-	private ComputeNewTurn(old: Turn, isNewEra: boolean): void
+	private ComputeNewTurn(oldTurn: Turn, isNewEra: boolean): void
 	{
 		// copy player data
-		for (let plid = 0; plid < old.Players.size; ++plid)
+		for (const kvp of oldTurn.Players)
 		{
-			this.Players.set(plid, old.ComputeNewPlayerTurn(old, plid, isNewEra));
-		}
-		if (!isNewEra)
-		{
-			for (let plid = 0; plid < old.Players.size; ++plid)
-			{
-				this.ApplyCombat(plid);
-			}
-		}
-
-
-		for (let plid = 0; plid < old.Players.size; ++plid)
-		{
-			const p = this.Players.get(plid)!;
-			p.CheckIsDead();
+			const oldPlayer = kvp[1];
+			this.Players.set(kvp[0], PlayerTurn.NewPlayerTurnFromOld(oldTurn, oldPlayer, isNewEra));
 		}
 	}
-	private ComputeNewPlayerTurn(old: Turn, plid: number, isNewEra: boolean): PlayerTurn
-	{
-		const pOld = old.Players.get(plid)!;
-
-		if (isNewEra)
-		{
-			const p = new PlayerTurn(null);
-
-			return p;
-		}
-		else
-		{
-			const p = new PlayerTurn(pOld);
-
-			// do trades
-			p.Money += this.TradeDelta(plid);
-
-			// allocate military
-			p.Money -= pOld.MilitaryDelta;
-			p.MilitaryMoney += pOld.MilitaryDelta;
-
-			// allocate attacks
-			for (let plidOther = 0; plidOther < old.Players.size; ++plidOther)
-			{
-				p.MilitaryMoney -= pOld.MilitaryAttacks.get(plidOther) || 0;
-			}
-
-			return p;
-		}
-	}
-	public TradeDelta(plid: number): number
+	public GetTradeDelta(player: PlayerTurn): number
 	{
 		let delta = 0;
-		const p = this.Players.get(plid)!;
 
-		for (let plidOther = 0; plidOther < this.Players.size; ++plidOther)
+		for (const kvp of this.Players)
 		{
+			if (kvp[0] === player.Plid) // cant trade with self
+				continue;
+			const pOther = kvp[1];
+
 			// get trade decisions
-			const pOther = this.Players.get(plidOther)!;
-			const us = p.Trades.get(plidOther);
-			const them = pOther.Trades.get(plid);
+			const us = player.Trades.get(kvp[0]);
+			const them = pOther.Trades.get(player.Plid);
 
 			if (us === undefined || them === undefined)
 				continue; // no trade route
@@ -380,40 +337,40 @@ export class Turn implements IToVm<ViewModel.Era>
 
 		return delta;
 	}
-	private ApplyCombat(plid: number): PlayerTurn
+	public GetAttackDelta(oldPlayer: PlayerTurn):
+		{ militaryDelta: number, moneyDelta: number, }
 	{
-		const p = this.Players.get(plid)!;
-
-		// do any combat
-		for (let plidOther = 0; plidOther < this.Players.size; ++plidOther)
+		let militaryDelta = 0;
+		let moneyDelta = 0;
+		for (const kvp of this.Players)
 		{
-			const pOther = this.Players.get(plidOther)!;
+			if (kvp[0] === oldPlayer.Plid) // cant attack self
+				continue;
+			const pOther = kvp[1];
+
 			// get trade decisions
-			const us = p.MilitaryAttacks.get(plidOther) || 0;
-			const them = pOther.MilitaryAttacks.get(plidOther) || 0;
+			const us = oldPlayer.MilitaryAttacks.get(kvp[0]) || 0;
+			const them = pOther.MilitaryAttacks.get(oldPlayer.Plid) || 0;
 
-			const { militaryDelta, moneyDelta, } = Shared.Military.GetDelta(p.MilitaryMoney, us, them);
-
-			p.MilitaryMoney += militaryDelta;
-			p.Money += moneyDelta;
+			const delta = Shared.Military.GetDelta(oldPlayer.MilitaryMoney, us, them);
+			militaryDelta += delta.militaryDelta;
+			moneyDelta += delta.moneyDelta;
 		}
-
-		return p;
+		return { militaryDelta, moneyDelta };
 	}
 	/** Adds a new player to this Turn. */
 	public AddNewPlayer(connection: PlayerConnection): void
 	{
-		const player = new PlayerTurn(null);
-
+		const player = PlayerTurn.NewPlayerTurnFromConnection(connection);
 		this.Players.set(connection.Plid, player);
 	}
 
 	public get NumDead(): number
 	{
 		let numDead = 0;
-		for (let i = 0; i < this.Players.size; ++i)
+		for (const kvp of this.Players)
 		{
-			if (this.Players.get(i)!.IsDead)
+			if (kvp[1].IsDead)
 				numDead += 1;
 		}
 		return numDead;
@@ -429,35 +386,67 @@ export class Turn implements IToVm<ViewModel.Era>
 /** Data about the player, indexed on UniqueId. */
 export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Player>
 {
+	/** This player has this much money on this turn. */
+	public Money: number;
+	/** Total money this player has in military. */
+	public MilitaryMoney: number;
 	/** How much money this player is trying to add to their military. */
 	public MilitaryDelta: number;
 	/** Maps (plid > attack) */
 	public MilitaryAttacks: Map<number, number>;
 	/** Maps (plid > trade decision). */
 	public Trades: Map<number, number>;
-	private isDead: boolean;
 
-	public constructor(old: null | PlayerTurn)
+
+	public static NewPlayerTurnFromConnection(old: PlayerConnection): PlayerTurn
+	{
+		return new PlayerTurn(old);
+	}
+	public static NewPlayerTurnFromOld(oldTurn: Turn, oldPlayer: PlayerTurn, isNewEra: boolean): PlayerTurn
+	{
+		const player = new PlayerTurn(oldPlayer);
+
+		if (!isNewEra)
+		{
+			// copy old values
+			player.Money = oldPlayer.Money;
+			player.MilitaryMoney = oldPlayer.MilitaryMoney;
+
+			// do trades
+			player.Money += oldTurn.GetTradeDelta(oldPlayer);
+
+			// do military delta
+			player.Money -= oldPlayer.MilitaryDelta;
+			player.MilitaryMoney += oldPlayer.MilitaryDelta;
+
+			// allocate our attack money
+			for (const kvp of oldPlayer.MilitaryAttacks)
+			{
+				player.MilitaryMoney -= kvp[1];
+			}
+
+			// apply others attacks to us
+			const deltas = oldTurn.GetAttackDelta(oldPlayer);
+			player.Money += deltas.moneyDelta;
+			player.MilitaryMoney += deltas.militaryDelta;
+		}
+
+		return player;
+	}
+	private constructor(old: ViewModel.Player)
 	{
 		super(old);
 
+		this.Money = Shared.Rules.StartMoney;
 		this.MilitaryMoney = 0;
-
 		this.MilitaryDelta = 0;
+
 		this.MilitaryAttacks = new Map<number, number>();
 		this.Trades = new Map<number, number>();
-
-		if (old === null)
-		{
-			this.isDead = false;
-			this.Money = Shared.Rules.StartMoney;
-		}
-		else
-		{
-			this.Money = old.Money;
-			this.MilitaryMoney = old.MilitaryMoney;
-			this.isDead = old.isDead;
-		}
+	}
+	public IsEqual(o: PlayerTurn): boolean
+	{
+		return this.Plid === o.Plid;
 	}
 	// public ToVmPrivate(): ViewModel.PlayerPrivate
 	// {
@@ -472,16 +461,10 @@ export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Play
 	{
 		return ViewModel.Player.DisplayName(this);
 	}
-	public CheckIsDead(): boolean
-	{
-		const oldValue = this.isDead;
-		this.isDead = this.Money <= 0;
-		return oldValue !== this.isDead; // true if value changed
-	}
 	/** True if this player has met the death condition. */
 	public get IsDead(): boolean
 	{
-		return this.isDead;
+		return this.Money <= 0;
 	}
 	public ToVm(): ViewModel.Player
 	{
