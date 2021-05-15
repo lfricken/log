@@ -25,11 +25,11 @@ test('GetConnection adds a player', () =>
 {
 	const g = setupGame(1);
 	// setup game should automatically add 1 player
-	expect(g.CurrentEra.CurrentTurn.Players.size).toBe(1);
+	expect(g.LatestEra.LatestTurn.Players.length).toBe(1);
 
 	const c1 = g.GetConnection(uid1, name1);
 	// get connection automatically adds aother new player
-	expect(g.CurrentEra.CurrentTurn.Players.size).toBe(2);
+	expect(g.LatestEra.LatestTurn.Players.length).toBe(2);
 
 	// uid was not preexisting, so it should be a new player
 	expect(c1.isNewPlayer).toBe(true);
@@ -41,7 +41,7 @@ test('New Lobby Leader', () =>
 
 	const c0 = g.GetConnection(uid0, name0);
 	const c1 = g.GetConnection(uid1, name1);
-	expect(g.CurrentEra.CurrentTurn.Players.size).toBe(2);
+	expect(g.LatestEra.LatestTurn.Players.length).toBe(2);
 
 	// uid was preexisting, so it should not be a new player
 	expect(c0.isNewPlayer).toBe(false);
@@ -72,7 +72,7 @@ test('Models Created', () =>
 
 	// get connection automatically adds a new player
 	const c0 = g.GetConnection(uid0, name0);
-	expect(g.CurrentEra.CurrentTurn.Players.size).toBe(1);
+	expect(g.LatestEra.LatestTurn.Players.length).toBe(1);
 
 	// uid was preexisting, so it should not be a new player
 	expect(c0.isNewPlayer).toBe(false);
@@ -97,23 +97,23 @@ test('New Turn', () =>
 	// new turn, 0
 	const g = setupGame(2);
 	{
-		expect(g.CurrentEra.IsOver).toBe(false);
-		const t = g.CurrentEra.CurrentTurn;
+		expect(g.LatestEra.IsOver).toBe(false);
+		const t = g.LatestEra.LatestTurn;
 
-		const p0 = t.Players.get(0)!;
+		const p0 = t.Players[0];
 		p0.Money = startMoney;
 		p0.MilitaryMoney = startMilMoney;
 	}
 
 	// new turn, 1
 	{
-		const prevEra = g.CurrentEra;
+		const prevEra = g.LatestEra;
 		g.EndTurn();
-		const t = g.CurrentEra.CurrentTurn;
-		const p0 = t.Players.get(0)!;
+		const t = g.LatestEra.LatestTurn;
+		const p0 = t.Players[0];
 
 		// nobody died so the era should not end
-		expect(g.CurrentEra.Eid).toBe(prevEra.Eid);
+		expect(g.LatestEra.Eid).toBe(prevEra.Eid);
 
 		// no military delta
 		expect(p0.Money).toBe(startMoney);
@@ -124,14 +124,14 @@ test('New Turn', () =>
 
 	// new turn, 2
 	{
-		const prevEra = g.CurrentEra;
-		const prevTurn = g.CurrentEra.CurrentTurn;
+		const prevEra = g.LatestEra;
+		const prevTurn = g.LatestEra.LatestTurn;
 		g.EndTurn();
-		const t = g.CurrentEra.CurrentTurn;
-		const p0 = t.Players.get(0)!;
+		const t = g.LatestEra.LatestTurn;
+		const p0 = t.Players[0];
 
 		// nobody died so the era should not end
-		expect(g.CurrentEra.Eid).toBe(prevEra.Eid);
+		expect(g.LatestEra.Eid).toBe(prevEra.Eid);
 		// but the turn should be different
 		expect(t === prevTurn).toBe(false);
 		expect(t === t).toBe(true);
@@ -143,14 +143,14 @@ test('New Turn', () =>
 
 	// new turn, 3
 	{
-		const prevEra = g.CurrentEra;
-		const prevTurn = g.CurrentEra.CurrentTurn;
+		const prevEra = g.LatestEra;
+		const prevTurn = g.LatestEra.LatestTurn;
 		g.EndTurn();
-		const t = g.CurrentEra.CurrentTurn;
-		const p0 = t.Players.get(0)!;
+		const t = g.LatestEra.LatestTurn;
+		const p0 = t.Players[0];
 
 		// nobody died so the era should not end
-		expect(g.CurrentEra.Eid).toBe(prevEra.Eid);
+		expect(g.LatestEra.Eid).toBe(prevEra.Eid);
 		// but the turn should be different
 		expect(t === prevTurn).toBe(false);
 		expect(t === t).toBe(true);
@@ -224,9 +224,9 @@ test('Attacks', () =>
 
 		const g = setupGame(2);
 		{
-			const t = g.CurrentEra.CurrentTurn;
-			const p0 = t.Players.get(0)!;
-			const p1 = t.Players.get(1)!;
+			const t = g.LatestEra.LatestTurn;
+			const p0 = t.Players[0];
+			const p1 = t.Players[1];
 
 			p0.Money = p0money;
 			p0.MilitaryMoney = p0military;
@@ -236,15 +236,15 @@ test('Attacks', () =>
 		}
 
 		{
-			const p1 = g.CurrentEra.CurrentTurn.Players.get(1)!;
+			const p1 = g.LatestEra.LatestTurn.Players[1];
 			p1.MilitaryAttacks.set(0, p1attack); // attack player 0 for 1
 			g.EndTurn();
 		}
 
 		{
-			const t = g.CurrentEra.CurrentTurn;
-			const p0 = t.Players.get(0)!;
-			const p1 = t.Players.get(1)!;
+			const t = g.LatestEra.LatestTurn;
+			const p0 = t.Players[0];
+			const p1 = t.Players[1];
 
 			// player should now have military
 			expect(p0.Money).toBe(p0money);
@@ -266,39 +266,39 @@ test('Attacks', () =>
 
 		const g = setupGame(2);
 		{
-			const t = g.CurrentEra.CurrentTurn;
-			let p0 = t.Players.get(0)!;
-			const p1 = t.Players.get(1)!;
+			const t = g.LatestEra.LatestTurn;
+			let p0 = t.Players[0];
+			const p1 = t.Players[1];
 
 			p0.Money = p0money;
 
 			p1.Money = p1money;
 			p1.MilitaryMoney = 2;
 
-			p0 = g.CurrentEra.CurrentTurn.Players.get(0)!;
+			p0 = g.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
 			g.EndTurn();
-			p0 = g.CurrentEra.CurrentTurn.Players.get(0)!;
+			p0 = g.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
 			g.EndTurn();
-			p0 = g.CurrentEra.CurrentTurn.Players.get(0)!;
+			p0 = g.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
 			g.EndTurn();
-			p0 = g.CurrentEra.CurrentTurn.Players.get(0)!;
+			p0 = g.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
 			g.EndTurn();
-			p0 = g.CurrentEra.CurrentTurn.Players.get(0)!;
+			p0 = g.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
 			g.EndTurn();
-			p0 = g.CurrentEra.CurrentTurn.Players.get(0)!;
+			p0 = g.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
 			g.EndTurn();
 		}
 
 		{
-			const t = g.CurrentEra.CurrentTurn;
-			const p0 = t.Players.get(0)!;
-			const p1 = t.Players.get(1)!;
+			const t = g.LatestEra.LatestTurn;
+			const p0 = t.Players[0];
+			const p1 = t.Players[1];
 
 			// player should now have military
 			expect(p0.Money).toBe(p0money - p0military);
@@ -312,9 +312,9 @@ test('Attacks', () =>
 		}
 
 		{
-			const t = g.CurrentEra.CurrentTurn;
-			const p0 = t.Players.get(0)!;
-			const p1 = t.Players.get(1)!;
+			const t = g.LatestEra.LatestTurn;
+			const p0 = t.Players[0];
+			const p1 = t.Players[1];
 
 			// player should now have military
 			expect(p0.Money).toBe(p0money - p0military);
@@ -330,9 +330,9 @@ test('Player Death', () =>
 {
 	const g = setupGame(4);
 	{
-		const t = g.CurrentEra.CurrentTurn;
-		const p0 = t.Players.get(0)!;
-		const p1 = t.Players.get(1)!;
+		const t = g.LatestEra.LatestTurn;
+		const p0 = t.Players[0];
+		const p1 = t.Players[1];
 
 		// player should not start era dead
 		expect(p0.IsDead).toBe(false);
@@ -346,26 +346,26 @@ test('Player Death', () =>
 	}
 
 	{
-		const prevEra = g.CurrentEra;
+		const prevEra = g.LatestEra;
 		g.EndTurn();
 		// should not have produced a new era yet
-		expect(g.CurrentEra.Eid).toBe(prevEra.Eid);
+		expect(g.LatestEra.Eid).toBe(prevEra.Eid);
 
-		const t = g.CurrentEra.CurrentTurn;
-		const p0 = t.Players.get(0)!;
-		const p1 = t.Players.get(1)!;
+		const t = g.LatestEra.LatestTurn;
+		const p0 = t.Players[0];
+		const p1 = t.Players[1];
 
-		// players should not start era dead
+		// players should stay dead
 		expect(p0.IsDead).toBe(true);
 		expect(p1.IsDead).toBe(false);
 
 		p1.Money = 0;
 	}
 	{
-		const prevEra = g.CurrentEra;
+		const prevEra = g.LatestEra;
 		g.EndTurn();
-		// should have produced new since half dead
-		expect(g.CurrentEra.Eid).not.toBe(prevEra.Eid);
+		// should have produced new era since half dead
+		expect(g.LatestEra.Eid).not.toBe(prevEra.Eid);
 	}
 });
 
@@ -373,10 +373,11 @@ test('New Era', () =>
 {
 	const g = setupGame(3);
 	{
-		const t = g.CurrentEra.CurrentTurn;
-		const p0 = t.Players.get(0)!;
-		const p1 = t.Players.get(1)!;
-		const p2 = t.Players.get(2)!;
+		const t = g.LatestEra.LatestTurn;
+		const p0 = t.Players[0];
+		const p1 = t.Players[1];
+		const p2 = t.Players[2];
+		// scores
 		expect(p0.Score).toBe(0);
 		expect(p1.Score).toBe(0);
 		expect(p2.Score).toBe(0);
@@ -387,22 +388,25 @@ test('New Era', () =>
 	}
 
 	{
-		const prevEra = g.CurrentEra;
+		const prevEra = g.LatestEra;
 		g.EndTurn();
 
 		// new era should be different
-		expect(g.CurrentEra.Eid).not.toBe(prevEra.Eid);
+		expect(g.LatestEra.Eid).not.toBe(prevEra.Eid);
 
-		const t = g.CurrentEra.CurrentTurn;
-		const p0 = t.Players.get(0)!;
-		const p1 = t.Players.get(1)!;
-		const p2 = t.Players.get(2)!;
+		const t = g.LatestEra.LatestTurn;
+		const p0 = t.Players[0];
+		const p1 = t.Players[1];
+		const p2 = t.Players[2];
+		// score died
 		expect(p0.Score).toBe(0);
+		// score survivor
 		expect(p1.Score).toBe(1);
+		// score leader
 		expect(p2.Score).toBe(2);
 
 		// should have produced a new era 
-		expect(g.CurrentEra.Eid).not.toBe(prevEra.Eid);
+		expect(g.LatestEra.Eid).not.toBe(prevEra.Eid);
 		// players should not start era dead
 		expect(p0.IsDead).toBe(false);
 		expect(p1.IsDead).toBe(false);
@@ -413,18 +417,21 @@ test('New Era', () =>
 		p2.Money = 11;
 	}
 	{
-		const prevEra = g.CurrentEra;
+		const prevEra = g.LatestEra;
 		g.EndTurn();
 
 		// new era should be different
-		expect(g.CurrentEra.Eid).not.toBe(prevEra.Eid);
+		expect(g.LatestEra.Eid).not.toBe(prevEra.Eid);
 
-		const t = g.CurrentEra.CurrentTurn;
-		const p0 = t.Players.get(0)!;
-		const p1 = t.Players.get(1)!;
-		const p2 = t.Players.get(2)!;
+		const t = g.LatestEra.LatestTurn;
+		const p0 = t.Players[0];
+		const p1 = t.Players[1];
+		const p2 = t.Players[2];
+		// score died
 		expect(p0.Score).toBe(0);
+		// score survivor
 		expect(p1.Score).toBe(2);
+		// score leader
 		expect(p2.Score).toBe(4);
 	}
 });

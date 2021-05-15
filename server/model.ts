@@ -111,19 +111,19 @@ export class Game implements IToVm<ViewModel.Game>
 	/** UniqueId > Player */
 	private PlayerConnections: Map<UniqueId, PlayerConnection>;
 	/** Dictates player order */
-	private Eras: Map<number, Era>;
+	private Eras: Era[];
 
 	public constructor()
 	{
 		this.Settings = new Settings();
 		this.PlayerConnections = new Map<UniqueId, PlayerConnection>();
-		this.Eras = new Map<number, Era>();
-		this.Eras.set(0, new Era(this.Eras.size, null));
+		this.Eras = [];
+		this.Eras.push(new Era(this.Eras.length, null));
 	}
 	/** Obtains the current Era. */
-	public get CurrentEra(): Era
+	public get LatestEra(): Era
 	{
-		return this.Eras.get(this.Eras.size - 1)!;
+		return this.Eras[this.Eras.length - 1];
 	}
 	/** Will create or retrieve a player. */
 	public GetConnection(uid: UniqueId, nickname: string): { connection: PlayerConnection, isNewPlayer: boolean }
@@ -137,7 +137,7 @@ export class Game implements IToVm<ViewModel.Game>
 			if (this.PlayerConnections.size === 1)
 				this.ConsiderNewLobbyLeader();
 
-			this.CurrentEra.AddNewPlayer(this.PlayerConnections.get(uid)!);
+			this.LatestEra.AddNewPlayer(this.PlayerConnections.get(uid)!);
 		}
 		const connection = this.PlayerConnections.get(uid)!;
 
@@ -147,12 +147,12 @@ export class Game implements IToVm<ViewModel.Game>
 	public EndTurn(): void
 	{
 		// compute next turn state
-		this.CurrentEra.EndTurn();
+		this.LatestEra.EndTurn();
 
 		// check to see if we should make a new Era
-		if (this.CurrentEra.IsOver)
+		if (this.LatestEra.IsOver)
 		{
-			this.Eras.set(this.Eras.size, new Era(this.Eras.size, this.CurrentEra));
+			this.Eras.push(new Era(this.Eras.length, this.LatestEra));
 		}
 	}
 	/** Will make the first player that is connected the lobby leader, and anyone else not. */
@@ -215,7 +215,7 @@ export class Game implements IToVm<ViewModel.Game>
 		const vm = new ViewModel.Game();
 
 		//vm.PlayerConnections = MapVmMap(this.PlayerConnections);
-		vm.CurrentEra = this.CurrentEra.ToVm();
+		vm.LatestEra = this.LatestEra.ToVm();
 
 		return vm;
 	}
@@ -225,65 +225,55 @@ export class Game implements IToVm<ViewModel.Game>
 export class Era implements IToVm<ViewModel.Era>
 {
 	/** Maps (order > player number) */
-	private Order: Map<number, number>;
+	private Order: number[];
 	/** Maps (turn number > turn data) */
-	private Turns: Map<number, Turn>;
+	private Turns: Turn[];
 	public Eid: number;
 
 	public constructor(eid: number, old: null | Era)
 	{
 		this.Eid = eid;
-		this.Turns = new Map<number, Turn>();
+		this.Turns = [];
 		if (old === null)
 		{
-			this.Turns.set(0, new Turn(null, true));
-
-			this.Order = new Map<number, number>();
+			this.Turns.push(new Turn(null, true));
+			this.Order = [];
 		}
 		else
 		{
-			// score awarded at the beginning of an era
-			const scoreDelta = old.CurrentTurn.GetScoreDelta();
-
 			// previous era ended
-			this.Turns.set(0, new Turn(old.CurrentTurn, true));
+			this.Turns.push(new Turn(old.LatestTurn, true));
 
 			// create new random order
-			this.Order = new Map<number, number>();
-			const order = Array.from(this.CurrentTurn.Players.keys());
-			shuffle(order);
-			for (let plid = 0; plid < order.length; ++plid)
-			{
-				this.CurrentTurn.Players.get(plid)!.Score += scoreDelta.get(plid)!;
-				this.Order.set(plid, order[plid]);
-			}
+			this.Order = Array.from(this.LatestTurn.Players.keys());
+			shuffle(this.Order);
 		}
 	}
 	/** Ends the turn and advances the game state by one unit. */
 	public EndTurn(): void
 	{
-		const old = this.CurrentTurn;
+		const old = this.LatestTurn;
 		const turn = new Turn(old, false);
-		this.Turns.set(this.Turns.size, turn);
+		this.Turns.push(turn);
 	}
 	/** Gets the active Turn. */
-	public get CurrentTurn(): Turn
+	public get LatestTurn(): Turn
 	{
-		return this.Turns.get(this.Turns.size - 1)!;
+		return this.Turns[this.Turns.length - 1];
 	}
 	/** True if this Era should end. */
 	public get IsOver(): boolean
 	{
 		// at least this many players need to be dead
-		const minDead = Math.floor(this.CurrentTurn.Players.size * Shared.Rules.EraMinDeadPercentage);
+		const minDead = Math.floor(this.LatestTurn.Players.length * Shared.Rules.EraMinDeadPercentage);
 
-		return this.CurrentTurn.NumDead >= minDead;
+		return this.LatestTurn.NumDead >= minDead;
 	}
 	/** Adds a new player to this Era. */
 	public AddNewPlayer(connection: PlayerConnection): void
 	{
-		this.Order.set(connection.Plid, connection.Plid);
-		this.CurrentTurn.AddNewPlayer(connection);
+		this.Order.push(connection.Plid);
+		this.LatestTurn.AddNewPlayer(connection);
 	}
 	public ToVm(): ViewModel.Era
 	{
@@ -296,12 +286,12 @@ export class Era implements IToVm<ViewModel.Era>
 export class Turn implements IToVm<ViewModel.Era>
 {
 	/** Maps (plid > player) */
-	public Players!: Map<number, PlayerTurn>;
+	public Players!: PlayerTurn[];
 
 	/** Pass old turn if it exists which will compute the new turn state. */
 	public constructor(obj: null | Turn, isNewEra: boolean)
 	{
-		this.Players = new Map<number, PlayerTurn>();
+		this.Players = [];
 		if (obj === null)
 		{
 
@@ -313,27 +303,30 @@ export class Turn implements IToVm<ViewModel.Era>
 	}
 	private ComputeNewTurn(oldTurn: Turn, isNewEra: boolean): void
 	{
+		// score awarded at the beginning of an era
+		const scoreDelta = oldTurn.GetScoreDelta(isNewEra);
+
 		// copy player data
-		for (const kvp of oldTurn.Players)
+		for (const oldPlayer of oldTurn.Players)
 		{
-			const oldPlayer = kvp[1];
 			const newPlayer = PlayerTurn.NewPlayerTurnFromOld(oldTurn, oldPlayer, isNewEra);
-			this.Players.set(newPlayer.Plid, newPlayer);
+			newPlayer.Score += scoreDelta[newPlayer.Plid];
+			this.Players.push(newPlayer);
 		}
 	}
-	public GetTradeDelta(player: PlayerTurn): number
+	public GetTradeDelta(targetPlayer: PlayerTurn): number
 	{
 		let delta = 0;
 
-		for (const kvp of this.Players)
+		for (const player of this.Players)
 		{
-			if (kvp[0] === player.Plid) // cant trade with self
+			if (player.Plid === targetPlayer.Plid) // cant trade with self
 				continue;
-			const pOther = kvp[1];
+			const pOther = player;
 
 			// get trade decisions
-			const us = player.Trades.get(kvp[0]);
-			const them = pOther.Trades.get(player.Plid);
+			const us = targetPlayer.Trades.get(player.Plid);
+			const them = pOther.Trades.get(targetPlayer.Plid);
 
 			if (us === undefined || them === undefined)
 				continue; // no trade route
@@ -343,49 +336,49 @@ export class Turn implements IToVm<ViewModel.Era>
 
 		return delta;
 	}
-	public GetAttackDelta(oldPlayer: PlayerTurn):
+	public GetAttackDelta(targetPlayer: PlayerTurn):
 		{ militaryDelta: number, moneyDelta: number, }
 	{
 		let militaryDelta = 0;
 		let moneyDelta = 0;
-		for (const kvp of this.Players)
+		for (const player of this.Players)
 		{
-			if (kvp[0] === oldPlayer.Plid) // cant attack self
+			if (player.Plid === targetPlayer.Plid) // cant attack self
 				continue;
-			const pOther = kvp[1];
 
 			// get trade decisions
-			const us = oldPlayer.MilitaryAttacks.get(kvp[0]) || 0;
-			const them = pOther.MilitaryAttacks.get(oldPlayer.Plid) || 0;
+			const us = targetPlayer.MilitaryAttacks.get(player.Plid) || 0;
+			const them = player.MilitaryAttacks.get(targetPlayer.Plid) || 0;
 
-			const delta = Shared.Military.GetDelta(oldPlayer.MilitaryMoney, us, them);
+			const delta = Shared.Military.GetDelta(targetPlayer.MilitaryMoney, us, them);
 			militaryDelta += delta.militaryDelta;
 			moneyDelta += delta.moneyDelta;
 		}
 		return { militaryDelta, moneyDelta };
 	}
 	/** Assuming this Era ended right now, who would get what score? */
-	public GetScoreDelta(): Map<number, number>
+	public GetScoreDelta(isNewEra: boolean): number[]
 	{
-		const scores = new Map<number, number>();
+		const scores = new Array(this.Players.length).fill(0);
 		let leaderPlid = 0;
 		let leaderMoney = 0;
-		for (const kvp of this.Players)
-		{
-			const player = kvp[1];
-			const plid = kvp[0];
-			if (player.Money > leaderMoney)
-			{
-				leaderPlid = plid;
-				leaderMoney = player.Money;
-			}
-			if (player.IsDead)
-				scores.set(plid, Shared.Score.Die);
-			else
-				scores.set(plid, Shared.Score.Live);
-		}
 
-		scores.set(leaderPlid, Shared.Score.Lead);
+		if (isNewEra)
+		{
+			for (const player of this.Players)
+			{
+				if (player.Money > leaderMoney)
+				{
+					leaderPlid = player.Plid;
+					leaderMoney = player.Money;
+				}
+				if (player.IsDead)
+					scores[player.Plid] = Shared.Score.Die;
+				else
+					scores[player.Plid] = Shared.Score.Live;
+			}
+			scores[leaderPlid] = Shared.Score.Lead;
+		}
 
 		return scores;
 	}
@@ -393,15 +386,15 @@ export class Turn implements IToVm<ViewModel.Era>
 	public AddNewPlayer(connection: PlayerConnection): void
 	{
 		const player = PlayerTurn.NewPlayerTurnFromConnection(connection);
-		this.Players.set(connection.Plid, player);
+		this.Players.push(player);
 	}
 
 	public get NumDead(): number
 	{
 		let numDead = 0;
-		for (const kvp of this.Players)
+		for (const player of this.Players)
 		{
-			if (kvp[1].IsDead)
+			if (player.IsDead)
 				numDead += 1;
 		}
 		return numDead;

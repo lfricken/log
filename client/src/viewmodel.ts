@@ -13,12 +13,12 @@ export class Game
 	/** Player number > player */
 	public PlayerConnections!: Player[];
 	/** Dictates player order */
-	public CurrentEra!: Era;
+	public LatestEra!: Era;
 
 	public constructor()
 	{
 		this.PlayerConnections = [];
-		this.CurrentEra = new Era;
+		this.LatestEra = new Era;
 	}
 }
 
