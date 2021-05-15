@@ -4,6 +4,11 @@
 
 invest $6,888.67 of dads account
 
+test points
+test end of game
+test view models
+
+
 models need events or something?
 
 add to ideas: 

@@ -371,12 +371,19 @@ test('Player Death', () =>
 
 test('New Era', () =>
 {
-	const g = setupGame(2);
+	const g = setupGame(3);
 	{
 		const t = g.CurrentEra.CurrentTurn;
 		const p0 = t.Players.get(0)!;
 		const p1 = t.Players.get(1)!;
+		const p2 = t.Players.get(2)!;
+		expect(p0.Score).toBe(0);
+		expect(p1.Score).toBe(0);
+		expect(p2.Score).toBe(0);
+
 		p0.Money = 0;
+		p1.Money = 10;
+		p2.Money = 11;
 	}
 
 	{
@@ -389,12 +396,36 @@ test('New Era', () =>
 		const t = g.CurrentEra.CurrentTurn;
 		const p0 = t.Players.get(0)!;
 		const p1 = t.Players.get(1)!;
+		const p2 = t.Players.get(2)!;
+		expect(p0.Score).toBe(0);
+		expect(p1.Score).toBe(1);
+		expect(p2.Score).toBe(2);
 
 		// should have produced a new era 
 		expect(g.CurrentEra.Eid).not.toBe(prevEra.Eid);
 		// players should not start era dead
 		expect(p0.IsDead).toBe(false);
 		expect(p1.IsDead).toBe(false);
+
+
+		p0.Money = 0;
+		p1.Money = 10;
+		p2.Money = 11;
+	}
+	{
+		const prevEra = g.CurrentEra;
+		g.EndTurn();
+
+		// new era should be different
+		expect(g.CurrentEra.Eid).not.toBe(prevEra.Eid);
+
+		const t = g.CurrentEra.CurrentTurn;
+		const p0 = t.Players.get(0)!;
+		const p1 = t.Players.get(1)!;
+		const p2 = t.Players.get(2)!;
+		expect(p0.Score).toBe(0);
+		expect(p1.Score).toBe(2);
+		expect(p2.Score).toBe(4);
 	}
 });
 

@@ -44,6 +44,13 @@ export class Actions
 	public static Action = 'a';
 }
 
+export class Score
+{
+	public static Die = 0;
+	public static Live = 1;
+	public static Lead = 2;
+}
+
 export class Trade
 {
 	public static CooperateBoth = 4;

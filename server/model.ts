@@ -50,6 +50,60 @@ export class Settings
 	public RandomMilTax: boolean = false;
 }
 
+/** Data about the player, indexed on UniqueId. */
+export class PlayerConnection// implements IToVm<ViewModel.Player>
+{
+	public static NoSocket = "";
+	/** The order this player joined in. */
+	public Plid: number;
+	public Score = 0;
+	/** Id of the socket this player is using. Empty string if no socket. */
+	public SocketId: string;
+	/** 
+	 * True if this player has not timed out. Does not imply a live socket.
+	 * We don't use the socket because we want them to be able to switch sockets 
+	 * without anyone noticing (refresh).
+	 */
+	public IsConnected: boolean
+	/** True if this player has control of the lobby. */
+	public IsLobbyLeader: boolean;
+	/** The name this player goes by. */
+	public Nickname: string;
+	/** Callback for a timed disconnect. */
+	public Timeout: NodeJS.Timeout | null;
+
+	public constructor(plid: number, nickname: string)
+	{
+		this.Plid = plid;
+		this.SocketId = PlayerConnection.NoSocket;
+		this.IsConnected = true;
+		this.IsLobbyLeader = false;
+		this.Nickname = nickname;
+		this.Timeout = null;
+	}
+	/** Sets up so we can disconnect this player after some time. */
+	public SetTimeout(value: NodeJS.Timeout): void
+	{
+		// handle old timeout
+		this.ClearTimeout();
+		this.Timeout = value;
+	}
+	/** Removes any timeout object. */
+	public ClearTimeout(): void
+	{
+		if (this.Timeout !== null)
+		{
+			clearTimeout(this.Timeout);
+			this.Timeout = null;
+		}
+	}
+	/** Name that will be displayed to all players. */
+	public get DisplayName(): string
+	{
+		return ViewModel.Player.DisplayName(this);
+	}
+}
+
 /** Data about a given game, indexed on LobbyId. */
 export class Game implements IToVm<ViewModel.Game>
 {
@@ -167,60 +221,6 @@ export class Game implements IToVm<ViewModel.Game>
 	}
 }
 
-/** Data about the player, indexed on UniqueId. */
-export class PlayerConnection// implements IToVm<ViewModel.Player>
-{
-	public static NoSocket = "";
-	/** The order this player joined in. */
-	public Plid: number;
-	public Score = 0;
-	/** Id of the socket this player is using. Empty string if no socket. */
-	public SocketId: string;
-	/** 
-	 * True if this player has not timed out. Does not imply a live socket.
-	 * We don't use the socket because we want them to be able to switch sockets 
-	 * without anyone noticing (refresh).
-	 */
-	public IsConnected: boolean
-	/** True if this player has control of the lobby. */
-	public IsLobbyLeader: boolean;
-	/** The name this player goes by. */
-	public Nickname: string;
-	/** Callback for a timed disconnect. */
-	public Timeout: NodeJS.Timeout | null;
-
-	public constructor(plid: number, nickname: string)
-	{
-		this.Plid = plid;
-		this.SocketId = PlayerConnection.NoSocket;
-		this.IsConnected = true;
-		this.IsLobbyLeader = false;
-		this.Nickname = nickname;
-		this.Timeout = null;
-	}
-	/** Sets up so we can disconnect this player after some time. */
-	public SetTimeout(value: NodeJS.Timeout): void
-	{
-		// handle old timeout
-		this.ClearTimeout();
-		this.Timeout = value;
-	}
-	/** Removes any timeout object. */
-	public ClearTimeout(): void
-	{
-		if (this.Timeout !== null)
-		{
-			clearTimeout(this.Timeout);
-			this.Timeout = null;
-		}
-	}
-	/** Name that will be displayed to all players. */
-	public get DisplayName(): string
-	{
-		return ViewModel.Player.DisplayName(this);
-	}
-}
-
 /** Data about a players turn, indexed on turn number. */
 export class Era implements IToVm<ViewModel.Era>
 {
@@ -242,14 +242,19 @@ export class Era implements IToVm<ViewModel.Era>
 		}
 		else
 		{
+			// score awarded at the beginning of an era
+			const scoreDelta = old.CurrentTurn.GetScoreDelta();
+
+			// previous era ended
 			this.Turns.set(0, new Turn(old.CurrentTurn, true));
 
 			// create new random order
 			this.Order = new Map<number, number>();
-			const order = Array.from(old.Order.values());
+			const order = Array.from(this.CurrentTurn.Players.keys());
 			shuffle(order);
 			for (let plid = 0; plid < order.length; ++plid)
 			{
+				this.CurrentTurn.Players.get(plid)!.Score += scoreDelta.get(plid)!;
 				this.Order.set(plid, order[plid]);
 			}
 		}
@@ -312,7 +317,8 @@ export class Turn implements IToVm<ViewModel.Era>
 		for (const kvp of oldTurn.Players)
 		{
 			const oldPlayer = kvp[1];
-			this.Players.set(kvp[0], PlayerTurn.NewPlayerTurnFromOld(oldTurn, oldPlayer, isNewEra));
+			const newPlayer = PlayerTurn.NewPlayerTurnFromOld(oldTurn, oldPlayer, isNewEra);
+			this.Players.set(newPlayer.Plid, newPlayer);
 		}
 	}
 	public GetTradeDelta(player: PlayerTurn): number
@@ -357,6 +363,31 @@ export class Turn implements IToVm<ViewModel.Era>
 			moneyDelta += delta.moneyDelta;
 		}
 		return { militaryDelta, moneyDelta };
+	}
+	/** Assuming this Era ended right now, who would get what score? */
+	public GetScoreDelta(): Map<number, number>
+	{
+		const scores = new Map<number, number>();
+		let leaderPlid = 0;
+		let leaderMoney = 0;
+		for (const kvp of this.Players)
+		{
+			const player = kvp[1];
+			const plid = kvp[0];
+			if (player.Money > leaderMoney)
+			{
+				leaderPlid = plid;
+				leaderMoney = player.Money;
+			}
+			if (player.IsDead)
+				scores.set(plid, Shared.Score.Die);
+			else
+				scores.set(plid, Shared.Score.Live);
+		}
+
+		scores.set(leaderPlid, Shared.Score.Lead);
+
+		return scores;
 	}
 	/** Adds a new player to this Turn. */
 	public AddNewPlayer(connection: PlayerConnection): void
