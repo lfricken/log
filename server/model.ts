@@ -225,9 +225,9 @@ export class Game implements IToVm<ViewModel.Game>
 export class Era implements IToVm<ViewModel.Era>
 {
 	/** Maps (order > player number) */
-	private Order: number[];
+	public Order: number[];
 	/** Maps (turn number > turn data) */
-	private Turns: Turn[];
+	public Turns: Turn[];
 	public Eid: number;
 
 	public constructor(eid: number, old: null | Era)
@@ -265,8 +265,7 @@ export class Era implements IToVm<ViewModel.Era>
 	public get IsOver(): boolean
 	{
 		// at least this many players need to be dead
-		const minDead = Math.floor(this.LatestTurn.Players.length * Shared.Rules.EraMinDeadPercentage);
-
+		const minDead = Math.max(1, Math.floor(this.LatestTurn.Players.length * Shared.Rules.EraMinDeadPercentage));
 		return this.LatestTurn.NumDead >= minDead;
 	}
 	/** Adds a new player to this Era. */
@@ -350,7 +349,7 @@ export class Turn implements IToVm<ViewModel.Era>
 			const us = targetPlayer.MilitaryAttacks.get(player.Plid) || 0;
 			const them = player.MilitaryAttacks.get(targetPlayer.Plid) || 0;
 
-			const delta = Shared.Military.GetDelta(targetPlayer.MilitaryMoney, us, them);
+			const delta = Shared.Military.GetDelta(targetPlayer.Military, us, them);
 			militaryDelta += delta.militaryDelta;
 			moneyDelta += delta.moneyDelta;
 		}
@@ -413,7 +412,7 @@ export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Play
 	/** This player has this much money on this turn. */
 	public Money: number;
 	/** Total money this player has in military. */
-	public MilitaryMoney: number;
+	public Military: number;
 	/** How much money this player is trying to add to their military. */
 	public MilitaryDelta: number;
 	/** Maps (plid > attack) */
@@ -434,25 +433,25 @@ export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Play
 		{
 			// copy old values
 			player.Money = oldPlayer.Money;
-			player.MilitaryMoney = oldPlayer.MilitaryMoney;
+			player.Military = oldPlayer.Military;
 
 			// do trades
 			player.Money += oldTurn.GetTradeDelta(oldPlayer);
 
 			// do military delta
 			player.Money -= oldPlayer.MilitaryDelta;
-			player.MilitaryMoney += oldPlayer.MilitaryDelta;
+			player.Military += oldPlayer.MilitaryDelta;
 
 			// allocate our attack money
 			for (const kvp of oldPlayer.MilitaryAttacks)
 			{
-				player.MilitaryMoney -= kvp[1];
+				player.Military -= kvp[1];
 			}
 
 			// apply others attacks to us
 			const deltas = oldTurn.GetAttackDelta(oldPlayer);
 			player.Money += deltas.moneyDelta;
-			player.MilitaryMoney += deltas.militaryDelta;
+			player.Military += deltas.militaryDelta;
 		}
 
 		return player;
@@ -462,7 +461,7 @@ export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Play
 		super(old);
 
 		this.Money = Shared.Rules.StartMoney;
-		this.MilitaryMoney = 0;
+		this.Military = Shared.Rules.StartMilitary;
 		this.MilitaryDelta = 0;
 
 		this.MilitaryAttacks = new Map<number, number>();

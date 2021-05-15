@@ -18,7 +18,43 @@ function setupGame(players: number): Models.Game
 	{
 		g.GetConnection("uid" + i, "name" + i);
 	}
+	testNewEra(g.LatestEra);
 	return g;
+}
+
+function testNewEra(era: Models.Era): void
+{
+	// there should be an order definition for each player
+	expect(era.Order.length).toBe(era.LatestTurn.Players.length);
+	// only 1 turn
+	expect(era.Turns.length).toBe(1);
+	// should not be over
+	expect(era.IsOver).toBe(false);
+	// should have a positive idx
+	expect(era.Eid).toBeGreaterThanOrEqual(0);
+
+	// new era turn 0 should start with no dead
+	expect(era.LatestTurn.NumDead).toBe(0);
+
+	const prevPlids = [];
+	for (const player of era.LatestTurn.Players)
+	{
+		// expect start of game money
+		expect(player.Money).toBe(Shared.Rules.StartMoney);
+		// expect start of game military
+		expect(player.Military).toBe(Shared.Rules.StartMilitary);
+		// no initial attacks
+		expect(player.MilitaryAttacks.size).toBe(0);
+		// expect not dead
+		expect(player.IsDead).toBe(false);
+		// no negative score
+		expect(player.Score).toBeGreaterThanOrEqual(0);
+		// should have a positive idx
+		expect(player.Plid).toBeGreaterThanOrEqual(0);
+		// all unique plids
+		expect(prevPlids.includes(player.Plid)).toBe(false);
+		prevPlids.push(player.Plid);
+	}
 }
 
 test('GetConnection adds a player', () =>
@@ -100,9 +136,18 @@ test('New Turn', () =>
 		expect(g.LatestEra.IsOver).toBe(false);
 		const t = g.LatestEra.LatestTurn;
 
+
 		const p0 = t.Players[0];
+		const p1 = t.Players[1];
+
+		// expect start of game money
+		expect(p0.Money).toBe(Shared.Rules.StartMoney);
+		// expect start of game money
+		expect(p1.Money).toBe(Shared.Rules.StartMoney);
+
+
 		p0.Money = startMoney;
-		p0.MilitaryMoney = startMilMoney;
+		p0.Military = startMilMoney;
 	}
 
 	// new turn, 1
@@ -117,7 +162,7 @@ test('New Turn', () =>
 
 		// no military delta
 		expect(p0.Money).toBe(startMoney);
-		expect(p0.MilitaryMoney).toBe(startMilMoney);
+		expect(p0.Military).toBe(startMilMoney);
 
 		p0.MilitaryDelta = delta;
 	}
@@ -138,7 +183,7 @@ test('New Turn', () =>
 
 		// military delta
 		expect(p0.Money).toBe(startMoney - delta);
-		expect(p0.MilitaryMoney).toBe(startMilMoney + delta);
+		expect(p0.Military).toBe(startMilMoney + delta);
 	}
 
 	// new turn, 3
@@ -157,7 +202,7 @@ test('New Turn', () =>
 
 		// military delta
 		expect(p0.Money).toBe(startMoney - delta);
-		expect(p0.MilitaryMoney).toBe(startMilMoney + delta);
+		expect(p0.Military).toBe(startMilMoney + delta);
 	}
 });
 
@@ -229,10 +274,10 @@ test('Attacks', () =>
 			const p1 = t.Players[1];
 
 			p0.Money = p0money;
-			p0.MilitaryMoney = p0military;
+			p0.Military = p0military;
 
 			p1.Money = p1money;
-			p1.MilitaryMoney = p1military;
+			p1.Military = p1military;
 		}
 
 		{
@@ -248,10 +293,10 @@ test('Attacks', () =>
 
 			// player should now have military
 			expect(p0.Money).toBe(p0money);
-			expect(p0.MilitaryMoney).toBe(p0military - p1attack);
+			expect(p0.Military).toBe(p0military - p1attack);
 			// other play should be as is
 			expect(p1.Money).toBe(p1money);
-			expect(p1.MilitaryMoney).toBe(p1military - p1attack);
+			expect(p1.Military).toBe(p1military - p1attack);
 		}
 	}
 
@@ -273,7 +318,7 @@ test('Attacks', () =>
 			p0.Money = p0money;
 
 			p1.Money = p1money;
-			p1.MilitaryMoney = 2;
+			p1.Military = 2;
 
 			p0 = g.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
@@ -302,10 +347,10 @@ test('Attacks', () =>
 
 			// player should now have military
 			expect(p0.Money).toBe(p0money - p0military);
-			expect(p0.MilitaryMoney).toBe(p0military);
+			expect(p0.Military).toBe(p0military);
 			// other play should be as is
 			expect(p1.Money).toBe(p1money);
-			expect(p1.MilitaryMoney).toBe(2);
+			expect(p1.Military).toBe(2);
 
 			p0.MilitaryAttacks.set(1, p0attack);
 			g.EndTurn();
@@ -318,10 +363,10 @@ test('Attacks', () =>
 
 			// player should now have military
 			expect(p0.Money).toBe(p0money - p0military);
-			expect(p0.MilitaryMoney).toBe(p0military - p0attack);
+			expect(p0.Military).toBe(p0military - p0attack);
 			// other play should be as is
 			expect(p1.Money).toBe(p1money - p1moneyDamage);
-			expect(p1.MilitaryMoney).toBe(0);
+			expect(p1.Military).toBe(0);
 		}
 	}
 });
@@ -364,8 +409,10 @@ test('Player Death', () =>
 	{
 		const prevEra = g.LatestEra;
 		g.EndTurn();
-		// should have produced new era since half dead
-		expect(g.LatestEra.Eid).not.toBe(prevEra.Eid);
+		// new era should be different
+		expect(g.LatestEra.Eid).toBeGreaterThan(prevEra.Eid);
+		// a new era has occured
+		testNewEra(g.LatestEra);
 	}
 });
 
@@ -377,10 +424,6 @@ test('New Era', () =>
 		const p0 = t.Players[0];
 		const p1 = t.Players[1];
 		const p2 = t.Players[2];
-		// scores
-		expect(p0.Score).toBe(0);
-		expect(p1.Score).toBe(0);
-		expect(p2.Score).toBe(0);
 
 		p0.Money = 0;
 		p1.Money = 10;
@@ -390,9 +433,10 @@ test('New Era', () =>
 	{
 		const prevEra = g.LatestEra;
 		g.EndTurn();
-
 		// new era should be different
-		expect(g.LatestEra.Eid).not.toBe(prevEra.Eid);
+		expect(g.LatestEra.Eid).toBeGreaterThan(prevEra.Eid);
+		// a new era has occured
+		testNewEra(g.LatestEra);
 
 		const t = g.LatestEra.LatestTurn;
 		const p0 = t.Players[0];
@@ -419,9 +463,10 @@ test('New Era', () =>
 	{
 		const prevEra = g.LatestEra;
 		g.EndTurn();
-
 		// new era should be different
-		expect(g.LatestEra.Eid).not.toBe(prevEra.Eid);
+		expect(g.LatestEra.Eid).toBeGreaterThan(prevEra.Eid);
+		// a new era has occured
+		testNewEra(g.LatestEra);
 
 		const t = g.LatestEra.LatestTurn;
 		const p0 = t.Players[0];
@@ -433,6 +478,7 @@ test('New Era', () =>
 		expect(p1.Score).toBe(2);
 		// score leader
 		expect(p2.Score).toBe(4);
+
 	}
 });
 

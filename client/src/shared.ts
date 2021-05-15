@@ -29,6 +29,7 @@ export class Rules
 {
 	public static EraMinDeadPercentage = 0.5;
 	public static StartMoney = 10;
+	public static StartMilitary = 0;
 	public static StartMaxMilitaryPerTurn = 1;
 }
 
