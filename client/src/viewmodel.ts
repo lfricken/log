@@ -4,92 +4,104 @@
 */
 
 /* eslint-disable no-magic-numbers */
-import ViewModel from "sanitize-html";
+import sanitize from "sanitize-html";
 
-type UniqueId = string;
+/** Fields a player must have. */
+export class ViewPlayerConnection
+{
+	/** The order this player joined in. */
+	public Nickname: string;
 
-export class Game
+	public constructor(old: ViewPlayerConnection)
+	{
+		if (old === null)
+		{
+			this.Nickname = "bad";
+		}
+		else
+		{
+			this.Nickname = old.Nickname;
+		}
+	}
+	public static DisplayName(nickname: string, plid: number): string
+	{
+		return `${nickname}(${plid})`;
+	}
+}
+
+/** View data about the game in its current state. */
+export class ViewGame
 {
 	/** Player number > player */
-	public PlayerConnections!: Player[];
+	public PlayerConnections!: ViewPlayerConnection[];
 	/** Dictates player order */
-	public LatestEra!: Era;
+	public LatestEra!: ViewEra;
 
-	public constructor()
+	public constructor(old: null | ViewGame)
 	{
-		this.PlayerConnections = [];
-		this.LatestEra = new Era;
+		if (old === null)
+		{
+			this.PlayerConnections = [];
+			this.LatestEra = new ViewEra();
+		}
+	}
+	public static GetNicknames(game: ViewGame): string[]
+	{
+		const names: string[] = [];
+		game.PlayerConnections.forEach((connection, _) =>
+		{
+			names.push(connection.Nickname);
+		});
+		return names;
 	}
 }
 
 /** Data about a players turn, indexed on turn number. */
-export class Era
+export class ViewEra
 {
-	/** Maps (order > player number) */
+	/** Which Era is this? */
+	public Number!: number;
+	/** Order > Plid */
 	public Order!: number[];
+	/** The latest turn? */
+	public LatestTurn!: ViewTurn;
 }
 
-/** Fields a player must have. */
-export class Player
+/** Data about actions a player wants to take on their turn. */
+export class ViewTurn
 {
-	/** The order this player joined in.  */
-	public Plid: number;
-	/** The order this player joined in.  */
-	public Score: number;
-	/** The name this player goes by. */
-	public Nickname: string;
-
-	public constructor(old: Player)
-	{
-		if (old === null)
-		{
-			this.Score = 0;
-			this.Plid = 0;
-			this.Nickname = "";
-		}
-		else
-		{
-			this.Score = old.Score;
-			this.Plid = old.Plid;
-			this.Nickname = old.Nickname;
-		}
-	}
-
-	public static DisplayName(player: { Nickname: string, Plid: number, }): string
-	{
-		return `${player.Nickname}(${player.Plid})`;
-	}
+	/** Which turn is this? */
+	public Number!: number;
+	/** This players private data. */
+	public LocalPlayer!: ViewPlayerTurnPrivate;
+	/** Maps (plid > trade action) */
+	public Players!: ViewPlayerTurnPublic[];
 }
 
-/** Data that should go on a player, but is private to each player. */
-export class PlayerPrivate
+/** Publicly exposed to every player. */
+export class ViewPlayerTurnPublic
 {
-	/** Turn Number > Turn Data */
-	public TurnStates!: TurnState[];
-	/** Turn Number > Turn Data */
-	public TurnActions!: TurnAction[];
-
-	public static DisplayName(player: Player): string
-	{
-		return `${player.Nickname}(${player.Plid})`;
-	}
+	/** The order this player joined in. */
+	public Plid!: number;
+	/** How many points this player has. */
+	public Score!: number;
+	/** Total money this player has in military. */
+	public Military!: number;
 }
 
-/** Data about a player at the beginning of their turn. */
-export class TurnState
+/** Data only visible to the player themselves. */
+export class ViewPlayerTurnPrivate extends ViewPlayerTurnPublic
 {
 	/** Any techs this player has unlocked. */
 	//public UnlockedTechnologies!: string[];
 	/** Resources the player has available to use. */
 	public Money!: number;
-}
-
-/** Data about actions a player wants to take on their turn. */
-export class TurnAction
-{
-	/** Maps (order > attack) */
-	public Attacks!: number[];
-	public Trades!: number[];
+	/** How much money this player is trying to add to their military. */
+	public MilitaryDelta!: number;
+	/** Maps (plid > attack) */
+	public MilitaryAttacks!: Map<number, number>;
+	/** Maps (plid > trade decision). */
+	public Trades!: Map<number, number>;
 }
 
 /** A message sent out to clients. */
@@ -105,16 +117,14 @@ export class Message
 		this.Sender = nickname;
 		this.Text = message;
 		if (needsValidation)
-			Message.Validate(this);
+			Message.ApplyValidation(this);
 	}
-
-
-	public static Validate(data: Message): boolean
+	public static ApplyValidation(data: Message): boolean
 	{
 		data.Sender = data.Sender.slice(0, Message.MaxLenName);
 		data.Text = data.Text.slice(0, Message.MaxLenMessage);
-		data.Sender = ViewModel(data.Sender);
-		data.Text = ViewModel(data.Text);
+		data.Sender = sanitize(data.Sender);
+		data.Text = sanitize(data.Text);
 
 		if (data.Sender.length < 2) return false;
 		if (data.Text.length < 2) return false;

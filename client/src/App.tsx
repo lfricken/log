@@ -2,13 +2,13 @@
 
 import * as React from 'react';
 import io from "socket.io-client";
-import { ChatComp } from './Chat'
-import { AttacksComp } from './Attacks'
+import { ChatComp } from './Chat';
+import { AttacksComp } from './Attacks';
 import { ReactNode } from 'react';
 import * as Shared from './shared';
 import * as View from './view';
+import * as Vm from './viewmodel';
 import './App.css';
-import * as ViewModel from './viewmodel';
 
 
 interface Props
@@ -17,7 +17,7 @@ interface Props
 }
 interface State
 {
-
+	Game: Vm.ViewGame;
 }
 class App extends React.Component<Props, State>
 {
@@ -27,7 +27,9 @@ class App extends React.Component<Props, State>
 
 	public static getInitialState(): State
 	{
-		return {};
+		return {
+			Game: new Vm.ViewGame(null),
+		};
 	}
 	// called before render
 	constructor(props: Props)
@@ -44,12 +46,33 @@ class App extends React.Component<Props, State>
 
 		this.socket = io({ autoConnect: false, reconnection: false, auth: authObj });
 		this.socket.connect();
+
+		this.socket.on(Shared.Event.GameChanged, this.onEraChanged.bind(this));
+		this.socket.on(Shared.Event.EraChanged, this.onEraChanged.bind(this));
+		this.socket.on(Shared.Event.TurnChanged, this.onTurnChanged.bind(this));
+		this.socket.on(Shared.Event.NicknameChanged, this.onNicknameChanged.bind(this));
 	}
 	public onAttackChange(attacks: number[]): void
 	{
+		this.socket.emit(Shared.Event.ChatMessage, attacks);
+	}
+	public onNicknameChanged(nicknames: string[]): void
+	{
+		const copy = new Vm.ViewGame(this.state.Game);
+
+		nicknames.forEach((name, plid) =>
+		{
+			copy.PlayerConnections[plid].Nickname = name;
+		});
+		this.setState({
+			Game: copy,
+		});
+	}
+	public onTurnChanged(game: Vm.ViewGame): void
+	{
 
 	}
-	public onGameChange(game: ViewModel.Game): void
+	public onEraChanged(game: Vm.ViewEra): void
 	{
 
 	}
@@ -61,18 +84,23 @@ class App extends React.Component<Props, State>
 	render(): ReactNode
 	{
 		const nickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
-		const orderedPlayers: ViewModel.Player[] = [];
 
 		return (
 			<div className="padding-small flex-row with-gaps">
 				<div className="flex flex-column with-gaps">
-					<div className="chat component"><ChatComp
-						nickname={nickname}
-						socket={this.socket} />
+					<div className="chat component">
+						<ChatComp
+							nickname={nickname}
+							socket={this.socket}
+						/>
 					</div>
-					<div className="log component"><AttacksComp
-						onAttackChange={this.onAttackChange.bind(this)}
-						orderedPlayers={orderedPlayers} />
+					<div className="log component">
+						{/* <AttacksComp
+							onAttackChange={this.onAttackChange.bind(this)}
+							turnNumber={this.state.Game.LatestEra.LatestTurn.Number}
+							nicknames={Vm.ViewGame.GetNicknames(this.state.Game)}
+							order={this.state.Game.LatestEra.Order}
+						/> */}
 					</div>
 				</div>
 				<div className="flex flex-column with-gaps">

@@ -1,29 +1,14 @@
+/* eslint-disable no-magic-numbers */
 /* eslint-disable @typescript-eslint/strict-boolean-expressions */
 /** Server side model. View Viewmodel (Model) */
 
-import * as ViewModel from '../client/src/viewmodel';
+import * as Vm from '../client/src/viewmodel';
 import * as Shared from "../client/src/shared";
 
 type UniqueId = string;
 
-
-
-/** Indicates this model can map itself to a view model. */
-interface IToVm<V>
-{
-	ToVm(): V;
-}
-/** Maps a Map of models to an array of their view models. */
-function MapVmMap<X, M extends IToVm<V>, V>(a: Map<X, M>): V[]
-{
-	return Array.from(a.values()).map((m: M) => { return m.ToVm(); });
-}
-/** Maps an array of models to an array of their view models. */
-function MapVmArray<M extends IToVm<V>, V>(a: Array<M>): V[]
-{
-	return a.map((m: M) => { return m.ToVm(); });
-}
-function shuffle<T>(array: T[]): T[]
+/** Randomly shuffles an array. */
+function shuffle<T>(array: T[]): void
 {
 	let currentIndex = array.length;
 	let temp: T;
@@ -41,13 +26,50 @@ function shuffle<T>(array: T[]): T[]
 		array[currentIndex] = array[randomIndex];
 		array[randomIndex] = temp;
 	}
-
-	return array;
 }
 
-export class Settings
+/** Returns a configuration for game settings. */
+export function GetSettings(config: SettingConfig): IGameSettings
 {
-	public RandomMilTax: boolean = false;
+	if (config === SettingConfig.Custom) // todo get custom settings from somewhere
+		return {
+			GameEndMaxTurns: 5,
+			EraEndMinDeadPercentage: 0.5,
+			EraStartMoney: 10,
+			EraStartMilitary: 0,
+			TurnMilitaryTax: 0,
+			TurnMaxMilitaryDeltaPerTurn: 1,
+		};
+	else // SettingConfig.Default
+		return {
+			GameEndMaxTurns: 5,
+			EraEndMinDeadPercentage: 0.5,
+			EraStartMoney: 10,
+			EraStartMilitary: 0,
+			TurnMilitaryTax: 0,
+			TurnMaxMilitaryDeltaPerTurn: 1,
+		};
+}
+export enum SettingConfig
+{
+	Default,
+	Custom,
+}
+/** Rules and other random settings. */
+export interface IGameSettings
+{
+	/** After how many turns will the Game end? */
+	readonly GameEndMaxTurns: number;
+	/** What percentage of players need to die for the Era to end? */
+	readonly EraEndMinDeadPercentage: number;
+	/** How much money does each player start the Era with? */
+	readonly EraStartMoney: number;
+	/** How much military does each player start the Era with? */
+	readonly EraStartMilitary: number;
+	/** Players military will be taxed this much per turn. */
+	readonly TurnMilitaryTax: number;
+	/** Players can only invest this much in military per turn. */
+	readonly TurnMaxMilitaryDeltaPerTurn: number;
 }
 
 /** Data about the player, indexed on UniqueId. */
@@ -100,25 +122,25 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 	/** Name that will be displayed to all players. */
 	public get DisplayName(): string
 	{
-		return ViewModel.Player.DisplayName(this);
+		return Vm.ViewPlayerConnection.DisplayName(this.Nickname, this.Plid);
 	}
 }
 
 /** Data about a given game, indexed on LobbyId. */
-export class Game implements IToVm<ViewModel.Game>
+export class Game
 {
-	public Settings: Settings;
+	public Settings: IGameSettings;
 	/** UniqueId > Player */
-	private PlayerConnections: Map<UniqueId, PlayerConnection>;
+	public PlayerConnections: Map<UniqueId, PlayerConnection>;
 	/** Dictates player order */
-	private Eras: Era[];
+	public Eras: Era[];
 
-	public constructor()
+	public constructor(config: SettingConfig)
 	{
-		this.Settings = new Settings();
+		this.Settings = GetSettings(config);
 		this.PlayerConnections = new Map<UniqueId, PlayerConnection>();
 		this.Eras = [];
-		this.Eras.push(new Era(this.Eras.length, null));
+		this.Eras.push(new Era(this.Settings, this.Eras.length, null));
 	}
 	/** Obtains the current Era. */
 	public get LatestEra(): Era
@@ -152,7 +174,7 @@ export class Game implements IToVm<ViewModel.Game>
 		// check to see if we should make a new Era
 		if (this.LatestEra.IsOver)
 		{
-			this.Eras.push(new Era(this.Eras.length, this.LatestEra));
+			this.Eras.push(new Era(this.Settings, this.Eras.length, this.LatestEra));
 		}
 	}
 	/** Will make the first player that is connected the lobby leader, and anyone else not. */
@@ -179,6 +201,32 @@ export class Game implements IToVm<ViewModel.Game>
 	public get NumPlayers(): number
 	{
 		return this.PlayerConnections.size;
+	}
+	public get IsOver(): boolean
+	{
+		// N eras need to have ENDED which means we need to be on the N+1 era
+		return this.Eras.length === this.Settings.GameEndMaxTurns + 1;
+	}
+	/** Returns the score leader. */
+	public GetCurrentWinner(): PlayerTurn
+	{
+		const winners: PlayerTurn[] = [];
+		const players = this.LatestEra.LatestTurn.Players;
+		let topScore = 0;
+		// find the top score
+		for (const player of players)
+		{
+			if (player.Score > topScore)
+				topScore = player.Score;
+		}
+		// if there are ties, just randomly choose one
+		for (const player of players)
+		{
+			if (player.Score === topScore)
+				winners.push(player);
+		}
+		shuffle(winners);
+		return winners[0];
 	}
 	/** Given a message, returns list of target SocketIds. */
 	public GetDestinations(text: string): string[]
@@ -210,39 +258,46 @@ export class Game implements IToVm<ViewModel.Game>
 
 		return targetIds;
 	}
-	public ToVm(): ViewModel.Game
+	public ToVm(localPlid: number): Vm.ViewGame
 	{
-		const vm = new ViewModel.Game();
+		const vm = new Vm.ViewGame(null);
 
-		//vm.PlayerConnections = MapVmMap(this.PlayerConnections);
-		vm.LatestEra = this.LatestEra.ToVm();
+		vm.PlayerConnections = [];
+		this.PlayerConnections.forEach((connection, plid) =>
+		{
+			vm.PlayerConnections.push(connection);
+		});
+		vm.LatestEra = this.LatestEra.ToVm(localPlid);
 
 		return vm;
 	}
 }
 
 /** Data about a players turn, indexed on turn number. */
-export class Era implements IToVm<ViewModel.Era>
+export class Era
 {
-	/** Maps (order > player number) */
+	public Settings: IGameSettings;
+	/** Which turn is this? */
+	public Number: number;
+	/** Order > Plid */
 	public Order: number[];
 	/** Maps (turn number > turn data) */
 	public Turns: Turn[];
-	public Eid: number;
 
-	public constructor(eid: number, old: null | Era)
+	public constructor(settings: IGameSettings, number: number, old: null | Era)
 	{
-		this.Eid = eid;
+		this.Settings = settings;
+		this.Number = number;
 		this.Turns = [];
 		if (old === null)
 		{
-			this.Turns.push(new Turn(null, true));
+			this.Turns.push(new Turn(this.Settings, this.Turns.length, null, true));
 			this.Order = [];
 		}
 		else
 		{
 			// previous era ended
-			this.Turns.push(new Turn(old.LatestTurn, true));
+			this.Turns.push(new Turn(this.Settings, this.Turns.length, old.LatestTurn, true));
 
 			// create new random order
 			this.Order = Array.from(this.LatestTurn.Players.keys());
@@ -252,8 +307,7 @@ export class Era implements IToVm<ViewModel.Era>
 	/** Ends the turn and advances the game state by one unit. */
 	public EndTurn(): void
 	{
-		const old = this.LatestTurn;
-		const turn = new Turn(old, false);
+		const turn = new Turn(this.Settings, this.Turns.length, this.LatestTurn, false);
 		this.Turns.push(turn);
 	}
 	/** Gets the active Turn. */
@@ -265,7 +319,7 @@ export class Era implements IToVm<ViewModel.Era>
 	public get IsOver(): boolean
 	{
 		// at least this many players need to be dead
-		const minDead = Math.max(1, Math.floor(this.LatestTurn.Players.length * Shared.Rules.EraMinDeadPercentage));
+		const minDead = Math.max(1, Math.floor(this.LatestTurn.Players.length * this.Settings.EraEndMinDeadPercentage));
 		return this.LatestTurn.NumDead >= minDead;
 	}
 	/** Adds a new player to this Era. */
@@ -274,32 +328,40 @@ export class Era implements IToVm<ViewModel.Era>
 		this.Order.push(connection.Plid);
 		this.LatestTurn.AddNewPlayer(connection);
 	}
-	public ToVm(): ViewModel.Era
+	public ToVm(localPlid: number): Vm.ViewEra
 	{
-		const vm = new ViewModel.Era();
+		const vm = new Vm.ViewEra();
+		vm.Number = this.Number;
+		vm.Order = [...this.Order]; // shallow copy
+		vm.LatestTurn = this.LatestTurn.ToVm(localPlid);
 		return vm;
 	}
 }
 
 /** Data about a players turn, indexed on turn number. */
-export class Turn implements IToVm<ViewModel.Era>
+export class Turn
 {
+	public Settings: IGameSettings;
+	public Number!: number;
 	/** Maps (plid > player) */
 	public Players!: PlayerTurn[];
 
 	/** Pass old turn if it exists which will compute the new turn state. */
-	public constructor(obj: null | Turn, isNewEra: boolean)
+	public constructor(settings: IGameSettings, number: number, oldTurn: null | Turn, isNewEra: boolean)
 	{
+		this.Settings = settings;
+		this.Number = number;
 		this.Players = [];
-		if (obj === null)
+		if (oldTurn === null)
 		{
 
 		}
 		else
 		{
-			this.ComputeNewTurn(obj, isNewEra);
+			this.ComputeNewTurn(oldTurn, isNewEra);
 		}
 	}
+	/** Given an old turn, build the new turn. */
 	private ComputeNewTurn(oldTurn: Turn, isNewEra: boolean): void
 	{
 		// score awarded at the beginning of an era
@@ -313,6 +375,7 @@ export class Turn implements IToVm<ViewModel.Era>
 			this.Players.push(newPlayer);
 		}
 	}
+	/** Returns the changes in money for the given player due to trade. */
 	public GetTradeDelta(targetPlayer: PlayerTurn): number
 	{
 		let delta = 0;
@@ -335,6 +398,7 @@ export class Turn implements IToVm<ViewModel.Era>
 
 		return delta;
 	}
+	/** Returns the changes in military and money for the given player due to attacks. */
 	public GetAttackDelta(targetPlayer: PlayerTurn):
 		{ militaryDelta: number, moneyDelta: number, }
 	{
@@ -384,35 +448,45 @@ export class Turn implements IToVm<ViewModel.Era>
 	/** Adds a new player to this Turn. */
 	public AddNewPlayer(connection: PlayerConnection): void
 	{
-		const player = PlayerTurn.NewPlayerTurnFromConnection(connection);
+		const player = PlayerTurn.NewPlayerTurnFromConnection(this.Settings, connection);
 		this.Players.push(player);
 	}
-
+	/** Returns the number of dead players currently. */
 	public get NumDead(): number
 	{
 		let numDead = 0;
-		for (const player of this.Players)
+		this.Players.forEach((player, _) =>
 		{
 			if (player.IsDead)
 				numDead += 1;
-		}
+		});
 		return numDead;
 	}
-
-	public ToVm(): ViewModel.Era
+	public ToVm(localPlid: number): Vm.ViewTurn
 	{
-		const vm = new ViewModel.Era();
+		const vm = new Vm.ViewTurn();
+		vm.Number = this.Number;
+		vm.Players = [];
+		vm.LocalPlayer = this.Players[localPlid].ToVmPrivate();
+		this.Players.forEach((player, _) =>
+		{
+			vm.Players.push(player.ToVmPublic());
+		});
 		return vm;
 	}
 }
 
 /** Data about the player, indexed on UniqueId. */
-export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Player>
+export class PlayerTurn
 {
-	/** This player has this much money on this turn. */
-	public Money: number;
+	/** The order this player joined in. */
+	public Plid: number;
+	/** How many points this player has. */
+	public Score: number;
 	/** Total money this player has in military. */
 	public Military: number;
+	/** This player has this much money on this turn. */
+	public Money: number;
 	/** How much money this player is trying to add to their military. */
 	public MilitaryDelta: number;
 	/** Maps (plid > attack) */
@@ -420,16 +494,23 @@ export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Play
 	/** Maps (plid > trade decision). */
 	public Trades: Map<number, number>;
 
-
-	public static NewPlayerTurnFromConnection(old: PlayerConnection): PlayerTurn
+	/** Creates a new PlayerTurn from a connection. */
+	public static NewPlayerTurnFromConnection(settings: IGameSettings, connection: PlayerConnection): PlayerTurn
 	{
-		return new PlayerTurn(old);
+		const player = new PlayerTurn(connection.Plid, 0);
+		player.ResetForNewEra(settings);
+		return player;
 	}
+	/** Creates a new PlayerTurn from their old turn. */
 	public static NewPlayerTurnFromOld(oldTurn: Turn, oldPlayer: PlayerTurn, isNewEra: boolean): PlayerTurn
 	{
-		const player = new PlayerTurn(oldPlayer);
+		const player = new PlayerTurn(oldPlayer.Plid, oldPlayer.Score);
 
-		if (!isNewEra)
+		if (isNewEra)
+		{
+			player.ResetForNewEra(oldTurn.Settings);
+		}
+		else
 		{
 			// copy old values
 			player.Money = oldPlayer.Money;
@@ -456,44 +537,51 @@ export class PlayerTurn extends ViewModel.Player implements IToVm<ViewModel.Play
 
 		return player;
 	}
-	private constructor(old: ViewModel.Player)
+	/** Intentionally private. Use the static factories above. */
+	private constructor(plid: number, score: number)
 	{
-		super(old);
-
-		this.Money = Shared.Rules.StartMoney;
-		this.Military = Shared.Rules.StartMilitary;
-		this.MilitaryDelta = 0;
+		this.Plid = plid;
+		this.Score = score;
 
 		this.MilitaryAttacks = new Map<number, number>();
 		this.Trades = new Map<number, number>();
+		this.MilitaryDelta = 0;
+		this.Money = 0;
+		this.Military = 0;
 	}
-	public IsEqual(o: PlayerTurn): boolean
+	/** Constructs this player turns values as if it was the start of a new Era. */
+	public ResetForNewEra(settings: IGameSettings): void
+	{
+		this.Money = settings.EraStartMoney;
+		this.Military = settings.EraStartMilitary;
+	}
+	public IsSamePlayer(o: PlayerTurn): boolean
 	{
 		return this.Plid === o.Plid;
-	}
-	// public ToVmPrivate(): ViewModel.PlayerPrivate
-	// {
-	// 	const vm = {
-	// 		TurnStates: this.TurnState,
-	// 		TurnActions: this.TurnActions
-	// 	};
-	// 	return vm;
-	// }
-	/** Name that will be displayed to all other players. */
-	public get DisplayName(): string
-	{
-		return ViewModel.Player.DisplayName(this);
 	}
 	/** True if this player has met the death condition. */
 	public get IsDead(): boolean
 	{
 		return this.Money <= 0;
 	}
-	public ToVm(): ViewModel.Player
+	public ToVmPublic(): Vm.ViewPlayerTurnPublic
 	{
-		const vm = new ViewModel.Player(this);
+		const vm = new Vm.ViewPlayerTurnPublic();
+		vm.Military = this.Military;
+		vm.Plid = this.Plid;
+		vm.Score = this.Score;
+		return vm;
+	}
+	public ToVmPrivate(): Vm.ViewPlayerTurnPrivate
+	{
+		const vm = new Vm.ViewPlayerTurnPrivate();
+		vm.MilitaryAttacks = new Map<number, number>();
+		vm.MilitaryDelta = this.MilitaryDelta;
+		vm.Military = this.Military;
+		vm.Money = this.Money;
+		vm.Plid = this.Plid;
+		vm.Score = this.Score;
+		vm.Trades = new Map<number, number>();
 		return vm;
 	}
 }
-
-

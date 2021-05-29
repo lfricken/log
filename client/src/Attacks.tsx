@@ -2,8 +2,6 @@
 
 import * as React from 'react';
 import * as ViewModel from "./viewmodel";
-import * as Shared from "./shared";
-import * as View from "./view";
 import './Attacks.css';
 import './Main.css';
 
@@ -11,11 +9,17 @@ const AttackMin = 0;
 const AttackMax = 9;
 interface Props
 {
-	orderedPlayers: ViewModel.Player[];
+	turnNumber: number;
+	/** Order > Plid */
+	order: number[];
+	/** Plid > Nickname */
+	nicknames: string[];
+	/** Plid > Attack */
 	onAttackChange: (attacks: number[]) => void;
 }
 interface State
 {
+	/** Plid > Attack */
 	Attacks: number[];
 }
 export class AttacksComp extends React.Component<Props, State>
@@ -26,10 +30,8 @@ export class AttacksComp extends React.Component<Props, State>
 	{
 		super(props);
 		const Attacks = new Array<number>();
-		for (var i = 0; i < props.orderedPlayers.length; i++)
-		{
+		for (const _ of props.order)
 			Attacks.push(0);
-		}
 		this.state = { Attacks };
 	}
 	componentDidMount(): React.ReactNode
@@ -40,8 +42,8 @@ export class AttacksComp extends React.Component<Props, State>
 	public decrease(e: React.MouseEvent<HTMLButtonElement>): void { this.applyDelta(e, -1); }
 	public applyDelta(e: React.MouseEvent<HTMLButtonElement>, delta: number): void
 	{
-		const { element, targetIdx } = this.getInputFor(e.currentTarget);
-		var value = parseInt(element.value, 10);
+		const { element, targetPlid } = this.getInputElementFor(e.currentTarget);
+		let value = parseInt(element.value, 10);
 
 		value += delta;
 		if (value < AttackMin)
@@ -53,32 +55,40 @@ export class AttacksComp extends React.Component<Props, State>
 
 		// now update state
 		const Attacks = [...this.state.Attacks]; // shallow copy
-		Attacks[targetIdx] = value;
+		Attacks[targetPlid] = value;
 		this.setState({ Attacks });
 		this.props.onAttackChange(Attacks);
 	}
-	public getInputFor(e: HTMLButtonElement): { element: HTMLInputElement, targetIdx: number }
+	public getInputElementFor(e: HTMLButtonElement): { element: HTMLInputElement, targetPlid: number }
 	{
 		const div = e.parentElement as HTMLDivElement;
 		const element = div.querySelector(`input`) as HTMLInputElement;
-		const names = div.id.split('-');
-		const numId = names[names.length - 1];
-		const targetIdx = parseInt(numId, 10);
-		return { element, targetIdx };
+		const targetPlid = this.plidFromDivId(div.id);
+		return { element, targetPlid, };
+	}
+	public divIdFromPlid(plid: number): string
+	{
+		return "attack-div-" + plid;
+	}
+	public plidFromDivId(divId: string): number
+	{
+		const strings = divId.split('-');
+		const plidString = strings[strings.length - 1];
+		return parseInt(plidString, 10);
 	}
 	render(): React.ReactNode
 	{
 		const { Attacks } = this.state;
 
-		const attackRows = this.props.orderedPlayers.map((p, idx) =>
+		const attackRows = this.props.order.map((plid, order) =>
 			<tr>
 				<td>
-					{ViewModel.Player.DisplayName(p)}
+					{ViewModel.ViewPlayerConnection.DisplayName(this.props.nicknames[plid], plid)}
 				</td>
 				<td>
-					<div id={"attack-div-" + idx} className="attack-container">
+					<div id={this.divIdFromPlid(plid)} className="attack-container">
 						<button onClick={this.decrease.bind(this)}>-</button>
-						<input className="attack-input" disabled data-value type="number" value={Attacks[idx]} />
+						<input className="attack-input" disabled data-value type="number" value={Attacks[plid]} />
 						<button onClick={this.increase.bind(this)}>+</button>
 					</div>
 				</td>

@@ -25,24 +25,20 @@ export const DisconnectTimeoutMilliseconds = 2000;
 /** Currently 62^8 (218 trillion) combinations. */
 export const UniqueIdLength = 8;
 
-export class Rules
+export class Event
 {
-	public static EraMinDeadPercentage = 0.5;
-	public static StartMoney = 10;
-	public static StartMilitary = 0;
-	public static StartMaxMilitaryPerTurn = 1;
-}
-
-export class Actions
-{
-	public static Cooperate = 1;
-	public static Defect = -1;
-	/** Player messages (sending player messages) */
-	public static Chat = 'm';
 	/** Lobby events (players leaving and joining) */
 	public static Log = 'l';
-	/** Player action (like modifying trade posture) */
-	public static Action = 'a';
+	/** Player messages (sending player messages) */
+	public static ChatMessage = 'm';
+	/**  */
+	public static GameChanged = 'g';
+	/**  */
+	public static EraChanged = 'e';
+	/**  */
+	public static TurnChanged = 't';
+	/**  */
+	public static NicknameChanged = 'n';
 }
 
 export class Score
@@ -54,29 +50,32 @@ export class Score
 
 export class Trade
 {
-	public static CooperateBoth = 4;
-	public static DefectBoth = 2;
-	public static DefectWin = 8;
-	public static DefectLose = 0;
+	public static ActionCooperate = 1;
+	public static ActionDefect = -1;
+
+	public static ResultCooperateBoth = 4;
+	public static ResultDefectBoth = 2;
+	public static ResultDefectWin = 8;
+	public static ResultDefectLose = 0;
 
 	public static GetDelta(us: number, them: number): number
 	{
 		let delta = 0;
-		if (us === Actions.Cooperate && them === Actions.Cooperate)
+		if (us === Trade.ActionCooperate && them === Trade.ActionCooperate)
 		{
-			delta += Trade.CooperateBoth;
+			delta += Trade.ResultCooperateBoth;
 		}
-		else if (us === Actions.Cooperate && them === Actions.Defect)
+		else if (us === Trade.ActionCooperate && them === Trade.ActionDefect)
 		{
-			delta += Trade.DefectLose;
+			delta += Trade.ResultDefectLose;
 		}
-		else if (us === Actions.Defect && them === Actions.Cooperate)
+		else if (us === Trade.ActionDefect && them === Trade.ActionCooperate)
 		{
-			delta += Trade.DefectWin;
+			delta += Trade.ResultDefectWin;
 		}
-		else if (us === Actions.Defect && them === Actions.Defect)
+		else if (us === Trade.ActionDefect && them === Trade.ActionDefect)
 		{
-			delta += Trade.DefectBoth;
+			delta += Trade.ResultDefectBoth;
 		}
 		return delta;
 	}

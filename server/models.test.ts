@@ -3,67 +3,18 @@
 // https://stackoverflow.com/q/35987055/2167822
 
 
-import * as Models from "./model";
 import * as Shared from "../client/src/shared";
+import * as Models from "./model";
+import * as Util from "./testUtilities";
 
-const uid0 = "uid0";
-const uid1 = "uid1";
-const name0 = "name0";
-const name1 = "name1";
-
-function setupGame(players: number): Models.Game
-{
-	const g = new Models.Game();
-	for (let i = 0; i < players; ++i)
-	{
-		g.GetConnection("uid" + i, "name" + i);
-	}
-	testNewEra(g.LatestEra);
-	return g;
-}
-
-function testNewEra(era: Models.Era): void
-{
-	// there should be an order definition for each player
-	expect(era.Order.length).toBe(era.LatestTurn.Players.length);
-	// only 1 turn
-	expect(era.Turns.length).toBe(1);
-	// should not be over
-	expect(era.IsOver).toBe(false);
-	// should have a positive idx
-	expect(era.Eid).toBeGreaterThanOrEqual(0);
-
-	// new era turn 0 should start with no dead
-	expect(era.LatestTurn.NumDead).toBe(0);
-
-	const prevPlids = [];
-	for (const player of era.LatestTurn.Players)
-	{
-		// expect start of game money
-		expect(player.Money).toBe(Shared.Rules.StartMoney);
-		// expect start of game military
-		expect(player.Military).toBe(Shared.Rules.StartMilitary);
-		// no initial attacks
-		expect(player.MilitaryAttacks.size).toBe(0);
-		// expect not dead
-		expect(player.IsDead).toBe(false);
-		// no negative score
-		expect(player.Score).toBeGreaterThanOrEqual(0);
-		// should have a positive idx
-		expect(player.Plid).toBeGreaterThanOrEqual(0);
-		// all unique plids
-		expect(prevPlids.includes(player.Plid)).toBe(false);
-		prevPlids.push(player.Plid);
-	}
-}
 
 test('GetConnection adds a player', () =>
 {
-	const g = setupGame(1);
+	const g = Util.setupGame(1);
 	// setup game should automatically add 1 player
 	expect(g.LatestEra.LatestTurn.Players.length).toBe(1);
 
-	const c1 = g.GetConnection(uid1, name1);
+	const c1 = g.GetConnection(Util.uid(1), Util.name(1));
 	// get connection automatically adds aother new player
 	expect(g.LatestEra.LatestTurn.Players.length).toBe(2);
 
@@ -73,10 +24,10 @@ test('GetConnection adds a player', () =>
 
 test('New Lobby Leader', () =>
 {
-	const g = setupGame(2);
+	const g = Util.setupGame(2);
 
-	const c0 = g.GetConnection(uid0, name0);
-	const c1 = g.GetConnection(uid1, name1);
+	const c0 = g.GetConnection(Util.uid(0), Util.name(0));
+	const c1 = g.GetConnection(Util.uid(1), Util.name(1));
 	expect(g.LatestEra.LatestTurn.Players.length).toBe(2);
 
 	// uid was preexisting, so it should not be a new player
@@ -104,10 +55,10 @@ test('New Lobby Leader', () =>
 
 test('Models Created', () =>
 {
-	const g = setupGame(1);
+	const g = Util.setupGame(1);
 
 	// get connection automatically adds a new player
-	const c0 = g.GetConnection(uid0, name0);
+	const c0 = g.GetConnection(Util.uid(0), Util.name(0));
 	expect(g.LatestEra.LatestTurn.Players.length).toBe(1);
 
 	// uid was preexisting, so it should not be a new player
@@ -121,7 +72,7 @@ test('Models Created', () =>
 	// new player should default to connected
 	expect(c0.connection.IsConnected).toBe(true);
 	// should have the name we gave them
-	expect(c0.connection.Nickname).toBe(name0);
+	expect(c0.connection.Nickname).toBe(Util.name(0));
 });
 
 test('New Turn', () =>
@@ -129,9 +80,10 @@ test('New Turn', () =>
 	const delta = 2;
 	const startMoney = 7;
 	const startMilMoney = 5;
+	const settings = Models.GetSettings(Models.SettingConfig.Default);
 
 	// new turn, 0
-	const g = setupGame(2);
+	const g = Util.setupGame(2);
 	{
 		expect(g.LatestEra.IsOver).toBe(false);
 		const t = g.LatestEra.LatestTurn;
@@ -141,9 +93,9 @@ test('New Turn', () =>
 		const p1 = t.Players[1];
 
 		// expect start of game money
-		expect(p0.Money).toBe(Shared.Rules.StartMoney);
+		expect(p0.Money).toBe(settings.EraStartMoney);
 		// expect start of game money
-		expect(p1.Money).toBe(Shared.Rules.StartMoney);
+		expect(p1.Money).toBe(settings.EraStartMoney);
 
 
 		p0.Money = startMoney;
@@ -158,7 +110,7 @@ test('New Turn', () =>
 		const p0 = t.Players[0];
 
 		// nobody died so the era should not end
-		expect(g.LatestEra.Eid).toBe(prevEra.Eid);
+		expect(g.LatestEra.Number).toBe(prevEra.Number);
 
 		// no military delta
 		expect(p0.Money).toBe(startMoney);
@@ -176,7 +128,7 @@ test('New Turn', () =>
 		const p0 = t.Players[0];
 
 		// nobody died so the era should not end
-		expect(g.LatestEra.Eid).toBe(prevEra.Eid);
+		expect(g.LatestEra.Number).toBe(prevEra.Number);
 		// but the turn should be different
 		expect(t === prevTurn).toBe(false);
 		expect(t === t).toBe(true);
@@ -195,7 +147,7 @@ test('New Turn', () =>
 		const p0 = t.Players[0];
 
 		// nobody died so the era should not end
-		expect(g.LatestEra.Eid).toBe(prevEra.Eid);
+		expect(g.LatestEra.Number).toBe(prevEra.Number);
 		// but the turn should be different
 		expect(t === prevTurn).toBe(false);
 		expect(t === t).toBe(true);
@@ -209,24 +161,24 @@ test('New Turn', () =>
 test('Trades', () =>
 {
 	{
-		const delta = Shared.Trade.GetDelta(Shared.Actions.Cooperate, Shared.Actions.Cooperate);
+		const delta = Shared.Trade.GetDelta(Shared.Trade.ActionCooperate, Shared.Trade.ActionCooperate);
 		// double cooperate
-		expect(delta).toBe(Shared.Trade.CooperateBoth);
+		expect(delta).toBe(Shared.Trade.ResultCooperateBoth);
 	}
 	{
-		const delta = Shared.Trade.GetDelta(Shared.Actions.Cooperate, Shared.Actions.Defect);
+		const delta = Shared.Trade.GetDelta(Shared.Trade.ActionCooperate, Shared.Trade.ActionDefect);
 		// cooperate and defect
-		expect(delta).toBe(Shared.Trade.DefectLose);
+		expect(delta).toBe(Shared.Trade.ResultDefectLose);
 	}
 	{
-		const delta = Shared.Trade.GetDelta(Shared.Actions.Defect, Shared.Actions.Cooperate);
+		const delta = Shared.Trade.GetDelta(Shared.Trade.ActionDefect, Shared.Trade.ActionCooperate);
 		// defect and cooperate
-		expect(delta).toBe(Shared.Trade.DefectWin);
+		expect(delta).toBe(Shared.Trade.ResultDefectWin);
 	}
 	{
-		const delta = Shared.Trade.GetDelta(Shared.Actions.Defect, Shared.Actions.Defect);
+		const delta = Shared.Trade.GetDelta(Shared.Trade.ActionDefect, Shared.Trade.ActionDefect);
 		// double defect
-		expect(delta).toBe(Shared.Trade.DefectBoth);
+		expect(delta).toBe(Shared.Trade.ResultDefectBoth);
 	}
 });
 
@@ -267,7 +219,7 @@ test('Attacks', () =>
 		const p1military = 6;
 		const p1attack = 1;
 
-		const g = setupGame(2);
+		const g = Util.setupGame(2);
 		{
 			const t = g.LatestEra.LatestTurn;
 			const p0 = t.Players[0];
@@ -309,7 +261,7 @@ test('Attacks', () =>
 		const p1money = 10;
 		const p1moneyDamage = 6;
 
-		const g = setupGame(2);
+		const g = Util.setupGame(2);
 		{
 			const t = g.LatestEra.LatestTurn;
 			let p0 = t.Players[0];
@@ -373,7 +325,7 @@ test('Attacks', () =>
 
 test('Player Death', () =>
 {
-	const g = setupGame(4);
+	const g = Util.setupGame(4);
 	{
 		const t = g.LatestEra.LatestTurn;
 		const p0 = t.Players[0];
@@ -394,7 +346,7 @@ test('Player Death', () =>
 		const prevEra = g.LatestEra;
 		g.EndTurn();
 		// should not have produced a new era yet
-		expect(g.LatestEra.Eid).toBe(prevEra.Eid);
+		expect(g.LatestEra.Number).toBe(prevEra.Number);
 
 		const t = g.LatestEra.LatestTurn;
 		const p0 = t.Players[0];
@@ -410,15 +362,15 @@ test('Player Death', () =>
 		const prevEra = g.LatestEra;
 		g.EndTurn();
 		// new era should be different
-		expect(g.LatestEra.Eid).toBeGreaterThan(prevEra.Eid);
+		expect(g.LatestEra.Number).toBeGreaterThan(prevEra.Number);
 		// a new era has occured
-		testNewEra(g.LatestEra);
+		Util.testNewEra(g.LatestEra);
 	}
 });
 
 test('New Era', () =>
 {
-	const g = setupGame(3);
+	const g = Util.setupGame(3);
 	{
 		const t = g.LatestEra.LatestTurn;
 		const p0 = t.Players[0];
@@ -434,9 +386,9 @@ test('New Era', () =>
 		const prevEra = g.LatestEra;
 		g.EndTurn();
 		// new era should be different
-		expect(g.LatestEra.Eid).toBeGreaterThan(prevEra.Eid);
+		expect(g.LatestEra.Number).toBeGreaterThan(prevEra.Number);
 		// a new era has occured
-		testNewEra(g.LatestEra);
+		Util.testNewEra(g.LatestEra);
 
 		const t = g.LatestEra.LatestTurn;
 		const p0 = t.Players[0];
@@ -450,7 +402,7 @@ test('New Era', () =>
 		expect(p2.Score).toBe(2);
 
 		// should have produced a new era 
-		expect(g.LatestEra.Eid).not.toBe(prevEra.Eid);
+		expect(g.LatestEra.Number).not.toBe(prevEra.Number);
 		// players should not start era dead
 		expect(p0.IsDead).toBe(false);
 		expect(p1.IsDead).toBe(false);
@@ -464,9 +416,9 @@ test('New Era', () =>
 		const prevEra = g.LatestEra;
 		g.EndTurn();
 		// new era should be different
-		expect(g.LatestEra.Eid).toBeGreaterThan(prevEra.Eid);
+		expect(g.LatestEra.Number).toBeGreaterThan(prevEra.Number);
 		// a new era has occured
-		testNewEra(g.LatestEra);
+		Util.testNewEra(g.LatestEra);
 
 		const t = g.LatestEra.LatestTurn;
 		const p0 = t.Players[0];
@@ -479,6 +431,46 @@ test('New Era', () =>
 		// score leader
 		expect(p2.Score).toBe(4);
 
+	}
+});
+
+test('New Game', () =>
+{
+	const g = Util.setupGame(3);
+	{
+		for (let i = 0; i < 4; ++i)
+		{
+			g.LatestEra.LatestTurn.Players[0].Money = 0;
+			g.LatestEra.LatestTurn.Players[1].Money += 1;
+			const prevEra = g.LatestEra;
+			g.EndTurn();
+			// new era should be different
+			expect(g.LatestEra.Number).toBeGreaterThan(prevEra.Number);
+			Util.testNewEra(g.LatestEra); // a new era has occured
+			// should have produced a new era 
+			expect(g.LatestEra.Number).not.toBe(prevEra.Number);
+			expect(g.IsOver).toBe(false);
+			// score died
+			expect(g.LatestEra.LatestTurn.Players[0].Score).toBe(0);
+		}
+	}
+	{
+		g.LatestEra.LatestTurn.Players[0].Money = 0;
+		g.LatestEra.LatestTurn.Players[1].Money += 1;
+		const prevEra = g.LatestEra;
+		g.EndTurn();
+		// new era should be different
+		expect(g.LatestEra.Number).toBeGreaterThan(prevEra.Number);
+		Util.testNewEra(g.LatestEra); // a new era has occured
+		// should have produced a new era 
+		expect(g.LatestEra.Number).not.toBe(prevEra.Number);
+		expect(g.IsOver).toBe(true);
+		// score died
+		expect(g.LatestEra.LatestTurn.Players[0].Score).toBe(0);
+
+		const p1 = g.LatestEra.LatestTurn.Players[1];
+		// expect winner
+		expect(g.GetCurrentWinner().Plid).toBe(p1.Plid);
 	}
 });
 

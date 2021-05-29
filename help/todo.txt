@@ -2,10 +2,22 @@
 
 
 
-invest $6,888.67 of dads account
 
-test end of game
+2^3=8
+
+
+
+X^30=0.5
+
+
+
+
 test view models
+setup client
+LastEvents test
+everyone disconnected timeout
+game end timeout
+try out everything
 
 
 models need events or something?
@@ -54,5 +66,4 @@ constructor(props: Props)
 }
 
 ```
-
 

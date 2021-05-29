@@ -3,7 +3,7 @@
 import * as io from "socket.io";
 import * as ViewModel from "../client/src/viewmodel";
 import * as Shared from "../client/src/shared";
-import { Game, PlayerTurn, PlayerConnection } from "./model";
+import { Game, PlayerTurn, PlayerConnection, SettingConfig } from "./model";
 
 type LobbyId = string;
 
@@ -29,7 +29,7 @@ export class ModelWireup
 		const plid = player.Plid;
 		console.log(`Socket ${socket.id} connected. Number:${plid} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
 
-		const t = player.ToVm();
+		//const t = player.ToVm();
 
 		// lobby leader
 		if (player.IsLobbyLeader)
@@ -68,9 +68,9 @@ export class ModelWireup
 			}, Shared.DisconnectTimeoutMilliseconds);
 			player.SetTimeout(timeout);
 		});
-		socket.on(Shared.Actions.Chat, (message: ViewModel.Message) =>
+		socket.on(Shared.Event.ChatMessage, (message: ViewModel.Message) =>
 		{
-			ViewModel.Message.Validate(message);
+			ViewModel.Message.ApplyValidation(message);
 
 			// change name notification
 			if (message.Sender !== player.Nickname)
@@ -101,7 +101,7 @@ export class ModelWireup
 		// try create new game
 		if (!g.Games.has(lid))
 		{
-			g.Games.set(lid, new Game());
+			g.Games.set(lid, new Game(SettingConfig.Default));
 		}
 		const game = g.Games.get(lid)!;
 		const { connection, isNewPlayer } = game.GetConnection(uid, nickname);
@@ -137,7 +137,7 @@ export class ModelWireup
 		const targetIds = game.GetDestinations(mes.Text);
 		targetIds.push(additionalTarget);
 		if (targetIds.length > 0)
-			this.ioWrap.to(targetIds).emit(Shared.Actions.Chat, mes);
+			this.ioWrap.to(targetIds).emit(Shared.Event.ChatMessage, mes);
 	}
 }
 

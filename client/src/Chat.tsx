@@ -29,7 +29,7 @@ export class ChatComp extends React.Component<Props, State>
 		super(props);
 		this.state = {
 			nickname: this.props.nickname,
-			messages: []
+			messages: [],
 		};
 	}
 	componentDidMount(): React.ReactNode
@@ -38,7 +38,7 @@ export class ChatComp extends React.Component<Props, State>
 		this.chatInput = document.getElementById('chatInput') as HTMLInputElement;
 		this.nameInput = document.getElementById('nameInput') as HTMLInputElement;
 
-		this.props.socket.on(Shared.Actions.Chat, this.onNewMessage.bind(this));
+		this.props.socket.on(Shared.Event.ChatMessage, this.onNewMessage.bind(this));
 
 		var chatForm = document.getElementById('chatForm') as HTMLFormElement;
 		chatForm.addEventListener('submit', this.onSubmitMessage.bind(this));
@@ -54,7 +54,7 @@ export class ChatComp extends React.Component<Props, State>
 
 		if (nickname !== "" && text !== "")
 		{
-			this.props.socket.emit(Shared.Actions.Chat, message);
+			this.props.socket.emit(Shared.Event.ChatMessage, message);
 			this.chatInput.value = '';
 		}
 	}
@@ -66,7 +66,9 @@ export class ChatComp extends React.Component<Props, State>
 
 		const messages = this.state.messages;
 		messages.push(m);
-		this.setState({ messages });
+		this.setState({
+			messages
+		});
 
 		if (follow)
 			this.chatView.scrollTop = this.chatView.scrollHeight;
