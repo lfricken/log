@@ -38,7 +38,7 @@ export class Event
 	/** Player messages (sending player messages) */
 	public static ChatMessage = 'm';
 	/**  */
-	public static GameChanged = 'g';
+	public static ConnectionsChanged = 'c';
 	/**  */
 	public static EraChanged = 'e';
 	/**  */

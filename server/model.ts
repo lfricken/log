@@ -4,6 +4,7 @@
 
 import * as Vm from '../client/src/viewmodel';
 import * as Shared from "../client/src/shared";
+import { ModelWireup } from './events';
 
 type UniqueId = string;
 
@@ -36,7 +37,7 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 	public Plid: number;
 	public Score = 0;
 	/** Id of the socket this player is using. Empty string if no socket. */
-	public SocketId: string;
+	public SocketIds: string[];
 	/** 
 	 * True if this player has not timed out. Does not imply a live socket.
 	 * We don't use the socket because we want them to be able to switch sockets 
@@ -53,18 +54,33 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 	public constructor(plid: number, nickname: string)
 	{
 		this.Plid = plid;
-		this.SocketId = PlayerConnection.NoSocket;
+		this.SocketIds = [];
 		this.IsConnected = true;
 		this.IsLobbyLeader = false;
 		this.Nickname = nickname;
 		this.Timeout = null;
 	}
 	/** Sets up so we can disconnect this player after some time. */
-	public SetTimeout(value: NodeJS.Timeout): void
+	public SetTimeout(events: ModelWireup, lobby: Lobby): void
 	{
-		// handle old timeout
 		this.ClearTimeout();
-		this.Timeout = value;
+
+		this.Timeout = setTimeout(
+			() =>
+			{
+				events.SendMessage(lobby, Vm.Message.DisconnectMsg(this.DisplayName));
+				events.SendConnectionStatus(lobby);
+				this.IsConnected = false;
+
+				// pick new lobby leader
+				if (this.IsLobbyLeader)
+				{
+					const leaderName = lobby.ConsiderNewLobbyLeader();
+					events.SendMessage(lobby, Vm.Message.LeaderMsg(leaderName));
+				}
+			},
+			Shared.DisconnectTimeoutMilliseconds
+		);
 	}
 	/** Removes any timeout object. */
 	public ClearTimeout(): void
@@ -93,27 +109,33 @@ export class Lobby
 {
 	/** UniqueId > Player */
 	public PlayerConnections: Map<UniqueId, PlayerConnection>;
-	public Game!: Game;
+	public Game: null | Game;
 
 	public constructor()
 	{
+		this.Game = null;
 		this.PlayerConnections = new Map<UniqueId, PlayerConnection>();
 	}
-	/** Will create or retrieve a player. */
+	/** Will create or retrieve a connection. */
 	public GetConnection(uid: UniqueId, nickname: string): { connection: PlayerConnection, isNewPlayer: boolean }
 	{
 		let isNewPlayer = false;
-		if (!this.PlayerConnections.has(uid))
+		let connection: PlayerConnection;
+		if (this.PlayerConnections.has(uid)) // already have a connection
 		{
+			connection = this.PlayerConnections.get(uid)!;
+		}
+		else // new connection
+		{
+			connection = new PlayerConnection(this.NumConnections, nickname);
 			isNewPlayer = true;
-			this.PlayerConnections.set(uid, new PlayerConnection(this.NumConnections, nickname));
+			this.PlayerConnections.set(uid, connection);
 
 			if (this.PlayerConnections.size === 1)
 				this.ConsiderNewLobbyLeader();
 
 			//this.Game.LatestEra.AddNewPlayer(this.PlayerConnections.get(uid)!);
 		}
-		const connection = this.PlayerConnections.get(uid)!;
 
 		return { connection, isNewPlayer };
 	}
@@ -146,23 +168,21 @@ export class Lobby
 		}
 		return newLeaderName;
 	}
-	/** Given a message, returns list of target SocketIds. */
-	public GetDestinations(text: string): string[]
+	/** 
+	 * Given a list of target plids, returns list of target socketIds.
+	 * Pass empty to get all destinations for this lobby.
+	 */
+	public GetDestinations(targetPlids: string[]): string[]
 	{
-		const targetIds: string[] = [];
-
-		// given format #,#,#...@message
-		// send to only player numbers
-		let split = text.split('@');
-		if (split.length > 1)
+		let targetSocketIds: string[] = [];
+		if (targetPlids.length > 1)
 		{
-			const targets = split[0].split(/(?:,| )+/); // split on comma and space
 			// if a players number is contained in the targets list, add the target socket id
 			for (const p of this.PlayerConnections.values())
 			{
-				if (targets.includes(p.Plid.toString()))
+				if (targetPlids.includes(p.Plid.toString()))
 				{
-					targetIds.push(p.SocketId);
+					targetSocketIds = targetSocketIds.concat(p.SocketIds);
 				}
 			}
 		}
@@ -170,11 +190,11 @@ export class Lobby
 		{
 			for (const p of this.PlayerConnections.values())
 			{
-				targetIds.push(p.SocketId);
+				targetSocketIds = targetSocketIds.concat(p.SocketIds);
 			}
 		}
 
-		return targetIds;
+		return targetSocketIds;
 	}
 	public ToVm(localPlid: number): Vm.ViewLobby
 	{
@@ -184,7 +204,10 @@ export class Lobby
 		{
 			vm.PlayerConnections.push(connection.ToVm());
 		});
-		vm.Game = this.Game.ToVm(localPlid);
+		if (this.Game === null)
+			vm.Game = null;
+		else
+			vm.Game = this.Game.ToVm(localPlid);
 		return vm;
 	}
 }
@@ -457,9 +480,10 @@ export class Turn
 		const vm = new Vm.ViewTurn();
 		vm.Number = this.Number;
 		vm.Players = [];
-		vm.LocalPlayer = this.Players[localPlid].ToVmPrivate();
 		this.Players.forEach((player, _) =>
 		{
+			if (localPlid === player.Plid)
+				vm.LocalPlayer = player.ToVmPrivate();
 			vm.Players.push(player.ToVmPublic());
 		});
 		return vm;

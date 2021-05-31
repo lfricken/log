@@ -1,16 +1,11 @@
 
 
 
+The meek shall inherit the earth; the techno-libertarians will inherit the rest.
 
 
-2^3=8
-
-
-
-X^30=0.5
-
-
-
+send game vm to client
+make client attack work
 
 setup client
 LastEvents test

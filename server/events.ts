@@ -4,6 +4,7 @@ import * as io from "socket.io";
 import * as ViewModel from "../client/src/viewmodel";
 import * as Shared from "../client/src/shared";
 import { Lobby, PlayerConnection } from "./model";
+import { ViewPlayerConnection } from "../client/src/viewmodel";
 
 type LobbyId = string;
 
@@ -25,7 +26,7 @@ export class ModelWireup
 	{
 		const auth = socket.handshake.auth as Shared.IAuth;
 		socket.join(auth.LobbyId);
-		const { lobby, player, type, isDoubleSocket } = this.GetConnectionData(this, auth, socket.id);
+		const { lobby, player, type, numSockets } = this.GetConnectionData(this, auth, socket.id);
 		const plid = player.Plid;
 		// eslint-disable-next-line max-len
 		console.log(`Socket ${socket.id} connected. Uid:${auth.UniqueId} Number:${plid} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
@@ -34,43 +35,38 @@ export class ModelWireup
 
 		// lobby leader
 		if (player.IsLobbyLeader)
-			this.SendMessage(lobby, socket, ViewModel.Message.LeaderMsg(player.DisplayName));
+			this.SendMessage(lobby, ViewModel.Message.LeaderMsg(player.DisplayName));
 
-		// reconnect
 		if (type === Shared.ConnectionType.NewPlayer)
 		{
-			this.SendMessage(lobby, socket, ViewModel.Message.JoinMsg(player.DisplayName));
+			this.SendMessage(lobby, ViewModel.Message.JoinMsg(player.DisplayName));
 		}
-		else if (type === Shared.ConnectionType.Reconnect)
+		else if (type === Shared.ConnectionType.Reconnect) // reconnect
 		{
-			this.SendMessage(lobby, socket, ViewModel.Message.ReconnectMsg(player.DisplayName));
+			this.SendMessage(lobby, ViewModel.Message.ReconnectMsg(player.DisplayName));
 		}
-		if (isDoubleSocket)
+		if (type === Shared.ConnectionType.NewSocket)
 		{
-			this.SendMessage(lobby, socket, ViewModel.Message.DoubleSocketMsg(player.Plid));
+			this.SendMessage(lobby, ViewModel.Message.DoubleSocketMsg(player.Plid, numSockets));
+		}
+		else
+		{
+			this.SendConnectionStatus(lobby);
 		}
 
 		socket.on("disconnect", () =>
 		{
 			// eslint-disable-next-line max-len
 			console.log(`Socket ${socket.id} disconnected. Uid:${auth.UniqueId} Number:${plid} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
-			player.SocketId = PlayerConnection.NoSocket;
-			const timeout = setTimeout(
-				() =>
-				{
-					this.SendMessage(lobby, socket, ViewModel.Message.DisconnectMsg(player.DisplayName));
-					player.IsConnected = false;
-
-					// pick new lobby leader
-					if (player.IsLobbyLeader)
-					{
-						const leaderName = this.Lobbies.get(auth.LobbyId)!.ConsiderNewLobbyLeader();
-						this.SendMessage(lobby, socket, ViewModel.Message.LeaderMsg(leaderName));
-					}
-				},
-				Shared.DisconnectTimeoutMilliseconds
-			);
-			player.SetTimeout(timeout);
+			const index = player.SocketIds.indexOf(socket.id, 0);
+			if (index > -1)
+			{
+				player.SocketIds.splice(index, 1);
+			}
+			if (player.SocketIds.length === 0)
+			{
+				player.SetTimeout(this, lobby);
+			}
 		});
 		socket.on(Shared.Event.ChatMessage, (message: ViewModel.Message) =>
 		{
@@ -82,10 +78,10 @@ export class ModelWireup
 				const oldName = player.DisplayName;
 				player.Nickname = message.Sender;
 				const newName = player.DisplayName;
-				this.SendMessage(lobby, socket, ViewModel.Message.ChangeNameMsg(oldName, newName));
+				this.SendMessage(lobby, ViewModel.Message.ChangeNameMsg(oldName, newName));
 			}
 
-			this.SendMessage(lobby, socket, ViewModel.Message.PlayerMsg(player.DisplayName, message), player.SocketId);
+			this.SendMessage(lobby, ViewModel.Message.PlayerMsg(player.DisplayName, message), player.Plid);
 		});
 		socket.on(Shared.Event.TurnChanged, (turn: ViewModel.ViewPlayerTurnPrivate) =>
 		{
@@ -94,7 +90,7 @@ export class ModelWireup
 	}
 
 	private GetConnectionData(w: ModelWireup, auth: Shared.IAuth, socketId: string):
-		{ lobby: Lobby, player: PlayerConnection, isNewPlayer: boolean, type: Shared.ConnectionType, isDoubleSocket: boolean }
+		{ lobby: Lobby, player: PlayerConnection, type: Shared.ConnectionType, numSockets: number }
 	{
 		/**lobby id */
 		const lid = auth.LobbyId;
@@ -114,10 +110,7 @@ export class ModelWireup
 		connection.ClearTimeout();
 
 		// ensure socket is correct
-		let isDoubleSocket = false;
-		if (connection.SocketId !== PlayerConnection.NoSocket)
-			isDoubleSocket = true; // double connections
-		connection.SocketId = socketId; // the second connection is always right
+		connection.SocketIds.push(socketId); // the second connection is always right
 
 		// check what kind of connection this was
 		let type = Shared.ConnectionType.NewPlayer;
@@ -134,14 +127,38 @@ export class ModelWireup
 		}
 		connection.IsConnected = true;
 
-		return { lobby, player: connection, isNewPlayer, type, isDoubleSocket };
+		return { lobby, player: connection, type, numSockets: connection.SocketIds.length };
 	}
-	private SendMessage(lobby: Lobby, socket: io.Socket, mes: ViewModel.Message, additionalTarget: string = ""): void
+	/**
+	 * 
+	 * @param lobby 
+	 * @param event 
+	 * @param targetPlids Pass empty to send to all connections.
+	 * @param data 
+	 */
+	public SendData(lobby: Lobby, targetPlids: string[], event: string, data: unknown): void
 	{
-		const targetIds = lobby.GetDestinations(mes.Text);
-		targetIds.push(additionalTarget);
-		if (targetIds.length > 0)
-			this.ioWrap.to(targetIds).emit(Shared.Event.ChatMessage, mes);
+		const targetSocketIds = lobby.GetDestinations(targetPlids);
+		if (targetSocketIds.length > 0)
+			this.ioWrap.to(targetSocketIds).emit(event, data);
+	}
+	public SendMessage(lobby: Lobby, message: ViewModel.Message, additionalTarget: number = -1): void
+	{
+		let targetPlids: string[] = [];
+		// given format #,#,#...@message
+		// send to only those plids
+		let split = message.Text.split('@');
+		if (split.length > 1)
+		{
+			targetPlids = split[0].split(/(?:,| )+/); // split on comma and space
+			targetPlids.push(additionalTarget.toString());
+		}
+		this.SendData(lobby, targetPlids, Shared.Event.ChatMessage, message);
+	}
+	public SendConnectionStatus(lobby: Lobby): void
+	{
+		const c = lobby.ToVm(-1);
+		this.SendData(lobby, [], Shared.Event.ConnectionsChanged, c.PlayerConnections);
 	}
 }
 

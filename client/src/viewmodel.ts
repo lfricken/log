@@ -10,7 +10,8 @@ import sanitize from "sanitize-html";
 export class ViewPlayerConnection
 {
 	/** The order this player joined in. */
-	public Nickname!: string;
+	public Nickname: string = "errorname";
+	public IsConnected: boolean = false;
 
 	public static DisplayName(nickname: string, plid: number): string
 	{
@@ -132,9 +133,9 @@ export class Message
 	{
 		return new Message("", `${name} reconnected.`);
 	}
-	public static DoubleSocketMsg(target: number): Message
+	public static DoubleSocketMsg(target: number, numSockets: number): Message
 	{
-		return new Message("", `${target}@You joined twice!`);
+		return new Message("", `${target}@You have ${numSockets - 1} other active connections to this lobby!`);
 	}
 	public static DisconnectMsg(name: string): Message
 	{

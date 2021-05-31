@@ -1,7 +1,8 @@
 /** The component that lets players message eachother. */
 
 import * as React from 'react';
-import * as ViewModel from "./viewmodel";
+import * as Vm from "./viewmodel";
+import * as Shared from './shared';
 import './Attacks.css';
 import './Main.css';
 
@@ -9,17 +10,12 @@ const AttackMin = 0;
 const AttackMax = 9;
 interface Props
 {
-	turnNumber: number;
-	/** Order > Plid */
-	order: number[];
-	/** Plid > Nickname */
 	nicknames: string[];
-	/** Plid > Attack */
-	onAttackChange: (attacks: number[]) => void;
+	game: Vm.ViewGame;
+	socket: SocketIOClient.Socket
 }
 interface State
 {
-	/** Plid > Attack */
 	Attacks: number[];
 }
 export class AttacksComp extends React.Component<Props, State>
@@ -30,14 +26,25 @@ export class AttacksComp extends React.Component<Props, State>
 	{
 		super(props);
 		const Attacks = new Array<number>();
-		for (const _ of props.order)
+		for (let i = 0; i < props.game.LatestEra.Order.length; ++i)
 			Attacks.push(0);
 		this.state = { Attacks };
 	}
 	componentDidMount(): React.ReactNode
 	{
+		this.props.socket.on(Shared.Event.TurnChanged, this.onNewTurn.bind(this));
+		this.props.socket.on(Shared.Event.EraChanged, this.onNewEra.bind(this));
 		return null;
 	}
+	public onNewTurn(): void
+	{
+
+	}
+	public onNewEra(): void
+	{
+
+	}
+
 	public increase(e: React.MouseEvent<HTMLButtonElement>): void { this.applyDelta(e, +1); }
 	public decrease(e: React.MouseEvent<HTMLButtonElement>): void { this.applyDelta(e, -1); }
 	public applyDelta(e: React.MouseEvent<HTMLButtonElement>, delta: number): void
@@ -57,7 +64,6 @@ export class AttacksComp extends React.Component<Props, State>
 		const Attacks = [...this.state.Attacks]; // shallow copy
 		Attacks[targetPlid] = value;
 		this.setState({ Attacks });
-		this.props.onAttackChange(Attacks);
 	}
 	public getInputElementFor(e: HTMLButtonElement): { element: HTMLInputElement, targetPlid: number }
 	{
@@ -80,10 +86,10 @@ export class AttacksComp extends React.Component<Props, State>
 	{
 		const { Attacks } = this.state;
 
-		const attackRows = this.props.order.map((plid, order) =>
+		const attackRows = this.props.game.LatestEra.Order.map((plid, order) =>
 			<tr>
 				<td>
-					{ViewModel.ViewPlayerConnection.DisplayName(this.props.nicknames[plid], plid)}
+					{Vm.ViewPlayerConnection.DisplayName(this.props.nicknames[plid], plid)}
 				</td>
 				<td>
 					<div id={this.divIdFromPlid(plid)} className="attack-container">
