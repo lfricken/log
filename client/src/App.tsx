@@ -6,10 +6,10 @@ import { ChatComp } from './Chat';
 import { AttacksComp } from './Attacks';
 import { ReactNode } from 'react';
 import * as Shared from './shared';
+//import * as SharedReact from './sharedReact';
 import * as View from './view';
 import * as Vm from './viewmodel';
 import './App.css';
-
 
 interface Props
 {
@@ -17,7 +17,7 @@ interface Props
 }
 interface State
 {
-	Game: Vm.ViewGame;
+	Lobby: Vm.ViewLobby;
 }
 class App extends React.Component<Props, State>
 {
@@ -28,7 +28,7 @@ class App extends React.Component<Props, State>
 	public static getInitialState(): State
 	{
 		return {
-			Game: new Vm.ViewGame(null),
+			Lobby: new Vm.ViewLobby(),
 		};
 	}
 	// called before render
@@ -58,21 +58,26 @@ class App extends React.Component<Props, State>
 	}
 	public onNicknameChanged(nicknames: string[]): void
 	{
-		const copy = new Vm.ViewGame(this.state.Game);
+		const copy = Shared.clone(this.state.Lobby);
 
 		nicknames.forEach((name, plid) =>
 		{
 			copy.PlayerConnections[plid].Nickname = name;
 		});
 		this.setState({
-			Game: copy,
+			Lobby: copy,
 		});
 	}
-	public onTurnChanged(game: Vm.ViewGame): void
+	public onTurnChanged(d: Vm.ViewTurn): void // new turn
 	{
 
 	}
-	public onEraChanged(game: Vm.ViewEra): void
+	public onEraChanged(d: Vm.ViewEra): void // new era/game
+	{
+
+	}
+	// don't need Game change because game just has era
+	public onConnectionChanged(d: Vm.ViewPlayerConnection[]): void // someone joined the lobby
 	{
 
 	}
@@ -84,6 +89,7 @@ class App extends React.Component<Props, State>
 	render(): ReactNode
 	{
 		const nickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
+		const lobby = this.state.Lobby;
 
 		return (
 			<div className="padding-small flex-row with-gaps">
@@ -94,22 +100,35 @@ class App extends React.Component<Props, State>
 							socket={this.socket}
 						/>
 					</div>
-					<div className="log component">
-						{/* <AttacksComp
-							onAttackChange={this.onAttackChange.bind(this)}
-							turnNumber={this.state.Game.LatestEra.LatestTurn.Number}
-							nicknames={Vm.ViewGame.GetNicknames(this.state.Game)}
-							order={this.state.Game.LatestEra.Order}
-						/> */}
-					</div>
+					<div className="members component"></div>
+					<div className="events component"></div>
 				</div>
 				<div className="flex flex-column with-gaps">
-					<div className="lobby component"></div>
-					<div className="actions component"></div>
-					<div className="other component"></div>
+					<div className="trades component"></div>
+					<div className="attacks component">
+						{this.renderAttacks(lobby)}
+					</div>
+					<div className="special component"></div>
 				</div>
 			</div>
 		);
+	}
+	public renderAttacks(lobby: Vm.ViewLobby): React.ReactNode
+	{
+		if (lobby.Game !== null)
+		{
+			return <AttacksComp
+				onAttackChange={this.onAttackChange.bind(this)}
+				turnNumber={lobby.Game.LatestEra.LatestTurn.Number}
+				nicknames={Vm.ViewLobby.GetNicknames(this.state.Lobby)}
+				order={lobby.Game.LatestEra.Order}
+			/>;
+		}
+		return this.loadingNode();
+	}
+	public loadingNode(): React.ReactNode
+	{
+		return <p>...loading...</p>;
 	}
 }
 

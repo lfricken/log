@@ -11,21 +11,24 @@ export function uid(plid: number): string
 {
 	return "uid" + plid;
 }
-export const defaultSettings = Models.GetSettings(Models.SettingConfig.Default);
+export const defaultSettings = Shared.GetSettings(Shared.SettingConfig.Default);
 
-export function setupGame(players: number): Models.Game
+export function setupLobby(players: number): Models.Lobby
 {
-	const g = new Models.Game(Models.SettingConfig.Default);
+	const l = new Models.Lobby();
 	for (let i = 0; i < players; ++i)
 	{
-		g.GetConnection(uid(i), name(i));
+		l.GetConnection(uid(i), name(i));
 	}
-	testNewEra(g.LatestEra);
-	return g;
+	l.CreateNewGame();
+	testLatestEra(l.Game);
+	return l;
 }
 
-export function testNewEra(era: Models.Era): void
+export function testLatestEra(g: Models.Game): void
 {
+	const era = g.LatestEra;
+
 	// there should be an order definition for each player
 	expect(era.Order.length).toBe(era.LatestTurn.Players.length);
 	// only 1 turn
@@ -58,5 +61,3 @@ export function testNewEra(era: Models.Era): void
 		prevPlids.push(player.Plid);
 	}
 }
-
-

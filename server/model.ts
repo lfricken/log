@@ -28,50 +28,6 @@ function shuffle<T>(array: T[]): void
 	}
 }
 
-/** Returns a configuration for game settings. */
-export function GetSettings(config: SettingConfig): IGameSettings
-{
-	if (config === SettingConfig.Custom) // todo get custom settings from somewhere
-		return {
-			GameEndMaxTurns: 5,
-			EraEndMinDeadPercentage: 0.5,
-			EraStartMoney: 10,
-			EraStartMilitary: 0,
-			TurnMilitaryTax: 0,
-			TurnMaxMilitaryDeltaPerTurn: 1,
-		};
-	else // SettingConfig.Default
-		return {
-			GameEndMaxTurns: 5,
-			EraEndMinDeadPercentage: 0.5,
-			EraStartMoney: 10,
-			EraStartMilitary: 0,
-			TurnMilitaryTax: 0,
-			TurnMaxMilitaryDeltaPerTurn: 1,
-		};
-}
-export enum SettingConfig
-{
-	Default,
-	Custom,
-}
-/** Rules and other random settings. */
-export interface IGameSettings
-{
-	/** After how many turns will the Game end? */
-	readonly GameEndMaxTurns: number;
-	/** What percentage of players need to die for the Era to end? */
-	readonly EraEndMinDeadPercentage: number;
-	/** How much money does each player start the Era with? */
-	readonly EraStartMoney: number;
-	/** How much military does each player start the Era with? */
-	readonly EraStartMilitary: number;
-	/** Players military will be taxed this much per turn. */
-	readonly TurnMilitaryTax: number;
-	/** Players can only invest this much in military per turn. */
-	readonly TurnMaxMilitaryDeltaPerTurn: number;
-}
-
 /** Data about the player, indexed on UniqueId. */
 export class PlayerConnection// implements IToVm<ViewModel.Player>
 {
@@ -124,28 +80,24 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 	{
 		return Vm.ViewPlayerConnection.DisplayName(this.Nickname, this.Plid);
 	}
+	public ToVm(): Vm.ViewPlayerConnection
+	{
+		const vm = new Vm.ViewPlayerConnection();
+		vm.Nickname = this.Nickname;
+		return vm;
+	}
 }
 
 /** Data about a given game, indexed on LobbyId. */
-export class Game
+export class Lobby
 {
-	public Settings: IGameSettings;
 	/** UniqueId > Player */
 	public PlayerConnections: Map<UniqueId, PlayerConnection>;
-	/** Dictates player order */
-	public Eras: Era[];
+	public Game!: Game;
 
-	public constructor(config: SettingConfig)
+	public constructor()
 	{
-		this.Settings = GetSettings(config);
 		this.PlayerConnections = new Map<UniqueId, PlayerConnection>();
-		this.Eras = [];
-		this.Eras.push(new Era(this.Settings, this.Eras.length, null));
-	}
-	/** Obtains the current Era. */
-	public get LatestEra(): Era
-	{
-		return this.Eras[this.Eras.length - 1];
 	}
 	/** Will create or retrieve a player. */
 	public GetConnection(uid: UniqueId, nickname: string): { connection: PlayerConnection, isNewPlayer: boolean }
@@ -154,28 +106,25 @@ export class Game
 		if (!this.PlayerConnections.has(uid))
 		{
 			isNewPlayer = true;
-			this.PlayerConnections.set(uid, new PlayerConnection(this.NumPlayers, nickname));
+			this.PlayerConnections.set(uid, new PlayerConnection(this.NumConnections, nickname));
 
 			if (this.PlayerConnections.size === 1)
 				this.ConsiderNewLobbyLeader();
 
-			this.LatestEra.AddNewPlayer(this.PlayerConnections.get(uid)!);
+			//this.Game.LatestEra.AddNewPlayer(this.PlayerConnections.get(uid)!);
 		}
 		const connection = this.PlayerConnections.get(uid)!;
 
 		return { connection, isNewPlayer };
 	}
-	/** Ends the turn and advances the game state by one unit. */
-	public EndTurn(): void
+	/** How many players are in this game, regardless of connection status. */
+	public get NumConnections(): number
 	{
-		// compute next turn state
-		this.LatestEra.EndTurn();
-
-		// check to see if we should make a new Era
-		if (this.LatestEra.IsOver)
-		{
-			this.Eras.push(new Era(this.Settings, this.Eras.length, this.LatestEra));
-		}
+		return this.PlayerConnections.size;
+	}
+	public CreateNewGame(): void
+	{
+		this.Game = new Game(Shared.SettingConfig.Default, this.PlayerConnections);
 	}
 	/** Will make the first player that is connected the lobby leader, and anyone else not. */
 	public ConsiderNewLobbyLeader(): string
@@ -196,37 +145,6 @@ export class Game
 			}
 		}
 		return newLeaderName;
-	}
-	/** How many players are in this game, regardless of connection status. */
-	public get NumPlayers(): number
-	{
-		return this.PlayerConnections.size;
-	}
-	public get IsOver(): boolean
-	{
-		// N eras need to have ENDED which means we need to be on the N+1 era
-		return this.Eras.length === this.Settings.GameEndMaxTurns + 1;
-	}
-	/** Returns the score leader. */
-	public GetCurrentWinner(): PlayerTurn
-	{
-		const winners: PlayerTurn[] = [];
-		const players = this.LatestEra.LatestTurn.Players;
-		let topScore = 0;
-		// find the top score
-		for (const player of players)
-		{
-			if (player.Score > topScore)
-				topScore = player.Score;
-		}
-		// if there are ties, just randomly choose one
-		for (const player of players)
-		{
-			if (player.Score === topScore)
-				winners.push(player);
-		}
-		shuffle(winners);
-		return winners[0];
 	}
 	/** Given a message, returns list of target SocketIds. */
 	public GetDestinations(text: string): string[]
@@ -258,17 +176,88 @@ export class Game
 
 		return targetIds;
 	}
+	public ToVm(localPlid: number): Vm.ViewLobby
+	{
+		const vm = new Vm.ViewLobby();
+		vm.PlayerConnections = [];
+		this.PlayerConnections.forEach((connection, _) =>
+		{
+			vm.PlayerConnections.push(connection.ToVm());
+		});
+		vm.Game = this.Game.ToVm(localPlid);
+		return vm;
+	}
+}
+
+/** Data about a given game, indexed on LobbyId. */
+export class Game
+{
+	public Settings: Shared.IGameSettings;
+	/** Dictates player order */
+	public Eras: Era[];
+
+	public constructor(config: Shared.SettingConfig, playerConnections: Map<UniqueId, PlayerConnection>)
+	{
+		this.Settings = Shared.GetSettings(config);
+		this.Eras = [];
+		this.Eras.push(new Era(this.Settings, this.Eras.length, null));
+		playerConnections.forEach((connection, _) =>
+		{
+			this.LatestEra.AddNewPlayer(connection);
+		});
+	}
+	/** Obtains the current Era. */
+	public get LatestEra(): Era
+	{
+		return this.Eras[this.Eras.length - 1];
+	}
+	/** Ends the turn and advances the game state by one unit. */
+	public EndTurn(): void
+	{
+		// compute next turn state
+		this.LatestEra.EndTurn();
+
+		// check to see if we should make a new Era
+		if (this.LatestEra.IsOver)
+		{
+			this.Eras.push(new Era(this.Settings, this.Eras.length, this.LatestEra));
+		}
+	}
+	/** How many players are in this game, regardless of connection status. */
+	public get NumPlayers(): number
+	{
+		return this.LatestEra.LatestTurn.Players.length;
+	}
+	public get IsOver(): boolean
+	{
+		// N eras need to have ENDED which means we need to be on the N+1 era
+		return this.Eras.length === this.Settings.GameEndMaxTurns + 1;
+	}
+	/** Returns the score leader. */
+	public GetCurrentWinner(): PlayerTurn
+	{
+		const winners: PlayerTurn[] = [];
+		const players = this.LatestEra.LatestTurn.Players;
+		let topScore = 0;
+		// find the top score
+		for (const player of players)
+		{
+			if (player.Score > topScore)
+				topScore = player.Score;
+		}
+		// if there are ties, just randomly choose one
+		for (const player of players)
+		{
+			if (player.Score === topScore)
+				winners.push(player);
+		}
+		shuffle(winners);
+		return winners[0];
+	}
 	public ToVm(localPlid: number): Vm.ViewGame
 	{
-		const vm = new Vm.ViewGame(null);
-
-		vm.PlayerConnections = [];
-		this.PlayerConnections.forEach((connection, plid) =>
-		{
-			vm.PlayerConnections.push(connection);
-		});
+		const vm = new Vm.ViewGame();
 		vm.LatestEra = this.LatestEra.ToVm(localPlid);
-
 		return vm;
 	}
 }
@@ -276,7 +265,7 @@ export class Game
 /** Data about a players turn, indexed on turn number. */
 export class Era
 {
-	public Settings: IGameSettings;
+	public Settings: Shared.IGameSettings;
 	/** Which turn is this? */
 	public Number: number;
 	/** Order > Plid */
@@ -284,7 +273,7 @@ export class Era
 	/** Maps (turn number > turn data) */
 	public Turns: Turn[];
 
-	public constructor(settings: IGameSettings, number: number, old: null | Era)
+	public constructor(settings: Shared.IGameSettings, number: number, old: null | Era)
 	{
 		this.Settings = settings;
 		this.Number = number;
@@ -341,13 +330,13 @@ export class Era
 /** Data about a players turn, indexed on turn number. */
 export class Turn
 {
-	public Settings: IGameSettings;
+	public Settings: Shared.IGameSettings;
 	public Number!: number;
 	/** Maps (plid > player) */
 	public Players!: PlayerTurn[];
 
 	/** Pass old turn if it exists which will compute the new turn state. */
-	public constructor(settings: IGameSettings, number: number, oldTurn: null | Turn, isNewEra: boolean)
+	public constructor(settings: Shared.IGameSettings, number: number, oldTurn: null | Turn, isNewEra: boolean)
 	{
 		this.Settings = settings;
 		this.Number = number;
@@ -393,7 +382,7 @@ export class Turn
 			if (us === undefined || them === undefined)
 				continue; // no trade route
 
-			delta += Shared.Trade.GetDelta(us, them);
+			delta += Shared.Trade.GetDelta(this.Settings, us, them);
 		}
 
 		return delta;
@@ -413,7 +402,7 @@ export class Turn
 			const us = targetPlayer.MilitaryAttacks.get(player.Plid) || 0;
 			const them = player.MilitaryAttacks.get(targetPlayer.Plid) || 0;
 
-			const delta = Shared.Military.GetDelta(targetPlayer.Military, us, them);
+			const delta = Shared.Military.GetDelta(this.Settings, targetPlayer.Military, us, them);
 			militaryDelta += delta.militaryDelta;
 			moneyDelta += delta.moneyDelta;
 		}
@@ -435,12 +424,13 @@ export class Turn
 					leaderPlid = player.Plid;
 					leaderMoney = player.Money;
 				}
+				scores[player.Plid] = 0;
 				if (player.IsDead)
-					scores[player.Plid] = Shared.Score.Die;
+					scores[player.Plid] += this.Settings.ScoreDeathDelta;
 				else
-					scores[player.Plid] = Shared.Score.Live;
+					scores[player.Plid] += this.Settings.ScoreSurvivorExtraDelta;
 			}
-			scores[leaderPlid] = Shared.Score.Lead;
+			scores[leaderPlid] += this.Settings.ScoreLeaderExtraDelta;
 		}
 
 		return scores;
@@ -458,7 +448,7 @@ export class Turn
 		this.Players.forEach((player, _) =>
 		{
 			if (player.IsDead)
-				numDead += 1;
+				numDead++;
 		});
 		return numDead;
 	}
@@ -495,7 +485,7 @@ export class PlayerTurn
 	public Trades: Map<number, number>;
 
 	/** Creates a new PlayerTurn from a connection. */
-	public static NewPlayerTurnFromConnection(settings: IGameSettings, connection: PlayerConnection): PlayerTurn
+	public static NewPlayerTurnFromConnection(settings: Shared.IGameSettings, connection: PlayerConnection): PlayerTurn
 	{
 		const player = new PlayerTurn(connection.Plid, 0);
 		player.ResetForNewEra(settings);
@@ -550,7 +540,7 @@ export class PlayerTurn
 		this.Military = 0;
 	}
 	/** Constructs this player turns values as if it was the start of a new Era. */
-	public ResetForNewEra(settings: IGameSettings): void
+	public ResetForNewEra(settings: Shared.IGameSettings): void
 	{
 		this.Money = settings.EraStartMoney;
 		this.Military = settings.EraStartMilitary;

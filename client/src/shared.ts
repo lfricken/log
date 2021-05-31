@@ -1,6 +1,12 @@
 /** Shared logic between client and server. */
 /* eslint-disable no-magic-numbers */
 
+
+export function clone<T>(obj: T): T
+{
+	return { ...obj };
+}
+
 /** When a new connection is made, how should we treat it? */
 export enum ConnectionType
 {
@@ -41,11 +47,66 @@ export class Event
 	public static NicknameChanged = 'n';
 }
 
-export class Score
+/** Returns a configuration for game settings. */
+export function GetSettings(config: SettingConfig): IGameSettings
 {
-	public static Die = 0;
-	public static Live = 1;
-	public static Lead = 2;
+	if (config === SettingConfig.Custom) // todo get custom settings from somewhere
+		return GetSettings(SettingConfig.Default);
+	else // SettingConfig.Default
+		return {
+			GameEndMaxTurns: 5,
+
+			EraEndMinDeadPercentage: 0.5,
+			EraStartMoney: 10,
+			EraStartMilitary: 0,
+
+			ScoreDeathDelta: 0,
+			ScoreSurvivorExtraDelta: 1,
+			ScoreLeaderExtraDelta: 1,
+
+			MilitaryTax: 0,
+			MilitaryMaxDeltaPerTurn: 1,
+			MilitaryPillageMultiplier: 2,
+
+			TradeResultCooperateBoth: 4,
+			TradeResultDefectBoth: 2,
+			TradeResultDefectWin: 8,
+			TradeResultDefectLose: 0,
+		};
+}
+export enum SettingConfig
+{
+	Default,
+	Custom,
+}
+/** Rules and other random settings. */
+export interface IGameSettings
+{
+	/** After how many turns will the Game end? */
+	readonly GameEndMaxTurns: number;
+
+	/** What percentage of players need to die for the Era to end? */
+	readonly EraEndMinDeadPercentage: number;
+	/** How much money does each player start the Era with? */
+	readonly EraStartMoney: number;
+	/** How much military does each player start the Era with? */
+	readonly EraStartMilitary: number;
+
+	readonly ScoreDeathDelta: number;
+	readonly ScoreSurvivorExtraDelta: number;
+	readonly ScoreLeaderExtraDelta: number;
+
+	/** Players military will be taxed this much per turn. */
+	readonly MilitaryTax: number;
+	/** Players can only invest this much in military per turn. */
+	readonly MilitaryMaxDeltaPerTurn: number;
+	/** When a players Money is attacked by Military how much more they lose from an attack. */
+	readonly MilitaryPillageMultiplier: number;
+
+	readonly TradeResultCooperateBoth: number;
+	readonly TradeResultDefectBoth: number;
+	readonly TradeResultDefectWin: number;
+	readonly TradeResultDefectLose: number;
 }
 
 export class Trade
@@ -53,29 +114,24 @@ export class Trade
 	public static ActionCooperate = 1;
 	public static ActionDefect = -1;
 
-	public static ResultCooperateBoth = 4;
-	public static ResultDefectBoth = 2;
-	public static ResultDefectWin = 8;
-	public static ResultDefectLose = 0;
-
-	public static GetDelta(us: number, them: number): number
+	public static GetDelta(settings: IGameSettings, us: number, them: number): number
 	{
 		let delta = 0;
 		if (us === Trade.ActionCooperate && them === Trade.ActionCooperate)
 		{
-			delta += Trade.ResultCooperateBoth;
+			delta += settings.TradeResultCooperateBoth;
 		}
 		else if (us === Trade.ActionCooperate && them === Trade.ActionDefect)
 		{
-			delta += Trade.ResultDefectLose;
+			delta += settings.TradeResultDefectLose;
 		}
 		else if (us === Trade.ActionDefect && them === Trade.ActionCooperate)
 		{
-			delta += Trade.ResultDefectWin;
+			delta += settings.TradeResultDefectWin;
 		}
 		else if (us === Trade.ActionDefect && them === Trade.ActionDefect)
 		{
-			delta += Trade.ResultDefectBoth;
+			delta += settings.TradeResultDefectBoth;
 		}
 		return delta;
 	}
@@ -83,13 +139,7 @@ export class Trade
 
 export class Military
 {
-	/** When a player can't defend, how much more they lose from an attack. */
-	public static PillageMultiplier = 2;
-	/** How much each player can invest per turn in military. */
-	public static MaxDelta = 2;
-	public static Upkeep = 0.1;
-
-	public static GetDelta(ourMilitary: number, ourAttacks: number, enemyAttacks: number):
+	public static GetDelta(settings: IGameSettings, ourMilitary: number, ourAttacks: number, enemyAttacks: number):
 		{ militaryDelta: number, moneyDelta: number, }
 	{
 		let militaryDelta = 0;
@@ -104,7 +154,7 @@ export class Military
 			remainingIncomingAttack -= ourMilitary;
 			if (remainingIncomingAttack > 0) // some attacks remain after standing military
 			{
-				moneyDelta = -Military.PillageMultiplier * remainingIncomingAttack;
+				moneyDelta = -settings.MilitaryPillageMultiplier * remainingIncomingAttack;
 			}
 		}
 

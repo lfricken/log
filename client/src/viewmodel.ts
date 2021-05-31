@@ -10,45 +10,24 @@ import sanitize from "sanitize-html";
 export class ViewPlayerConnection
 {
 	/** The order this player joined in. */
-	public Nickname: string;
+	public Nickname!: string;
 
-	public constructor(old: ViewPlayerConnection)
-	{
-		if (old === null)
-		{
-			this.Nickname = "bad";
-		}
-		else
-		{
-			this.Nickname = old.Nickname;
-		}
-	}
 	public static DisplayName(nickname: string, plid: number): string
 	{
 		return `${nickname}(${plid})`;
 	}
 }
-
 /** View data about the game in its current state. */
-export class ViewGame
+export class ViewLobby
 {
 	/** Player number > player */
 	public PlayerConnections!: ViewPlayerConnection[];
-	/** Dictates player order */
-	public LatestEra!: ViewEra;
+	public Game: null | ViewGame = null;
 
-	public constructor(old: null | ViewGame)
-	{
-		if (old === null)
-		{
-			this.PlayerConnections = [];
-			this.LatestEra = new ViewEra();
-		}
-	}
-	public static GetNicknames(game: ViewGame): string[]
+	public static GetNicknames(lobby: ViewLobby): string[]
 	{
 		const names: string[] = [];
-		game.PlayerConnections.forEach((connection, _) =>
+		lobby.PlayerConnections.forEach((connection, _) =>
 		{
 			names.push(connection.Nickname);
 		});
@@ -56,12 +35,18 @@ export class ViewGame
 	}
 }
 
+/** View data about the game in its current state. */
+export class ViewGame
+{
+	public LatestEra!: ViewEra;
+}
+
 /** Data about a players turn, indexed on turn number. */
 export class ViewEra
 {
 	/** Which Era is this? */
 	public Number!: number;
-	/** Order > Plid */
+	/** Dictates player order. Order > Plid */
 	public Order!: number[];
 	/** The latest turn? */
 	public LatestTurn!: ViewTurn;
@@ -107,11 +92,11 @@ export class ViewPlayerTurnPrivate extends ViewPlayerTurnPublic
 /** A message sent out to clients. */
 export class Message
 {
-	public static readonly MaxLenName: number = 7;
-	public static readonly MaxLenMessage: number = 120;
 	public Sender!: string;
 	public Text!: string;
 
+	public static readonly MaxLenName: number = 7;
+	public static readonly MaxLenMessage: number = 120;
 	public constructor(nickname: string, message: string, needsValidation: boolean = false)
 	{
 		this.Sender = nickname;

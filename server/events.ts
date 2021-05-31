@@ -3,14 +3,14 @@
 import * as io from "socket.io";
 import * as ViewModel from "../client/src/viewmodel";
 import * as Shared from "../client/src/shared";
-import { Game, PlayerTurn, PlayerConnection, SettingConfig } from "./model";
+import { Lobby, PlayerConnection } from "./model";
 
 type LobbyId = string;
 
 export class ModelWireup
 {
 	/** LobbyId > Game */
-	public Games!: Map<LobbyId, Game>;
+	public Lobbies!: Map<LobbyId, Lobby>;
 	public ioWrap: io.Server;
 
 	public constructor(ioWrap: io.Server)
@@ -18,54 +18,58 @@ export class ModelWireup
 		this.ioWrap = ioWrap;
 		this.ioWrap.on("connect", (socket: io.Socket) => { this.OnConnection(socket); });
 
-		this.Games = new Map<LobbyId, Game>();
+		this.Lobbies = new Map<LobbyId, Lobby>();
 	}
 
 	private OnConnection(socket: io.Socket): void
 	{
 		const auth = socket.handshake.auth as Shared.IAuth;
 		socket.join(auth.LobbyId);
-		const { game, player, type, isDoubleSocket } = this.GetConnectionData(this, auth, socket.id);
+		const { lobby, player, type, isDoubleSocket } = this.GetConnectionData(this, auth, socket.id);
 		const plid = player.Plid;
-		console.log(`Socket ${socket.id} connected. Number:${plid} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
+		// eslint-disable-next-line max-len
+		console.log(`Socket ${socket.id} connected. Uid:${auth.UniqueId} Number:${plid} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
 
 		//const t = player.ToVm();
 
 		// lobby leader
 		if (player.IsLobbyLeader)
-			this.SendMessage(game, socket, ViewModel.Message.LeaderMsg(player.DisplayName));
+			this.SendMessage(lobby, socket, ViewModel.Message.LeaderMsg(player.DisplayName));
 
 		// reconnect
 		if (type === Shared.ConnectionType.NewPlayer)
 		{
-			this.SendMessage(game, socket, ViewModel.Message.JoinMsg(player.DisplayName));
+			this.SendMessage(lobby, socket, ViewModel.Message.JoinMsg(player.DisplayName));
 		}
 		else if (type === Shared.ConnectionType.Reconnect)
 		{
-			this.SendMessage(game, socket, ViewModel.Message.ReconnectMsg(player.DisplayName));
+			this.SendMessage(lobby, socket, ViewModel.Message.ReconnectMsg(player.DisplayName));
 		}
 		if (isDoubleSocket)
 		{
-			this.SendMessage(game, socket, ViewModel.Message.DoubleSocketMsg(player.Plid));
+			this.SendMessage(lobby, socket, ViewModel.Message.DoubleSocketMsg(player.Plid));
 		}
 
 		socket.on("disconnect", () =>
 		{
-			console.log(`Socket ${socket.id} disconnected. Number:${plid} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
+			// eslint-disable-next-line max-len
+			console.log(`Socket ${socket.id} disconnected. Uid:${auth.UniqueId} Number:${plid} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
 			player.SocketId = PlayerConnection.NoSocket;
-			const timeout = setTimeout(() =>
-			{
-				this.SendMessage(game, socket, ViewModel.Message.DisconnectMsg(player.DisplayName));
-				player.IsConnected = false;
-
-				// pick new lobby leader
-				if (player.IsLobbyLeader)
+			const timeout = setTimeout(
+				() =>
 				{
-					const leaderName = game.ConsiderNewLobbyLeader();
-					this.SendMessage(game, socket, ViewModel.Message.LeaderMsg(leaderName));
-				}
+					this.SendMessage(lobby, socket, ViewModel.Message.DisconnectMsg(player.DisplayName));
+					player.IsConnected = false;
 
-			}, Shared.DisconnectTimeoutMilliseconds);
+					// pick new lobby leader
+					if (player.IsLobbyLeader)
+					{
+						const leaderName = this.Lobbies.get(auth.LobbyId)!.ConsiderNewLobbyLeader();
+						this.SendMessage(lobby, socket, ViewModel.Message.LeaderMsg(leaderName));
+					}
+				},
+				Shared.DisconnectTimeoutMilliseconds
+			);
 			player.SetTimeout(timeout);
 		});
 		socket.on(Shared.Event.ChatMessage, (message: ViewModel.Message) =>
@@ -78,19 +82,19 @@ export class ModelWireup
 				const oldName = player.DisplayName;
 				player.Nickname = message.Sender;
 				const newName = player.DisplayName;
-				this.SendMessage(game, socket, ViewModel.Message.ChangeNameMsg(oldName, newName));
+				this.SendMessage(lobby, socket, ViewModel.Message.ChangeNameMsg(oldName, newName));
 			}
 
-			this.SendMessage(game, socket, ViewModel.Message.PlayerMsg(player.DisplayName, message), player.SocketId);
+			this.SendMessage(lobby, socket, ViewModel.Message.PlayerMsg(player.DisplayName, message), player.SocketId);
 		});
-		// socket.on(Shared.Action, (message: ViewModel.TurnAction) =>
-		// {
+		socket.on(Shared.Event.TurnChanged, (turn: ViewModel.ViewPlayerTurnPrivate) =>
+		{
 
-		// });
+		});
 	}
 
-	private GetConnectionData(g: ModelWireup, auth: Shared.IAuth, socketId: string):
-		{ game: Game, player: PlayerConnection, isNewPlayer: boolean, type: Shared.ConnectionType, isDoubleSocket: boolean }
+	private GetConnectionData(w: ModelWireup, auth: Shared.IAuth, socketId: string):
+		{ lobby: Lobby, player: PlayerConnection, isNewPlayer: boolean, type: Shared.ConnectionType, isDoubleSocket: boolean }
 	{
 		/**lobby id */
 		const lid = auth.LobbyId;
@@ -99,12 +103,12 @@ export class ModelWireup
 		const nickname = auth.Nickname;
 
 		// try create new game
-		if (!g.Games.has(lid))
+		if (!w.Lobbies.has(lid))
 		{
-			g.Games.set(lid, new Game(SettingConfig.Default));
+			w.Lobbies.set(lid, new Lobby());
 		}
-		const game = g.Games.get(lid)!;
-		const { connection, isNewPlayer } = game.GetConnection(uid, nickname);
+		const lobby = w.Lobbies.get(lid)!;
+		const { connection, isNewPlayer } = lobby.GetConnection(uid, nickname);
 
 		// handle delayed timeout
 		connection.ClearTimeout();
@@ -130,11 +134,11 @@ export class ModelWireup
 		}
 		connection.IsConnected = true;
 
-		return { game, player: connection, isNewPlayer, type, isDoubleSocket };
+		return { lobby, player: connection, isNewPlayer, type, isDoubleSocket };
 	}
-	private SendMessage(game: Game, socket: io.Socket, mes: ViewModel.Message, additionalTarget: string = ""): void
+	private SendMessage(lobby: Lobby, socket: io.Socket, mes: ViewModel.Message, additionalTarget: string = ""): void
 	{
-		const targetIds = game.GetDestinations(mes.Text);
+		const targetIds = lobby.GetDestinations(mes.Text);
 		targetIds.push(additionalTarget);
 		if (targetIds.length > 0)
 			this.ioWrap.to(targetIds).emit(Shared.Event.ChatMessage, mes);

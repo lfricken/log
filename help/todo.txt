@@ -12,7 +12,6 @@ X^30=0.5
 
 
 
-test view models
 setup client
 LastEvents test
 everyone disconnected timeout
