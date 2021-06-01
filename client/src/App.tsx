@@ -10,6 +10,7 @@ import * as Shared from './shared';
 import * as View from './view';
 import * as Vm from './viewmodel';
 import './App.css';
+import MembersComp from './Members';
 
 interface Props
 {
@@ -17,18 +18,19 @@ interface Props
 }
 interface State
 {
-	lobby: Vm.ViewLobby;
+	game: null | Vm.ViewGame;
+	connections: Vm.ViewPlayerConnection[];
 }
 class App extends React.Component<Props, State>
 {
 	state: State = App.getInitialState();
-	lobbyId!: string;
 	socket!: SocketIOClient.Socket;
 
 	public static getInitialState(): State
 	{
 		return {
-			lobby: new Vm.ViewLobby(),
+			game: null,
+			connections: [],
 		};
 	}
 	// called before render
@@ -37,90 +39,95 @@ class App extends React.Component<Props, State>
 		super(props);
 
 		const splitUrl = window.location.href.split('/');
-		this.lobbyId = splitUrl[splitUrl.length - 1];
+		const lobbyId = splitUrl[splitUrl.length - 1];
 
 		const uniqueId = View.LoadSaveDefaultCookie(View.CookieUniqueId, View.GetUniqueId(Shared.UniqueIdLength));
 		const nickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
-
-		const authObj: Shared.IAuth = { UniqueId: uniqueId, Nickname: nickname, LobbyId: this.lobbyId };
-
+		const authObj: Shared.IAuth = { UniqueId: uniqueId, Nickname: nickname, LobbyId: lobbyId };
 		this.socket = io({ autoConnect: false, reconnection: false, auth: authObj });
+	}
+	componentDidMount(): React.ReactNode
+	{
 		this.socket.connect();
-
-		this.socket.on(Shared.Event.ConnectionsChanged, this.onConnectionsChanged.bind(this));
-		this.socket.on(Shared.Event.EraChanged, this.onEraChanged.bind(this));
-		this.socket.on(Shared.Event.TurnChanged, this.onTurnChanged.bind(this));
-
-		this.socket.on(Shared.Event.NicknameChanged, this.onNicknameChanged.bind(this));
-	}
-	public onAttackChange(attacks: number[]): void
-	{
-		this.socket.emit(Shared.Event.ChatMessage, attacks);
-	}
-	public onNicknameChanged(nicknames: string[]): void
-	{
-		const copy = Shared.clone(this.state.lobby);
-
-		nicknames.forEach((name, plid) =>
-		{
-			copy.PlayerConnections[plid].Nickname = name;
-		});
-		this.setState({
-			lobby: copy,
-		});
-	}
-	public onTurnChanged(d: Vm.ViewTurn): void // new turn
-	{
-		console.log(`#turn${d.Number} #players${d.Players.length}`);
-	}
-	public onEraChanged(d: Vm.ViewEra): void // new era/game
-	{
-		console.log(`#era${d.Number}`);
-	}
-	// don't need Game change because game just has era
-	public onConnectionsChanged(d: Vm.ViewPlayerConnection[]): void // someone joined the lobby
-	{
-		console.log(`#connections${d.length}`);
+		this.socket.on(Shared.Event.Connection, this.onConnectionsChanged.bind(this));
+		this.socket.on(Shared.Event.Turn, this.onTurnChanged.bind(this));
+		this.socket.on(Shared.Event.Era, this.onEraChanged.bind(this));
+		this.socket.on(Shared.Event.Game, this.onGameChanged.bind(this));
+		return null;
 	}
 	componentWillUnmount(): ReactNode
 	{
 		this.socket.disconnect();
 		return null;
 	}
+	// don't need Game change because game just has era
+	public onConnectionsChanged(d: Vm.ViewPlayerConnection[]): void // someone joined the lobby
+	{
+		console.log(`#connections${d.length}`);
+		this.setState({
+			connections: d,
+		});
+	}
+	public onTurnChanged(d: Vm.ViewTurn): void
+	{
+		console.log(`#turn${d.Number} #players${d.Players.length}`);
+	}
+	public onEraChanged(d: Vm.ViewEra): void
+	{
+		console.log(`#era${d.Number}`);
+	}
+	public onGameChanged(d: Vm.ViewGame): void
+	{
+		console.log(`new game with #players${d.LatestEra.LatestTurn.Players.length}`);
+	}
 	render(): ReactNode
 	{
-		const nickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
-		const lobby = this.state.lobby;
+		const clientNickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
 		const socket = this.socket;
+		const { game, connections, } = this.state;
+		const nicknames = Vm.ViewLobby.GetNicknames(connections);
 
 		return (
 			<div className="padding-small flex-row with-gaps">
 				<div className="flex flex-column with-gaps">
 					<div className="container_0 component">
 						<ChatComp
-							nickname={nickname}
+							nickname={clientNickname}
 							socket={this.socket}
 						/>
 					</div>
-					<div className="container_1 component"></div>
+					<div className="container_1 component">
+						{this.renderMembers(socket, connections)}
+					</div>
 				</div>
 				<div className="flex flex-column with-gaps">
 					<div className="container_2 component"></div>
 					<div className="container_3 component">
-						{this.renderAttacks(socket, lobby)}
+						{this.renderAttacks(socket, game, nicknames)}
 					</div>
 				</div>
 			</div>
 		);
 	}
-	public renderAttacks(socket: SocketIOClient.Socket, lobby: Vm.ViewLobby): React.ReactNode
+	public renderAttacks(socket: SocketIOClient.Socket, game: null | Vm.ViewGame, nicknames: string[]): React.ReactNode
 	{
-		if (lobby.Game !== null)
+		if (game !== null)
 		{
 			return <AttacksComp
 				socket={socket}
-				game={lobby.Game}
-				nicknames={Vm.ViewLobby.GetNicknames(lobby)}
+				game={game}
+				nicknames={nicknames}
+			/>;
+		}
+		return App.loadingNode();
+	}
+	public renderMembers(socket: SocketIOClient.Socket, connections: Vm.ViewPlayerConnection[]): React.ReactNode
+	{
+		if (connections !== null && connections.length > 0)
+		{
+			return <MembersComp
+				socket={socket}
+				connections={connections}
 			/>;
 		}
 		return App.loadingNode();

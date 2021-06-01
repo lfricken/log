@@ -117,9 +117,9 @@ export class Lobby
 		this.PlayerConnections = new Map<UniqueId, PlayerConnection>();
 	}
 	/** Will create or retrieve a connection. */
-	public GetConnection(uid: UniqueId, nickname: string): { connection: PlayerConnection, isNewPlayer: boolean }
+	public GetConnection(uid: UniqueId, nickname: string): { connection: PlayerConnection, isNew: boolean }
 	{
-		let isNewPlayer = false;
+		let isNew = false;
 		let connection: PlayerConnection;
 		if (this.PlayerConnections.has(uid)) // already have a connection
 		{
@@ -128,7 +128,7 @@ export class Lobby
 		else // new connection
 		{
 			connection = new PlayerConnection(this.NumConnections, nickname);
-			isNewPlayer = true;
+			isNew = true;
 			this.PlayerConnections.set(uid, connection);
 
 			if (this.PlayerConnections.size === 1)
@@ -137,7 +137,7 @@ export class Lobby
 			//this.Game.LatestEra.AddNewPlayer(this.PlayerConnections.get(uid)!);
 		}
 
-		return { connection, isNewPlayer };
+		return { connection, isNew };
 	}
 	/** How many players are in this game, regardless of connection status. */
 	public get NumConnections(): number

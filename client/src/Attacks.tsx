@@ -10,9 +10,9 @@ const AttackMin = 0;
 const AttackMax = 9;
 interface Props
 {
+	socket: SocketIOClient.Socket
 	nicknames: string[];
 	game: Vm.ViewGame;
-	socket: SocketIOClient.Socket
 }
 interface State
 {
@@ -32,8 +32,8 @@ export class AttacksComp extends React.Component<Props, State>
 	}
 	componentDidMount(): React.ReactNode
 	{
-		this.props.socket.on(Shared.Event.TurnChanged, this.onNewTurn.bind(this));
-		this.props.socket.on(Shared.Event.EraChanged, this.onNewEra.bind(this));
+		this.props.socket.on(Shared.Event.Turn, this.onNewTurn.bind(this));
+		this.props.socket.on(Shared.Event.Era, this.onNewEra.bind(this));
 		return null;
 	}
 	public onNewTurn(): void

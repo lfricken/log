@@ -25,10 +25,10 @@ export class ViewLobby
 	public PlayerConnections!: ViewPlayerConnection[];
 	public Game: null | ViewGame = null;
 
-	public static GetNicknames(lobby: ViewLobby): string[]
+	public static GetNicknames(playerConnections: ViewPlayerConnection[]): string[]
 	{
 		const names: string[] = [];
-		lobby.PlayerConnections.forEach((connection, _) =>
+		playerConnections.forEach((connection, _) =>
 		{
 			names.push(connection.Nickname);
 		});

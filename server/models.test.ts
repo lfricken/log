@@ -20,7 +20,7 @@ test('GetConnection adds a player', () =>
 	expect(l.PlayerConnections.size).toBe(2);
 
 	// uid was not preexisting, so it should be a new player
-	expect(c1.isNewPlayer).toBe(true);
+	expect(c1.isNew).toBe(true);
 });
 
 test('New Lobby Leader', () =>
@@ -33,11 +33,11 @@ test('New Lobby Leader', () =>
 	expect(game.LatestEra.LatestTurn.Players.length).toBe(2);
 
 	// uid was preexisting, so it should not be a new player
-	expect(c0.isNewPlayer).toBe(false);
+	expect(c0.isNew).toBe(false);
 	expect(c0.connection.IsLobbyLeader).toBe(true);
 
 	// uid was preexisting, so it should not be a new player
-	expect(c1.isNewPlayer).toBe(false);
+	expect(c1.isNew).toBe(false);
 	expect(c1.connection.IsLobbyLeader).toBe(false);
 
 	// sticks with the same leader
@@ -65,11 +65,11 @@ test('Models Created', () =>
 	expect(game.LatestEra.LatestTurn.Players.length).toBe(1);
 
 	// uid was preexisting, so it should not be a new player
-	expect(c0.isNewPlayer).toBe(false);
+	expect(c0.isNew).toBe(false);
 	// player id should reflect join order
 	expect(c0.connection.Plid).toBe(0);
 	// should not have a socket id yet because the caller needs to assign that
-	expect(c0.connection.SocketId).toBe("");
+	expect(c0.connection.SocketIds.length).toBe(0);
 	// first player should be lobby leader
 	expect(c0.connection.IsLobbyLeader).toBe(true);
 	// new player should default to connected

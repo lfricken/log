@@ -33,18 +33,16 @@ export const UniqueIdLength = 8;
 
 export class Event
 {
-	/** Lobby events (players leaving and joining) */
-	public static Log = 'l';
-	/** Player messages (sending player messages) */
-	public static ChatMessage = 'm';
-	/**  */
-	public static ConnectionsChanged = 'c';
-	/**  */
-	public static EraChanged = 'e';
-	/**  */
-	public static TurnChanged = 't';
-	/**  */
-	public static NicknameChanged = 'n';
+	/** Player/server messages. */
+	public static Message = 'm';
+	/** Connection data changed. */
+	public static Connection = 'c';
+	/** New turn/player updated their turn. */
+	public static Turn = 't';
+	/** New era. */
+	public static Era = 'e';
+	/** New game/started new game. */
+	public static Game = 'g';
 }
 
 /** Returns a configuration for game settings. */

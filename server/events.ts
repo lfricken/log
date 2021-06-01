@@ -26,73 +26,73 @@ export class ModelWireup
 	{
 		const auth = socket.handshake.auth as Shared.IAuth;
 		socket.join(auth.LobbyId);
-		const { lobby, player, type, numSockets } = this.GetConnectionData(this, auth, socket.id);
-		const plid = player.Plid;
+		const { lobby, connection, type, numSockets } = this.GetConnectionData(this, auth, socket.id);
+		const plid = connection.Plid;
 		// eslint-disable-next-line max-len
-		console.log(`Socket ${socket.id} connected. Uid:${auth.UniqueId} Number:${plid} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
+		console.log(`Socket ${socket.id} connected. Uid:${auth.UniqueId} Number:${plid} Name:${connection.Nickname} Lobby:${auth.LobbyId}.`);
 
 		//const t = player.ToVm();
 
 		// lobby leader
-		if (player.IsLobbyLeader)
-			this.SendMessage(lobby, ViewModel.Message.LeaderMsg(player.DisplayName));
+		if (connection.IsLobbyLeader)
+			this.SendMessage(lobby, ViewModel.Message.LeaderMsg(connection.DisplayName));
 
+		// inform players about connection statuses
+		this.SendConnectionStatus(lobby);
 		if (type === Shared.ConnectionType.NewPlayer)
 		{
-			this.SendMessage(lobby, ViewModel.Message.JoinMsg(player.DisplayName));
+			this.SendMessage(lobby, ViewModel.Message.JoinMsg(connection.DisplayName));
 		}
 		else if (type === Shared.ConnectionType.Reconnect) // reconnect
 		{
-			this.SendMessage(lobby, ViewModel.Message.ReconnectMsg(player.DisplayName));
+			this.SendMessage(lobby, ViewModel.Message.ReconnectMsg(connection.DisplayName));
 		}
-		if (type === Shared.ConnectionType.NewSocket)
+		else if (type === Shared.ConnectionType.NewSocket)
 		{
-			this.SendMessage(lobby, ViewModel.Message.DoubleSocketMsg(player.Plid, numSockets));
-		}
-		else
-		{
-			this.SendConnectionStatus(lobby);
+			this.SendMessage(lobby, ViewModel.Message.DoubleSocketMsg(connection.Plid, numSockets));
 		}
 
+
+		// setup other events
 		socket.on("disconnect", () =>
 		{
 			// eslint-disable-next-line max-len
-			console.log(`Socket ${socket.id} disconnected. Uid:${auth.UniqueId} Number:${plid} Name:${player.Nickname} Lobby:${auth.LobbyId}.`);
-			const index = player.SocketIds.indexOf(socket.id, 0);
+			console.log(`Socket ${socket.id} disconnected. Uid:${auth.UniqueId} Number:${plid} Name:${connection.Nickname} Lobby:${auth.LobbyId}.`);
+			const index = connection.SocketIds.indexOf(socket.id, 0);
 			if (index > -1)
 			{
-				player.SocketIds.splice(index, 1);
+				connection.SocketIds.splice(index, 1);
 			}
-			if (player.SocketIds.length === 0)
+			if (connection.SocketIds.length === 0)
 			{
-				player.SetTimeout(this, lobby);
+				connection.SetTimeout(this, lobby);
 			}
 		});
-		socket.on(Shared.Event.ChatMessage, (message: ViewModel.Message) =>
+		socket.on(Shared.Event.Message, (message: ViewModel.Message) =>
 		{
 			ViewModel.Message.ApplyValidation(message);
 
 			// change name notification
-			if (message.Sender !== player.Nickname)
+			if (message.Sender !== connection.Nickname)
 			{
-				const oldName = player.DisplayName;
-				player.Nickname = message.Sender;
-				const newName = player.DisplayName;
+				const oldName = connection.DisplayName;
+				connection.Nickname = message.Sender;
+				const newName = connection.DisplayName;
 				this.SendMessage(lobby, ViewModel.Message.ChangeNameMsg(oldName, newName));
 			}
 
-			this.SendMessage(lobby, ViewModel.Message.PlayerMsg(player.DisplayName, message), player.Plid);
+			this.SendMessage(lobby, ViewModel.Message.PlayerMsg(connection.DisplayName, message), connection.Plid);
 		});
-		socket.on(Shared.Event.TurnChanged, (turn: ViewModel.ViewPlayerTurnPrivate) =>
+		socket.on(Shared.Event.Turn, (turn: ViewModel.ViewPlayerTurnPrivate) =>
 		{
 
 		});
 	}
 
 	private GetConnectionData(w: ModelWireup, auth: Shared.IAuth, socketId: string):
-		{ lobby: Lobby, player: PlayerConnection, type: Shared.ConnectionType, numSockets: number }
+		{ lobby: Lobby, connection: PlayerConnection, type: Shared.ConnectionType, numSockets: number }
 	{
-		/**lobby id */
+		/** lobby id */
 		const lid = auth.LobbyId;
 		/** unique cookie id */
 		const uid = auth.UniqueId;
@@ -104,7 +104,7 @@ export class ModelWireup
 			w.Lobbies.set(lid, new Lobby());
 		}
 		const lobby = w.Lobbies.get(lid)!;
-		const { connection, isNewPlayer } = lobby.GetConnection(uid, nickname);
+		const { connection, isNew } = lobby.GetConnection(uid, nickname);
 
 		// handle delayed timeout
 		connection.ClearTimeout();
@@ -114,20 +114,20 @@ export class ModelWireup
 
 		// check what kind of connection this was
 		let type = Shared.ConnectionType.NewPlayer;
-		if (!isNewPlayer)
+		if (!isNew)
 		{
 			if (!connection.IsConnected)
 			{
-				type = Shared.ConnectionType.Reconnect;
+				type = Shared.ConnectionType.Reconnect; // if it was previously unconnected
 			}
 			else
 			{
-				type = Shared.ConnectionType.NewSocket;
+				type = Shared.ConnectionType.NewSocket; // we already had a connection
 			}
 		}
 		connection.IsConnected = true;
 
-		return { lobby, player: connection, type, numSockets: connection.SocketIds.length };
+		return { lobby, connection, type, numSockets: connection.SocketIds.length };
 	}
 	/**
 	 * 
@@ -153,12 +153,12 @@ export class ModelWireup
 			targetPlids = split[0].split(/(?:,| )+/); // split on comma and space
 			targetPlids.push(additionalTarget.toString());
 		}
-		this.SendData(lobby, targetPlids, Shared.Event.ChatMessage, message);
+		this.SendData(lobby, targetPlids, Shared.Event.Message, message);
 	}
 	public SendConnectionStatus(lobby: Lobby): void
 	{
 		const c = lobby.ToVm(-1);
-		this.SendData(lobby, [], Shared.Event.ConnectionsChanged, c.PlayerConnections);
+		this.SendData(lobby, [], Shared.Event.Connection, c.PlayerConnections);
 	}
 }
 
