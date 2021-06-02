@@ -68,6 +68,7 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 		this.Timeout = setTimeout(
 			() =>
 			{
+				// on real timeout disconnect
 				events.SendMessage(lobby, Vm.Message.DisconnectMsg(this.DisplayName));
 				events.SendConnectionStatus(lobby);
 				this.IsConnected = false;
@@ -75,8 +76,15 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 				// pick new lobby leader
 				if (this.IsLobbyLeader)
 				{
-					const leaderName = lobby.ConsiderNewLobbyLeader();
-					events.SendMessage(lobby, Vm.Message.LeaderMsg(leaderName));
+					const { leaderName, changed } = lobby.ConsiderNewLobbyLeader();
+					if (changed)
+						events.SendMessage(lobby, Vm.Message.LeaderMsg(leaderName));
+				}
+				events.SendConnectionStatus(lobby);
+
+				if (lobby.NumLiveConnections === 0)
+				{
+					events.Lobbies.delete(lobby.Lid);
 				}
 			},
 			Shared.DisconnectTimeoutMilliseconds
@@ -100,6 +108,8 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 	{
 		const vm = new Vm.ViewPlayerConnection();
 		vm.Nickname = this.Nickname;
+		vm.IsLobbyLeader = this.IsLobbyLeader;
+		vm.IsConnected = this.IsConnected;
 		return vm;
 	}
 }
@@ -108,11 +118,13 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 export class Lobby
 {
 	/** UniqueId > Player */
+	public Lid;
 	public PlayerConnections: Map<UniqueId, PlayerConnection>;
 	public Game: null | Game;
 
-	public constructor()
+	public constructor(lid: string)
 	{
+		this.Lid = lid;
 		this.Game = null;
 		this.PlayerConnections = new Map<UniqueId, PlayerConnection>();
 	}
@@ -127,38 +139,43 @@ export class Lobby
 		}
 		else // new connection
 		{
-			connection = new PlayerConnection(this.NumConnections, nickname);
+			connection = new PlayerConnection(this.NumTotalConnections, nickname);
 			isNew = true;
 			this.PlayerConnections.set(uid, connection);
-
-			if (this.PlayerConnections.size === 1)
-				this.ConsiderNewLobbyLeader();
-
-			//this.Game.LatestEra.AddNewPlayer(this.PlayerConnections.get(uid)!);
 		}
 
 		return { connection, isNew };
 	}
-	/** How many players are in this game, regardless of connection status. */
-	public get NumConnections(): number
+	/** How many players are in this lobby, regardless of connection status. */
+	public get NumTotalConnections(): number
 	{
 		return this.PlayerConnections.size;
 	}
-	public CreateNewGame(): void
+	/** How many players are in this lobby and connected. */
+	public get NumLiveConnections(): number
 	{
-		this.Game = new Game(Shared.SettingConfig.Default, this.PlayerConnections);
+		let num = 0;
+		this.PlayerConnections.forEach(c => { num++; });
+		return num;
+	}
+	public CreateNewGame(settings: Shared.IGameSettings): void
+	{
+		this.Game = new Game(settings, this.PlayerConnections);
 	}
 	/** Will make the first player that is connected the lobby leader, and anyone else not. */
-	public ConsiderNewLobbyLeader(): string
+	public ConsiderNewLobbyLeader(): { leaderName: string, changed: boolean }
 	{
-		let newLeaderName = "";
+		let changed = false;
+		let leaderName = "";
 		let needLeader = true;
 		for (const p of this.PlayerConnections.values())
 		{
 			if (needLeader && p.IsConnected)
 			{
 				needLeader = false;
-				newLeaderName = p.DisplayName;
+
+				leaderName = p.DisplayName;
+				changed = !p.IsLobbyLeader;
 				p.IsLobbyLeader = true;
 			}
 			else
@@ -166,7 +183,7 @@ export class Lobby
 				p.IsLobbyLeader = false;
 			}
 		}
-		return newLeaderName;
+		return { leaderName, changed, };
 	}
 	/** 
 	 * Given a list of target plids, returns list of target socketIds.
@@ -219,9 +236,9 @@ export class Game
 	/** Dictates player order */
 	public Eras: Era[];
 
-	public constructor(config: Shared.SettingConfig, playerConnections: Map<UniqueId, PlayerConnection>)
+	public constructor(settings: Shared.IGameSettings, playerConnections: Map<UniqueId, PlayerConnection>)
 	{
-		this.Settings = Shared.GetSettings(config);
+		this.Settings = { ...settings };
 		this.Eras = [];
 		this.Eras.push(new Era(this.Settings, this.Eras.length, null));
 		playerConnections.forEach((connection, _) =>

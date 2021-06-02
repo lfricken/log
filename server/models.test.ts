@@ -41,18 +41,21 @@ test('New Lobby Leader', () =>
 	expect(c1.connection.IsLobbyLeader).toBe(false);
 
 	// sticks with the same leader
-	let leaderName = "";
-	leaderName = l.ConsiderNewLobbyLeader();
-	expect(leaderName).toBe(c0.connection.DisplayName);
-	expect(c0.connection.IsLobbyLeader).toBe(true);
-	expect(c1.connection.IsLobbyLeader).toBe(false);
+	{
+		const { leaderName } = l.ConsiderNewLobbyLeader();
+		expect(leaderName).toBe(c0.connection.DisplayName);
+		expect(c0.connection.IsLobbyLeader).toBe(true);
+		expect(c1.connection.IsLobbyLeader).toBe(false);
+	}
 
 	// picks a new leader
-	c0.connection.IsConnected = false;
-	leaderName = l.ConsiderNewLobbyLeader();
-	expect(leaderName).toBe(c1.connection.DisplayName);
-	expect(c0.connection.IsLobbyLeader).toBe(false);
-	expect(c1.connection.IsLobbyLeader).toBe(true);
+	{
+		c0.connection.IsConnected = false;
+		const { leaderName } = l.ConsiderNewLobbyLeader();
+		expect(leaderName).toBe(c1.connection.DisplayName);
+		expect(c0.connection.IsLobbyLeader).toBe(false);
+		expect(c1.connection.IsLobbyLeader).toBe(true);
+	}
 });
 
 test('Models Created', () =>

@@ -12,11 +12,9 @@ interface Props
 {
 	socket: SocketIOClient.Socket;
 	connections: Vm.ViewPlayerConnection[];
+	localPlid: number;
 }
-interface State
-{
-
-}
+interface State { }
 export class MembersComp extends React.Component<Props, State>
 {
 	state!: State;
@@ -29,42 +27,39 @@ export class MembersComp extends React.Component<Props, State>
 	{
 		return null;
 	}
-	public getInputElementFor(e: HTMLButtonElement): { element: HTMLInputElement, targetPlid: number }
+	public renderAdditionalInfo(connection: Vm.ViewPlayerConnection): React.ReactNode
 	{
-		const div = e.parentElement as HTMLDivElement;
-		const element = div.querySelector(`input`) as HTMLInputElement;
-		const targetPlid = this.plidFromDivId(div.id);
-		return { element, targetPlid, };
+		if (connection.IsConnected)
+		{
+			if (connection.IsLobbyLeader)
+			{
+				return "Leader";
+			}
+		}
+		else
+		{
+			return "Disconnected";
+		}
 	}
-	public divIdFromPlid(plid: number): string
+	public renderMemberList(connections: Vm.ViewPlayerConnection[]): React.ReactNode
 	{
-		return "attack-div-" + plid;
-	}
-	public plidFromDivId(divId: string): number
-	{
-		const strings = divId.split('-');
-		const plidString = strings[strings.length - 1];
-		return parseInt(plidString, 10);
+		return connections.map((connection, plid) =>
+			<tr>
+				<td>
+					{connection.Nickname}
+				</td>
+				<td>
+					{plid}
+				</td>
+				<td>
+					{this.renderAdditionalInfo(connection)}
+				</td>
+			</tr>
+		);
 	}
 	render(): React.ReactNode
 	{
 		const { connections } = this.props;
-
-		const connectionsRows = connections.map((connection, plid) =>
-			<tr>
-				<td>
-					{Vm.ViewPlayerConnection.DisplayName(connection.Nickname, plid)}
-				</td>
-				<td>
-					<div id={this.divIdFromPlid(plid)} className="attack-container">
-
-					</div>
-				</td>
-				<td>
-					no{ }
-				</td>
-			</tr>
-		);
 
 		return (
 			<table>
@@ -72,14 +67,13 @@ export class MembersComp extends React.Component<Props, State>
 					<tr>
 						<th>Name</th>
 						<th>ID</th>
-						<th>Leader?</th>
+						<th></th>
 					</tr>
-					{connectionsRows}
+					{this.renderMemberList(connections)}
 				</tbody>
 			</table >
 		);
 	}
 }
-
 
 export default MembersComp;

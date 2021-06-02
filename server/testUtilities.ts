@@ -11,17 +11,22 @@ export function uid(plid: number): string
 {
 	return "uid" + plid;
 }
+export function lid(): string
+{
+	return "lid";
+}
 export const defaultSettings = Shared.GetSettings(Shared.SettingConfig.Default);
 
 export function setupLobby(players: number): Models.Lobby
 {
-	const l = new Models.Lobby();
+	const l = new Models.Lobby(lid());
 	for (let i = 0; i < players; ++i)
 	{
 		l.GetConnection(uid(i), name(i));
 	}
+	l.ConsiderNewLobbyLeader();
 	l.CreateNewGame();
-	testLatestEra(l.Game);
+	testLatestEra(l.Game!);
 	return l;
 }
 

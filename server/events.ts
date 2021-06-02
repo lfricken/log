@@ -27,37 +27,32 @@ export class ModelWireup
 		const auth = socket.handshake.auth as Shared.IAuth;
 		socket.join(auth.LobbyId);
 		const { lobby, connection, type, numSockets } = this.GetConnectionData(this, auth, socket.id);
-		const plid = connection.Plid;
+
+
 		// eslint-disable-next-line max-len
-		console.log(`Socket ${socket.id} connected. Uid:${auth.UniqueId} Number:${plid} Name:${connection.Nickname} Lobby:${auth.LobbyId}.`);
+		console.log(`Socket ${socket.id} connected. Uid:${auth.UniqueId} Number:${connection.Plid} Name:${connection.Nickname} Lobby:${auth.LobbyId}.`);
 
-		//const t = player.ToVm();
+		// first notify of changes
+		if (type === Shared.ConnectionType.NewPlayer)
+			this.SendMessage(lobby, ViewModel.Message.JoinMsg(connection.DisplayName));
+		else if (type === Shared.ConnectionType.Reconnect) // reconnect		
+			this.SendMessage(lobby, ViewModel.Message.ReconnectMsg(connection.DisplayName));
+		else if (type === Shared.ConnectionType.NewSocket && numSockets > 1)
+			this.SendMessage(lobby, ViewModel.Message.DoubleSocketMsg(connection.Plid, numSockets));
 
-		// lobby leader
+		// next update lobby leader
+		lobby.ConsiderNewLobbyLeader();
 		if (connection.IsLobbyLeader)
 			this.SendMessage(lobby, ViewModel.Message.LeaderMsg(connection.DisplayName));
 
-		// inform players about connection statuses
+		// finally update statuses
 		this.SendConnectionStatus(lobby);
-		if (type === Shared.ConnectionType.NewPlayer)
-		{
-			this.SendMessage(lobby, ViewModel.Message.JoinMsg(connection.DisplayName));
-		}
-		else if (type === Shared.ConnectionType.Reconnect) // reconnect
-		{
-			this.SendMessage(lobby, ViewModel.Message.ReconnectMsg(connection.DisplayName));
-		}
-		else if (type === Shared.ConnectionType.NewSocket)
-		{
-			this.SendMessage(lobby, ViewModel.Message.DoubleSocketMsg(connection.Plid, numSockets));
-		}
-
 
 		// setup other events
 		socket.on("disconnect", () =>
 		{
 			// eslint-disable-next-line max-len
-			console.log(`Socket ${socket.id} disconnected. Uid:${auth.UniqueId} Number:${plid} Name:${connection.Nickname} Lobby:${auth.LobbyId}.`);
+			console.log(`Socket ${socket.id} disconnected. Uid:${auth.UniqueId} Number:${connection.Plid} Name:${connection.Nickname} Lobby:${auth.LobbyId}.`);
 			const index = connection.SocketIds.indexOf(socket.id, 0);
 			if (index > -1)
 			{
@@ -79,6 +74,7 @@ export class ModelWireup
 				connection.Nickname = message.Sender;
 				const newName = connection.DisplayName;
 				this.SendMessage(lobby, ViewModel.Message.ChangeNameMsg(oldName, newName));
+				this.SendConnectionStatus(lobby);
 			}
 
 			this.SendMessage(lobby, ViewModel.Message.PlayerMsg(connection.DisplayName, message), connection.Plid);
@@ -86,6 +82,19 @@ export class ModelWireup
 		socket.on(Shared.Event.Turn, (turn: ViewModel.ViewPlayerTurnPrivate) =>
 		{
 
+		});
+		// start a new game with settings
+		socket.on(Shared.Event.Game, (settings: Shared.IGameSettings) =>
+		{
+			if (connection.IsLobbyLeader) // only lobby leader can do this
+			{
+				lobby.CreateNewGame(settings);
+				lobby.PlayerConnections.forEach(connection =>
+				{
+					const plid = connection.Plid;
+					this.SendData(lobby, [plid.toString()], Shared.Event.Game, lobby.Game!.ToVm(plid));
+				});
+			}
 		});
 	}
 
@@ -101,7 +110,7 @@ export class ModelWireup
 		// try create new game
 		if (!w.Lobbies.has(lid))
 		{
-			w.Lobbies.set(lid, new Lobby());
+			w.Lobbies.set(lid, new Lobby(lid));
 		}
 		const lobby = w.Lobbies.get(lid)!;
 		const { connection, isNew } = lobby.GetConnection(uid, nickname);

@@ -11,6 +11,7 @@ export class ViewPlayerConnection
 {
 	/** The order this player joined in. */
 	public Nickname: string = "errorname";
+	public IsLobbyLeader: boolean = false;
 	public IsConnected: boolean = false;
 
 	public static DisplayName(nickname: string, plid: number): string

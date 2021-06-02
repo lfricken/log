@@ -25,6 +25,7 @@ class App extends React.Component<Props, State>
 {
 	state: State = App.getInitialState();
 	socket!: SocketIOClient.Socket;
+	localPlid: number = -1;
 
 	public static getInitialState(): State
 	{
@@ -49,6 +50,7 @@ class App extends React.Component<Props, State>
 	componentDidMount(): React.ReactNode
 	{
 		this.socket.connect();
+		this.socket.on(Shared.Event.Connection, this.onConnected.bind(this));
 		this.socket.on(Shared.Event.Connection, this.onConnectionsChanged.bind(this));
 		this.socket.on(Shared.Event.Turn, this.onTurnChanged.bind(this));
 		this.socket.on(Shared.Event.Era, this.onEraChanged.bind(this));
@@ -59,6 +61,11 @@ class App extends React.Component<Props, State>
 	{
 		this.socket.disconnect();
 		return null;
+	}
+	/** Called right after we first connect so we know our Plid. */
+	public onConnected(d: number): void // someone joined the lobby
+	{
+		this.localPlid = d;
 	}
 	// don't need Game change because game just has era
 	public onConnectionsChanged(d: Vm.ViewPlayerConnection[]): void // someone joined the lobby
@@ -128,6 +135,7 @@ class App extends React.Component<Props, State>
 			return <MembersComp
 				socket={socket}
 				connections={connections}
+				localPlid={this.localPlid}
 			/>;
 		}
 		return App.loadingNode();
