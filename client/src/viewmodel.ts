@@ -11,7 +11,7 @@ export class ViewPlayerConnection
 {
 	/** The order this player joined in. */
 	public Nickname: string = "errorname";
-	public IsLobbyLeader: boolean = false;
+	public IsHost: boolean = false;
 	public IsConnected: boolean = false;
 
 	public static DisplayName(nickname: string, plid: number): string
@@ -146,8 +146,8 @@ export class Message
 	{
 		return new Message("", name + " changed their name to " + newName + ".");
 	}
-	public static LeaderMsg(name: string): Message
+	public static HostMsg(name: string): Message
 	{
-		return new Message("", `${name} is the new lobby leader.`);
+		return new Message("", `${name} is the new host.`);
 	}
 }

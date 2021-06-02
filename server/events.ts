@@ -41,12 +41,13 @@ export class ModelWireup
 			this.SendMessage(lobby, ViewModel.Message.DoubleSocketMsg(connection.Plid, numSockets));
 
 		// next update lobby leader
-		lobby.ConsiderNewLobbyLeader();
-		if (connection.IsLobbyLeader)
-			this.SendMessage(lobby, ViewModel.Message.LeaderMsg(connection.DisplayName));
+		const { changed } = lobby.ConsiderNewLobbyLeader();
+		if (changed)
+			this.SendMessage(lobby, ViewModel.Message.HostMsg(connection.DisplayName));
 
 		// finally update statuses
 		this.SendConnectionStatus(lobby);
+		this.SendData(lobby, [connection.Plid.toString()], Shared.Event.OnConnected, connection.Plid);
 
 		// setup other events
 		socket.on("disconnect", () =>
@@ -86,7 +87,7 @@ export class ModelWireup
 		// start a new game with settings
 		socket.on(Shared.Event.Game, (settings: Shared.IGameSettings) =>
 		{
-			if (connection.IsLobbyLeader) // only lobby leader can do this
+			if (connection.IsHost) // only lobby leader can do this
 			{
 				lobby.CreateNewGame(settings);
 				lobby.PlayerConnections.forEach(connection =>
@@ -151,6 +152,7 @@ export class ModelWireup
 		if (targetSocketIds.length > 0)
 			this.ioWrap.to(targetSocketIds).emit(event, data);
 	}
+	/** Sends the message to everyone unless the message is targeted. */
 	public SendMessage(lobby: Lobby, message: ViewModel.Message, additionalTarget: number = -1): void
 	{
 		let targetPlids: string[] = [];
@@ -164,10 +166,11 @@ export class ModelWireup
 		}
 		this.SendData(lobby, targetPlids, Shared.Event.Message, message);
 	}
+	/** Sends connection status to everyone. */
 	public SendConnectionStatus(lobby: Lobby): void
 	{
 		const c = lobby.ToVm(-1);
-		this.SendData(lobby, [], Shared.Event.Connection, c.PlayerConnections);
+		this.SendData(lobby, [], Shared.Event.Connections, c.PlayerConnections);
 	}
 }
 

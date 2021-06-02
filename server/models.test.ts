@@ -34,18 +34,18 @@ test('New Lobby Leader', () =>
 
 	// uid was preexisting, so it should not be a new player
 	expect(c0.isNew).toBe(false);
-	expect(c0.connection.IsLobbyLeader).toBe(true);
+	expect(c0.connection.IsHost).toBe(true);
 
 	// uid was preexisting, so it should not be a new player
 	expect(c1.isNew).toBe(false);
-	expect(c1.connection.IsLobbyLeader).toBe(false);
+	expect(c1.connection.IsHost).toBe(false);
 
 	// sticks with the same leader
 	{
 		const { leaderName } = l.ConsiderNewLobbyLeader();
 		expect(leaderName).toBe(c0.connection.DisplayName);
-		expect(c0.connection.IsLobbyLeader).toBe(true);
-		expect(c1.connection.IsLobbyLeader).toBe(false);
+		expect(c0.connection.IsHost).toBe(true);
+		expect(c1.connection.IsHost).toBe(false);
 	}
 
 	// picks a new leader
@@ -53,8 +53,8 @@ test('New Lobby Leader', () =>
 		c0.connection.IsConnected = false;
 		const { leaderName } = l.ConsiderNewLobbyLeader();
 		expect(leaderName).toBe(c1.connection.DisplayName);
-		expect(c0.connection.IsLobbyLeader).toBe(false);
-		expect(c1.connection.IsLobbyLeader).toBe(true);
+		expect(c0.connection.IsHost).toBe(false);
+		expect(c1.connection.IsHost).toBe(true);
 	}
 });
 
@@ -74,7 +74,7 @@ test('Models Created', () =>
 	// should not have a socket id yet because the caller needs to assign that
 	expect(c0.connection.SocketIds.length).toBe(0);
 	// first player should be lobby leader
-	expect(c0.connection.IsLobbyLeader).toBe(true);
+	expect(c0.connection.IsHost).toBe(true);
 	// new player should default to connected
 	expect(c0.connection.IsConnected).toBe(true);
 	// should have the name we gave them
@@ -456,10 +456,10 @@ test('Run Game', () =>
 });
 function testNewGame(l: Models.Lobby): void
 {
-	l.CreateNewGame();
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default);
+	l.CreateNewGame(settings);
 	const game = l.Game!;
 	{
-		const settings = Shared.GetSettings(Shared.SettingConfig.Default);
 		for (let i = 0; i < settings.GameEndMaxTurns - 1; ++i)
 		{
 			game.LatestEra.LatestTurn.Players[0].Money = 0;

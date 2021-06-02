@@ -27,21 +27,7 @@ export class MembersComp extends React.Component<Props, State>
 	{
 		return null;
 	}
-	public renderAdditionalInfo(connection: Vm.ViewPlayerConnection): React.ReactNode
-	{
-		if (connection.IsConnected)
-		{
-			if (connection.IsLobbyLeader)
-			{
-				return "Leader";
-			}
-		}
-		else
-		{
-			return "Disconnected";
-		}
-	}
-	public renderMemberList(connections: Vm.ViewPlayerConnection[]): React.ReactNode
+	public renderMemberList(connections: Vm.ViewPlayerConnection[], localPlid: number): React.ReactNode
 	{
 		return connections.map((connection, plid) =>
 			<tr>
@@ -54,8 +40,36 @@ export class MembersComp extends React.Component<Props, State>
 				<td>
 					{this.renderAdditionalInfo(connection)}
 				</td>
+				<td>
+					{this.renderAction(connection, plid, localPlid)}
+				</td>
 			</tr>
 		);
+	}
+	public renderAdditionalInfo(connection: Vm.ViewPlayerConnection): React.ReactNode
+	{
+		if (connection.IsConnected)
+		{
+			if (connection.IsHost)
+			{
+				return "Leader";
+			}
+		}
+		else
+		{
+			return "Disconnected";
+		}
+	}
+	public renderAction(connection: Vm.ViewPlayerConnection, plid: number, localPlid: number): React.ReactNode
+	{
+		if (connection.IsHost && plid === localPlid) // local player is host
+		{
+			return <button onClick={this.handleClick}> Start Game </button>;
+		}
+		else
+		{
+			return "";
+		}
 	}
 	render(): React.ReactNode
 	{
@@ -68,8 +82,9 @@ export class MembersComp extends React.Component<Props, State>
 						<th>Name</th>
 						<th>ID</th>
 						<th></th>
+						<th></th>
 					</tr>
-					{this.renderMemberList(connections)}
+					{this.renderMemberList(connections, this.props.localPlid)}
 				</tbody>
 			</table >
 		);

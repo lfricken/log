@@ -36,7 +36,9 @@ export class Event
 	/** Player/server messages. */
 	public static Message = 'm';
 	/** Connection data changed. */
-	public static Connection = 'c';
+	public static OnConnected = 'o';
+	/** Connection data changed. */
+	public static Connections = 'c';
 	/** New turn/player updated their turn. */
 	public static Turn = 't';
 	/** New era. */

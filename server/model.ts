@@ -45,7 +45,7 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 	 */
 	public IsConnected: boolean
 	/** True if this player has control of the lobby. */
-	public IsLobbyLeader: boolean;
+	public IsHost: boolean;
 	/** The name this player goes by. */
 	public Nickname: string;
 	/** Callback for a timed disconnect. */
@@ -56,7 +56,7 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 		this.Plid = plid;
 		this.SocketIds = [];
 		this.IsConnected = true;
-		this.IsLobbyLeader = false;
+		this.IsHost = false;
 		this.Nickname = nickname;
 		this.Timeout = null;
 	}
@@ -74,11 +74,11 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 				this.IsConnected = false;
 
 				// pick new lobby leader
-				if (this.IsLobbyLeader)
+				if (this.IsHost)
 				{
 					const { leaderName, changed } = lobby.ConsiderNewLobbyLeader();
 					if (changed)
-						events.SendMessage(lobby, Vm.Message.LeaderMsg(leaderName));
+						events.SendMessage(lobby, Vm.Message.HostMsg(leaderName));
 				}
 				events.SendConnectionStatus(lobby);
 
@@ -108,7 +108,7 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 	{
 		const vm = new Vm.ViewPlayerConnection();
 		vm.Nickname = this.Nickname;
-		vm.IsLobbyLeader = this.IsLobbyLeader;
+		vm.IsHost = this.IsHost;
 		vm.IsConnected = this.IsConnected;
 		return vm;
 	}
@@ -175,12 +175,12 @@ export class Lobby
 				needLeader = false;
 
 				leaderName = p.DisplayName;
-				changed = !p.IsLobbyLeader;
-				p.IsLobbyLeader = true;
+				changed = !p.IsHost;
+				p.IsHost = true;
 			}
 			else
 			{
-				p.IsLobbyLeader = false;
+				p.IsHost = false;
 			}
 		}
 		return { leaderName, changed, };
@@ -192,7 +192,7 @@ export class Lobby
 	public GetDestinations(targetPlids: string[]): string[]
 	{
 		let targetSocketIds: string[] = [];
-		if (targetPlids.length > 1)
+		if (targetPlids.length > 0)
 		{
 			// if a players number is contained in the targets list, add the target socket id
 			for (const p of this.PlayerConnections.values())

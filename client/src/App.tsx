@@ -20,18 +20,19 @@ interface State
 {
 	game: null | Vm.ViewGame;
 	connections: Vm.ViewPlayerConnection[];
+	localPlid: number;
 }
 class App extends React.Component<Props, State>
 {
 	state: State = App.getInitialState();
 	socket!: SocketIOClient.Socket;
-	localPlid: number = -1;
 
 	public static getInitialState(): State
 	{
 		return {
 			game: null,
 			connections: [],
+			localPlid: -1,
 		};
 	}
 	// called before render
@@ -46,15 +47,16 @@ class App extends React.Component<Props, State>
 		const nickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
 		const authObj: Shared.IAuth = { UniqueId: uniqueId, Nickname: nickname, LobbyId: lobbyId };
 		this.socket = io({ autoConnect: false, reconnection: false, auth: authObj });
-	}
-	componentDidMount(): React.ReactNode
-	{
-		this.socket.connect();
-		this.socket.on(Shared.Event.Connection, this.onConnected.bind(this));
-		this.socket.on(Shared.Event.Connection, this.onConnectionsChanged.bind(this));
+		this.socket.on(Shared.Event.OnConnected, this.onConnected.bind(this));
+		this.socket.on(Shared.Event.Connections, this.onConnectionsChanged.bind(this));
 		this.socket.on(Shared.Event.Turn, this.onTurnChanged.bind(this));
 		this.socket.on(Shared.Event.Era, this.onEraChanged.bind(this));
 		this.socket.on(Shared.Event.Game, this.onGameChanged.bind(this));
+	}
+	componentDidMount(): React.ReactNode
+	{
+		// we should not modify state until after mount
+		this.socket.connect();
 		return null;
 	}
 	componentWillUnmount(): ReactNode
@@ -65,7 +67,10 @@ class App extends React.Component<Props, State>
 	/** Called right after we first connect so we know our Plid. */
 	public onConnected(d: number): void // someone joined the lobby
 	{
-		this.localPlid = d;
+		console.log(`#plid${d}`);
+		this.setState({
+			localPlid: d,
+		});
 	}
 	// don't need Game change because game just has era
 	public onConnectionsChanged(d: Vm.ViewPlayerConnection[]): void // someone joined the lobby
@@ -135,7 +140,7 @@ class App extends React.Component<Props, State>
 			return <MembersComp
 				socket={socket}
 				connections={connections}
-				localPlid={this.localPlid}
+				localPlid={this.state.localPlid}
 			/>;
 		}
 		return App.loadingNode();
