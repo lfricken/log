@@ -150,4 +150,8 @@ export class Message
 	{
 		return new Message("", `${name} is the new host.`);
 	}
+	public static NewGameMsg(numPlayers: number): Message
+	{
+		return new Message("", `Game started with ${numPlayers} players.`);
+	}
 }

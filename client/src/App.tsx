@@ -27,6 +27,7 @@ class App extends React.Component<Props, State>
 	state: State = App.getInitialState();
 	socket!: SocketIOClient.Socket;
 
+
 	public static getInitialState(): State
 	{
 		return {
@@ -91,63 +92,78 @@ class App extends React.Component<Props, State>
 	public onGameChanged(d: Vm.ViewGame): void
 	{
 		console.log(`new game with #players${d.LatestEra.LatestTurn.Players.length}`);
+		this.setState({
+			game: d,
+		});
 	}
 	render(): ReactNode
 	{
-		const clientNickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
 		const socket = this.socket;
 		const { game, connections, } = this.state;
-		const nicknames = Vm.ViewLobby.GetNicknames(connections);
 
 		return (
 			<div className="padding-small flex-row with-gaps">
 				<div className="flex flex-column with-gaps">
 					<div className="container_0 component">
-						<ChatComp
-							nickname={clientNickname}
-							socket={this.socket}
-						/>
+						{this.renderChat()}
 					</div>
 					<div className="container_1 component">
-						{this.renderMembers(socket, connections)}
+						{this.renderConnections()}
 					</div>
 				</div>
 				<div className="flex flex-column with-gaps">
 					<div className="container_2 component"></div>
 					<div className="container_3 component">
-						{this.renderAttacks(socket, game, nicknames)}
+						{this.renderTurnChoices()}
 					</div>
 				</div>
 			</div>
 		);
 	}
-	public renderAttacks(socket: SocketIOClient.Socket, game: null | Vm.ViewGame, nicknames: string[]): React.ReactNode
+	public renderChat(): React.ReactNode
 	{
-		if (game !== null)
+		if (this.state.connections !== null && this.state.connections.length > 0)
+		{
+			return <ChatComp
+				socket={this.socket}
+			/>;
+		}
+		return App.loading();
+	}
+	public renderConnections(): React.ReactNode
+	{
+		if (this.state.connections !== null && this.state.connections.length > 0)
+		{
+			return <MembersComp
+				socket={this.socket}
+				localPlid={this.state.localPlid}
+				connections={this.state.connections}
+				activeGame={this.state.game !== null}
+			/>;
+		}
+		return App.loading();
+	}
+	public static loading(): React.ReactNode
+	{
+		return <p>...loading...</p>;
+	}
+	public renderTurnChoices(): React.ReactNode
+	{
+		const nicknames = Vm.ViewLobby.GetNicknames(this.state.connections);
+		if (this.state.game !== null)
 		{
 			return <AttacksComp
-				socket={socket}
-				game={game}
+				socket={this.socket}
+				localPlid={this.state.localPlid}
+				game={this.state.game}
 				nicknames={nicknames}
 			/>;
 		}
-		return App.loadingNode();
+		return App.gameNotStarted();
 	}
-	public renderMembers(socket: SocketIOClient.Socket, connections: Vm.ViewPlayerConnection[]): React.ReactNode
+	public static gameNotStarted(): React.ReactNode
 	{
-		if (connections !== null && connections.length > 0)
-		{
-			return <MembersComp
-				socket={socket}
-				connections={connections}
-				localPlid={this.state.localPlid}
-			/>;
-		}
-		return App.loadingNode();
-	}
-	public static loadingNode(): React.ReactNode
-	{
-		return <p>...loading...</p>;
+		return <p>...game has not started...</p>;
 	}
 }
 

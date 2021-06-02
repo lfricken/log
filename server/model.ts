@@ -160,7 +160,12 @@ export class Lobby
 	}
 	public CreateNewGame(settings: Shared.IGameSettings): void
 	{
-		this.Game = new Game(settings, this.PlayerConnections);
+		var liveConnections = Array.from(this.PlayerConnections.values()).filter(function (connection)
+		{
+			return connection.IsConnected;
+		});
+
+		this.Game = new Game(settings, liveConnections);
 	}
 	/** Will make the first player that is connected the lobby leader, and anyone else not. */
 	public ConsiderNewLobbyLeader(): { leaderName: string, changed: boolean }
@@ -236,7 +241,7 @@ export class Game
 	/** Dictates player order */
 	public Eras: Era[];
 
-	public constructor(settings: Shared.IGameSettings, playerConnections: Map<UniqueId, PlayerConnection>)
+	public constructor(settings: Shared.IGameSettings, playerConnections: PlayerConnection[])
 	{
 		this.Settings = { ...settings };
 		this.Eras = [];
@@ -266,7 +271,7 @@ export class Game
 	/** How many players are in this game, regardless of connection status. */
 	public get NumPlayers(): number
 	{
-		return this.LatestEra.LatestTurn.Players.length;
+		return this.LatestEra.LatestTurn.Players.size;
 	}
 	public get IsOver(): boolean
 	{
@@ -280,13 +285,13 @@ export class Game
 		const players = this.LatestEra.LatestTurn.Players;
 		let topScore = 0;
 		// find the top score
-		for (const player of players)
+		for (const player of players.values())
 		{
 			if (player.Score > topScore)
 				topScore = player.Score;
 		}
 		// if there are ties, just randomly choose one
-		for (const player of players)
+		for (const player of players.values())
 		{
 			if (player.Score === topScore)
 				winners.push(player);
@@ -348,7 +353,7 @@ export class Era
 	public get IsOver(): boolean
 	{
 		// at least this many players need to be dead
-		const minDead = Math.max(1, Math.floor(this.LatestTurn.Players.length * this.Settings.EraEndMinDeadPercentage));
+		const minDead = Math.max(1, Math.floor(this.LatestTurn.Players.size * this.Settings.EraEndMinDeadPercentage));
 		return this.LatestTurn.NumDead >= minDead;
 	}
 	/** Adds a new player to this Era. */
@@ -373,14 +378,14 @@ export class Turn
 	public Settings: Shared.IGameSettings;
 	public Number!: number;
 	/** Maps (plid > player) */
-	public Players!: PlayerTurn[];
+	public Players!: Map<number, PlayerTurn>;
 
 	/** Pass old turn if it exists which will compute the new turn state. */
 	public constructor(settings: Shared.IGameSettings, number: number, oldTurn: null | Turn, isNewEra: boolean)
 	{
 		this.Settings = settings;
 		this.Number = number;
-		this.Players = [];
+		this.Players = new Map<number, PlayerTurn>();
 		if (oldTurn === null)
 		{
 
@@ -397,11 +402,11 @@ export class Turn
 		const scoreDelta = oldTurn.GetScoreDelta(isNewEra);
 
 		// copy player data
-		for (const oldPlayer of oldTurn.Players)
+		for (const oldPlayer of oldTurn.Players.values())
 		{
 			const newPlayer = PlayerTurn.NewPlayerTurnFromOld(oldTurn, oldPlayer, isNewEra);
 			newPlayer.Score += scoreDelta[newPlayer.Plid];
-			this.Players.push(newPlayer);
+			this.Players.set(newPlayer.Plid, newPlayer);
 		}
 	}
 	/** Returns the changes in money for the given player due to trade. */
@@ -409,7 +414,7 @@ export class Turn
 	{
 		let delta = 0;
 
-		for (const player of this.Players)
+		for (const player of this.Players.values())
 		{
 			if (player.Plid === targetPlayer.Plid) // cant trade with self
 				continue;
@@ -428,12 +433,11 @@ export class Turn
 		return delta;
 	}
 	/** Returns the changes in military and money for the given player due to attacks. */
-	public GetAttackDelta(targetPlayer: PlayerTurn):
-		{ militaryDelta: number, moneyDelta: number, }
+	public GetAttackDelta(targetPlayer: PlayerTurn): { militaryDelta: number, moneyDelta: number, }
 	{
 		let militaryDelta = 0;
 		let moneyDelta = 0;
-		for (const player of this.Players)
+		for (const player of this.Players.values())
 		{
 			if (player.Plid === targetPlayer.Plid) // cant attack self
 				continue;
@@ -451,13 +455,13 @@ export class Turn
 	/** Assuming this Era ended right now, who would get what score? */
 	public GetScoreDelta(isNewEra: boolean): number[]
 	{
-		const scores = new Array(this.Players.length).fill(0);
+		const scores = new Array(this.Players.size).fill(0);
 		let leaderPlid = 0;
 		let leaderMoney = 0;
 
 		if (isNewEra)
 		{
-			for (const player of this.Players)
+			for (const player of this.Players.values())
 			{
 				if (player.Money > leaderMoney)
 				{
@@ -479,7 +483,7 @@ export class Turn
 	public AddNewPlayer(connection: PlayerConnection): void
 	{
 		const player = PlayerTurn.NewPlayerTurnFromConnection(this.Settings, connection);
-		this.Players.push(player);
+		this.Players.set(player.Plid, player);
 	}
 	/** Returns the number of dead players currently. */
 	public get NumDead(): number

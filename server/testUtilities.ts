@@ -25,7 +25,7 @@ export function setupLobby(players: number): Models.Lobby
 		l.GetConnection(uid(i), name(i));
 	}
 	l.ConsiderNewLobbyLeader();
-	l.CreateNewGame();
+	l.CreateNewGame(defaultSettings);
 	testLatestEra(l.Game!);
 	return l;
 }
@@ -35,7 +35,7 @@ export function testLatestEra(g: Models.Game): void
 	const era = g.LatestEra;
 
 	// there should be an order definition for each player
-	expect(era.Order.length).toBe(era.LatestTurn.Players.length);
+	expect(era.Order.length).toBe(era.LatestTurn.Players.size);
 	// only 1 turn
 	expect(era.Turns.length).toBe(1);
 	// should not be over
@@ -47,7 +47,7 @@ export function testLatestEra(g: Models.Game): void
 	expect(era.LatestTurn.NumDead).toBe(0);
 
 	const prevPlids = [];
-	for (const player of era.LatestTurn.Players)
+	for (const player of era.LatestTurn.Players.values())
 	{
 		// expect start of game money
 		expect(player.Money).toBe(defaultSettings.EraStartMoney);

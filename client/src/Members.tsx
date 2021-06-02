@@ -11,8 +11,9 @@ const AttackMax = 9;
 interface Props
 {
 	socket: SocketIOClient.Socket;
-	connections: Vm.ViewPlayerConnection[];
 	localPlid: number;
+	connections: Vm.ViewPlayerConnection[];
+	activeGame: boolean;
 }
 interface State { }
 export class MembersComp extends React.Component<Props, State>
@@ -27,44 +28,70 @@ export class MembersComp extends React.Component<Props, State>
 	{
 		return null;
 	}
+	public onClickNextTurn(e: React.MouseEvent<HTMLButtonElement>): void
+	{
+		this.props.socket.emit(Shared.Event.Turn, {});
+	}
+	public onClickStartGame(e: React.MouseEvent<HTMLButtonElement>): void
+	{
+		this.props.socket.emit(Shared.Event.Game, Shared.GetSettings(Shared.SettingConfig.Default));
+	}
 	public renderMemberList(connections: Vm.ViewPlayerConnection[], localPlid: number): React.ReactNode
 	{
 		return connections.map((connection, plid) =>
 			<tr>
-				<td>
+				<td className={plid === localPlid ? "bold" : ""}>
 					{connection.Nickname}
 				</td>
-				<td>
+				<td className={plid === localPlid ? "bold" : ""}>
 					{plid}
 				</td>
 				<td>
-					{this.renderAdditionalInfo(connection)}
+					{this.renderAdditionalInfo(connection, plid)}
 				</td>
 				<td>
-					{this.renderAction(connection, plid, localPlid)}
+					{this.renderNextTurnButton(plid)}
 				</td>
 			</tr>
 		);
 	}
-	public renderAdditionalInfo(connection: Vm.ViewPlayerConnection): React.ReactNode
+	public renderAdditionalInfo(connection: Vm.ViewPlayerConnection, plid: number): React.ReactNode
 	{
 		if (connection.IsConnected)
 		{
-			if (connection.IsHost)
-			{
-				return "Leader";
-			}
+			return this.renderStartButton(plid);
 		}
 		else
 		{
 			return "Disconnected";
 		}
 	}
-	public renderAction(connection: Vm.ViewPlayerConnection, plid: number, localPlid: number): React.ReactNode
+	public renderStartButton(plid: number): React.ReactNode
 	{
-		if (connection.IsHost && plid === localPlid) // local player is host
+		if (this.props.connections[plid].IsHost) // local player is host
 		{
-			return <button onClick={this.handleClick}> Start Game </button>;
+			return <button
+				disabled={plid !== this.props.localPlid}
+				onClick={this.onClickStartGame.bind(this)}
+			>
+				Start Game
+			</button>;
+		}
+		else
+		{
+			return "";
+		}
+	}
+	public renderNextTurnButton(plid: number): React.ReactNode
+	{
+		if (this.props.connections[plid].IsHost) // local player is host
+		{
+			return <button
+				disabled={plid !== this.props.localPlid || !this.props.activeGame}
+				onClick={this.onClickNextTurn.bind(this)}
+			>
+				Next Turn
+			</button>;
 		}
 		else
 		{

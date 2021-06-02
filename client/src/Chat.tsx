@@ -9,7 +9,6 @@ import './Main.css';
 
 interface Props
 {
-	nickname: string;
 	socket: SocketIOClient.Socket
 }
 interface State
@@ -26,9 +25,10 @@ export class ChatComp extends React.Component<Props, State>
 
 	constructor(props: Props)
 	{
+		const clientNickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
 		super(props);
 		this.state = {
-			nickname: this.props.nickname,
+			nickname: clientNickname,
 			messages: [],
 		};
 	}

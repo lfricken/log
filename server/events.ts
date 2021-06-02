@@ -48,8 +48,10 @@ export class ModelWireup
 		// finally update statuses
 		this.SendConnectionStatus(lobby);
 		this.SendData(lobby, [connection.Plid.toString()], Shared.Event.OnConnected, connection.Plid);
+		if (lobby.Game !== null)
+			this.SendData(lobby, [connection.Plid.toString()], Shared.Event.Game, lobby.Game!.ToVm(connection.Plid));
 
-		// setup other events
+		// player disconnected
 		socket.on("disconnect", () =>
 		{
 			// eslint-disable-next-line max-len
@@ -64,6 +66,7 @@ export class ModelWireup
 				connection.SetTimeout(this, lobby);
 			}
 		});
+		// player sent a message
 		socket.on(Shared.Event.Message, (message: ViewModel.Message) =>
 		{
 			ViewModel.Message.ApplyValidation(message);
@@ -80,6 +83,7 @@ export class ModelWireup
 
 			this.SendMessage(lobby, ViewModel.Message.PlayerMsg(connection.DisplayName, message), connection.Plid);
 		});
+		// player tried to modify their own turn
 		socket.on(Shared.Event.Turn, (turn: ViewModel.ViewPlayerTurnPrivate) =>
 		{
 
@@ -90,6 +94,8 @@ export class ModelWireup
 			if (connection.IsHost) // only lobby leader can do this
 			{
 				lobby.CreateNewGame(settings);
+
+				this.SendMessage(lobby, ViewModel.Message.NewGameMsg(lobby.Game!.NumPlayers));
 				lobby.PlayerConnections.forEach(connection =>
 				{
 					const plid = connection.Plid;

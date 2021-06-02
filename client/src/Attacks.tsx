@@ -11,24 +11,21 @@ const AttackMax = 9;
 interface Props
 {
 	socket: SocketIOClient.Socket
+	localPlid: number;
 	nicknames: string[];
 	game: Vm.ViewGame;
 }
-interface State
-{
-	Attacks: number[];
-}
+interface State { }
 export class AttacksComp extends React.Component<Props, State>
 {
 	state!: State;
+	Attacks: number[];
 
 	constructor(props: Props)
 	{
 		super(props);
-		const Attacks = new Array<number>();
-		for (let i = 0; i < props.game.LatestEra.Order.length; ++i)
-			Attacks.push(0);
-		this.state = { Attacks };
+		this.state = {};
+		this.Attacks = [];
 	}
 	componentDidMount(): React.ReactNode
 	{
@@ -60,10 +57,8 @@ export class AttacksComp extends React.Component<Props, State>
 
 		element.value = value.toString();
 
-		// now update state
-		const Attacks = [...this.state.Attacks]; // shallow copy
-		Attacks[targetPlid] = value;
-		this.setState({ Attacks });
+		// now update
+		this.Attacks[targetPlid] = value;
 	}
 	public getInputElementFor(e: HTMLButtonElement): { element: HTMLInputElement, targetPlid: number }
 	{
@@ -84,19 +79,24 @@ export class AttacksComp extends React.Component<Props, State>
 	}
 	render(): React.ReactNode
 	{
-		const { Attacks } = this.state;
+		this.Attacks = [];
+		for (let i = 0; i < this.props.game.LatestEra.Order.length; ++i)
+			this.Attacks.push(0);
 
 		const attackRows = this.props.game.LatestEra.Order.map((plid, order) =>
 			<tr>
-				<td>
+				<td className={plid === this.props.localPlid ? "bold" : ""}>
 					{Vm.ViewPlayerConnection.DisplayName(this.props.nicknames[plid], plid)}
 				</td>
-				<td>
-					<div id={this.divIdFromPlid(plid)} className="attack-container">
-						<button onClick={this.decrease.bind(this)}>-</button>
-						<input className="attack-input" disabled data-value type="number" value={Attacks[plid]} />
-						<button onClick={this.increase.bind(this)}>+</button>
-					</div>
+				<td className="text-center">
+					{
+						plid === this.props.localPlid ? "You" :
+							<div id={this.divIdFromPlid(plid)} className="attack-container">
+								<button onClick={this.decrease.bind(this)}>-</button>
+								<input className="attack-input" disabled data-value type="number" value={this.Attacks[order]} />
+								<button onClick={this.increase.bind(this)}>+</button>
+							</div>
+					}
 				</td>
 			</tr>
 		);
