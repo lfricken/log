@@ -52,14 +52,12 @@ test('Models exist.', () =>
 
 		// local player
 		{
-			expect(gVm.LatestEra.LatestTurn.LocalPlayer).toBeTruthy();
-			expect(gVm.LatestEra.LatestTurn.LocalPlayer.Money).toBe(10);
-			expect(gVm.LatestEra.LatestTurn.LocalPlayer.Military).toBe(0);
-			expect(gVm.LatestEra.LatestTurn.LocalPlayer.MilitaryAttacks.size).toBe(0);
-			expect(gVm.LatestEra.LatestTurn.LocalPlayer.MilitaryDelta).toBe(0);
-			expect(gVm.LatestEra.LatestTurn.LocalPlayer.Plid).toBe(localPlid);
-			expect(gVm.LatestEra.LatestTurn.LocalPlayer.Score).toBe(0);
-			expect(gVm.LatestEra.LatestTurn.LocalPlayer.Trades.size).toBe(0);
+			expect(gVm.LatestEra.LatestTurn.Players[localPlid]).toBeTruthy();
+			expect(gVm.LatestEra.LatestTurn.Players[localPlid].Money).toBe(10);
+			expect(gVm.LatestEra.LatestTurn.Players[localPlid].Military).toBe(0);
+			expect(gVm.LatestEra.LatestTurn.Players[localPlid].MilitaryDelta).toBe(0);
+			expect(gVm.LatestEra.LatestTurn.Players[localPlid].Plid).toBe(localPlid);
+			expect(gVm.LatestEra.LatestTurn.Players[localPlid].Score).toBe(0);
 		}
 	}
 });

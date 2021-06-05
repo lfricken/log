@@ -369,9 +369,9 @@ export class Era
 	{
 		const vm: Vm.IViewEra =
 		{
-			Number = this.Number,
-			Order =[...this.Order], // shallow copy
-			LatestTurn = this.LatestTurn.ToVm(localPlid),
+			Number: this.Number,
+			Order: [...this.Order], // shallow copy
+			LatestTurn: this.LatestTurn.ToVm(localPlid),
 		};
 		return vm;
 	}
@@ -511,14 +511,14 @@ export class Turn
 	{
 		const vm: Vm.IViewTurn =
 		{
-			Number = this.Number,
-			Players =[];
-		}
+			Number: this.Number,
+			Players: [],
+		};
+
 		this.Players.forEach((player, _) =>
 		{
-			if (localPlid === player.Plid)
-				vm.LocalPlayer = player.ToVmPrivate();
-			vm.Players.push(player.ToVmPublic());
+			const isLocal = localPlid === player.Plid;
+			vm.Players.push(player.ToVm(isLocal));
 		});
 		return vm;
 	}
@@ -616,24 +616,16 @@ export class PlayerTurn
 	{
 		return this.Money <= 0;
 	}
-	public ToVmPublic(): Vm.ViewPlayerTurnPublic
-	{
-		const vm = new Vm.ViewPlayerTurnPublic();
-		vm.Military = this.Military;
-		vm.Plid = this.Plid;
-		vm.Score = this.Score;
-		return vm;
-	}
-	public ToVmPrivate(): Vm.IViewPlayerTurn
+	public ToVm(isLocal: boolean): Vm.IViewPlayerTurn
 	{
 		const vm: Vm.IViewPlayerTurn = {
-			MilitaryAttacks: new Map<number, number>();
+			MilitaryAttacks: new Map<number, number>() as unknown as Shared.IPlidMap<number>,
 			MilitaryDelta: this.MilitaryDelta,
 			Military: this.Military,
 			Money: this.Money,
 			Plid: this.Plid,
 			Score: this.Score,
-			Trades: new Map<number, number>(),
+			Trades: new Map<number, number>() as unknown as Shared.IPlidMap<number>,
 		};
 		return vm;
 	}

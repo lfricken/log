@@ -9,7 +9,7 @@ import './Main.css';
 export interface IActionsProps
 {
 	data: Vm.IViewData;
-	onAttackChanged: (plid: number, delta: number) => void;
+	onAttackChanged: (plidToModify: number, plidToAttack: number, delta: number) => void;
 }
 
 function onAttackChanged(e: React.MouseEvent<HTMLButtonElement>, props: IActionsProps, delta: number): void
@@ -17,7 +17,7 @@ function onAttackChanged(e: React.MouseEvent<HTMLButtonElement>, props: IActions
 	const { element, targetPlid } = getInputElementFor(e.currentTarget);
 	let value = parseInt(element.value, 10);
 
-	props.onAttackChanged(targetPlid, delta);
+	props.onAttackChanged(props.data.LocalPlid, targetPlid, delta);
 }
 function getInputElementFor(e: HTMLButtonElement): { element: HTMLInputElement, targetPlid: number }
 {
@@ -74,11 +74,12 @@ function renderCommerceButtons(localOrder: number, order: number, plid: number):
 }
 function renderRows(props: IActionsProps): React.ReactNode
 {
-	const attacks = props.data.Game.LatestEra.LatestTurn.Players[props.data.LocalPlid].MilitaryAttacks;
+	const players = props.data.Game.LatestEra.LatestTurn.Players;
+	const attacks = players[props.data.LocalPlid].MilitaryAttacks;
 	const def = props.data.Game.Settings.EraStartMilitary;
 
 	return props.data.Game.LatestEra.Order.map((renderPlid, renderOrder) =>
-		<tr>
+		<tr key={`${props.data.Game.LatestEra.LatestTurn.Number}_${renderPlid}`}>
 			<td className={renderPlid === props.data.LocalPlid ? "bold" : ""}>
 				{Vm.IViewPlayerConnection.DisplayName(props.data.Nicknames[renderPlid], renderPlid)}
 			</td>

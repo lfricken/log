@@ -4,7 +4,7 @@
 
 export function clone<T>(obj: T): T
 {
-	return { ...obj };
+	return JSON.parse(JSON.stringify(obj));
 }
 
 /** When a new connection is made, how should we treat it? */

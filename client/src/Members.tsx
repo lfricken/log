@@ -39,7 +39,7 @@ export class MembersComp extends React.Component<Props, State>
 	public renderMemberList(connections: Vm.IViewPlayerConnection[], localPlid: number): React.ReactNode
 	{
 		return connections.map((connection, plid) =>
-			<tr>
+			<tr key={Vm.IViewPlayerConnection.DisplayName(connection.Nickname, plid)}>
 				<td className={plid === localPlid ? "bold" : ""}>
 					{connection.Nickname}
 				</td>

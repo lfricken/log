@@ -89,20 +89,21 @@ class App extends React.Component<Props, State>
 	{
 		console.log(`#era${d.Number}`);
 	}
-	public onAttackChanged(plid: number, delta: number): void
+	public onAttackChanged(plidToModify: number, plidToAttack: number, delta: number): void
 	{
 		this.setState((prevState: Readonly<State>, _: Readonly<Props>) =>
 		{
 			const prevGame = prevState.game!;
 			const attacks = prevGame.LatestEra.LatestTurn.Players[prevState.localPlid].MilitaryAttacks;
-			const prevValue = Shared.IPlidMap.TryGet(attacks, plid, prevGame.Settings.EraStartMilitary);
+			const prevValue = Shared.IPlidMap.TryGet(attacks, plidToAttack, prevGame.Settings.EraStartMilitary);
 			let value = delta + prevValue;
 			if (value < prevGame.Settings.MilitaryMinAttack)
 				value = prevGame.Settings.MilitaryMinAttack;
 			else if (value > prevGame.Settings.MilitaryMaxAttack)
 				value = prevGame.Settings.MilitaryMaxAttack;
 
-			const game = { ...prevGame };
+			const game = Shared.clone(prevGame);
+			game.LatestEra.LatestTurn.Players[plidToModify].MilitaryAttacks[plidToAttack] = value;
 			return { game };
 		});
 	}
@@ -171,22 +172,33 @@ class App extends React.Component<Props, State>
 		}
 		return App.loading();
 	}
+	public renderActions(app: App, data: Vm.IViewData): React.ReactNode
+	{
+		if (this.state.game !== null)
+		{
+			const players = data.Game.LatestEra.LatestTurn.Players;
+			if (players[data.LocalPlid] !== undefined)
+			{
+				return Actions.renderActions({ data, onAttackChanged: app.onAttackChanged.bind(app) });
+			}
+			else
+			{
+				return App.gameNotIncluded();
+			}
+		}
+		return App.gameNotStarted();
+	}
 	public static loading(): React.ReactNode
 	{
 		return <p>...loading...</p>;
 	}
-	public renderActions(app: App, data: Vm.IViewData): React.ReactNode
-	{
-		const nicknames = Vm.IViewLobby.GetNicknames(this.state.connections);
-		if (this.state.game !== null)
-		{
-			return Actions.renderActions({ data, onAttackChanged: app.onAttackChanged.bind(app) });
-		}
-		return App.gameNotStarted();
-	}
 	public static gameNotStarted(): React.ReactNode
 	{
 		return <p>...game has not started...</p>;
+	}
+	public static gameNotIncluded(): React.ReactNode
+	{
+		return <p>...the current game does not have you in it...</p>;
 	}
 }
 
