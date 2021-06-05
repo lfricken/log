@@ -6,14 +6,12 @@ import * as Shared from './shared';
 import './Members.css';
 import './Main.css';
 
-const AttackMin = 0;
-const AttackMax = 9;
 interface Props
 {
-	socket: SocketIOClient.Socket;
-	localPlid: number;
-	connections: Vm.IViewPlayerConnection[];
-	activeGame: boolean;
+	Socket: SocketIOClient.Socket;
+	LocalPlid: number;
+	Connections: Vm.IViewPlayerConnection[];
+	ActiveGame: boolean;
 }
 interface State { }
 export class MembersComp extends React.Component<Props, State>
@@ -30,11 +28,29 @@ export class MembersComp extends React.Component<Props, State>
 	}
 	public onClickNextTurn(e: React.MouseEvent<HTMLButtonElement>): void
 	{
-		this.props.socket.emit(Shared.Event.Turn, {});
+		this.props.Socket.emit(Shared.Event.Turn, {});
 	}
 	public onClickStartGame(e: React.MouseEvent<HTMLButtonElement>): void
 	{
-		this.props.socket.emit(Shared.Event.Game, Shared.GetSettings(Shared.SettingConfig.Default));
+		this.props.Socket.emit(Shared.Event.Game, Shared.GetSettings(Shared.SettingConfig.Default));
+	}
+	render(): React.ReactNode
+	{
+		const { Connections: connections } = this.props;
+
+		return (
+			<table>
+				<tbody>
+					<tr>
+						<th>Name</th>
+						<th>ID</th>
+						<th></th>
+						<th></th>
+					</tr>
+					{this.renderMemberList(connections, this.props.LocalPlid)}
+				</tbody>
+			</table >
+		);
 	}
 	public renderMemberList(connections: Vm.IViewPlayerConnection[], localPlid: number): React.ReactNode
 	{
@@ -68,10 +84,10 @@ export class MembersComp extends React.Component<Props, State>
 	}
 	public renderStartButton(plid: number): React.ReactNode
 	{
-		if (this.props.connections[plid].IsHost) // local player is host
+		if (this.props.Connections[plid].IsHost) // local player is host
 		{
 			return <button
-				disabled={plid !== this.props.localPlid}
+				disabled={plid !== this.props.LocalPlid}
 				onClick={this.onClickStartGame.bind(this)}
 			>
 				Start Game
@@ -84,10 +100,10 @@ export class MembersComp extends React.Component<Props, State>
 	}
 	public renderNextTurnButton(plid: number): React.ReactNode
 	{
-		if (this.props.connections[plid].IsHost) // local player is host
+		if (this.props.Connections[plid].IsHost) // local player is host
 		{
 			return <button
-				disabled={plid !== this.props.localPlid || !this.props.activeGame}
+				disabled={plid !== this.props.LocalPlid || !this.props.ActiveGame}
 				onClick={this.onClickNextTurn.bind(this)}
 			>
 				Next Turn
@@ -97,24 +113,6 @@ export class MembersComp extends React.Component<Props, State>
 		{
 			return "";
 		}
-	}
-	render(): React.ReactNode
-	{
-		const { connections } = this.props;
-
-		return (
-			<table>
-				<tbody>
-					<tr>
-						<th>Name</th>
-						<th>ID</th>
-						<th></th>
-						<th></th>
-					</tr>
-					{this.renderMemberList(connections, this.props.localPlid)}
-				</tbody>
-			</table >
-		);
 	}
 }
 

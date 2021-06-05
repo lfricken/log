@@ -6,104 +6,11 @@ import * as Shared from './shared';
 import './Attacks.css';
 import './Main.css';
 
-export interface IActionsProps
+interface IActionsProps
 {
-	data: Vm.IViewData;
+	Data: Vm.IViewData;
 	onAttackChanged: (plidToModify: number, plidToAttack: number, delta: number) => void;
-}
-
-function onAttackChanged(e: React.MouseEvent<HTMLButtonElement>, props: IActionsProps, delta: number): void
-{
-	const { element, targetPlid } = getInputElementFor(e.currentTarget);
-	let value = parseInt(element.value, 10);
-
-	props.onAttackChanged(props.data.LocalPlid, targetPlid, delta);
-}
-function getInputElementFor(e: HTMLButtonElement): { element: HTMLInputElement, targetPlid: number }
-{
-	const div = e.parentElement as HTMLDivElement;
-	const element = div.querySelector(`input`) as HTMLInputElement;
-	const targetPlid = plidFromDivId(div.id);
-	return { element, targetPlid, };
-}
-function attackDivIdFromPlid(plid: number): string
-{
-	return "attack-div-" + plid;
-}
-function tradeDivIdFromPlid(plid: number): string
-{
-	return "trade-div-" + plid;
-}
-function plidFromDivId(divId: string): number
-{
-	const strings = divId.split('-');
-	const plidString = strings[strings.length - 1];
-	return parseInt(plidString, 10);
-}
-function trade(e: React.MouseEvent<HTMLButtonElement>): void 
-{
-	// let newAction = Shared.Trade.ActionCooperate;
-	// const plid = parseInt(e.currentTarget.value, 10);
-	// if (state.Trades[plid] === Shared.Trade.ActionCooperate)
-	// {
-	// 	newAction = Shared.Trade.ActionDefect;
-	// }
-	// else
-	// {
-	// 	newAction = Shared.Trade.ActionCooperate;
-	// }
-	// e.currentTarget.innerHTML = getButtonText(newAction);
-
-	// const newState = [...state.Trades];
-	// newState[plid] = newAction;
-	// setState({ Trades: newState });
-}
-function getButtonText(tradeAction: number): string
-{
-	return tradeAction === Shared.Trade.ActionCooperate ? "Trade" : "Steal";
-}
-function renderCommerceButtons(localOrder: number, order: number, plid: number): React.ReactNode
-{
-	// if (order === localOrder - 1 || order === localOrder + 1)
-	// {
-	// 	return <div id={tradeDivIdFromPlid(plid)} className="attack-container">
-	// 		<button value={plid} onClick={trade.bind(this)}>{getButtonText(state.Trades[plid])}</button>
-	// 	</div>;
-	// }
-	return null;
-}
-function renderRows(props: IActionsProps): React.ReactNode
-{
-	const players = props.data.Game.LatestEra.LatestTurn.Players;
-	const attacks = players[props.data.LocalPlid].MilitaryAttacks;
-	const def = props.data.Game.Settings.EraStartMilitary;
-
-	return props.data.Game.LatestEra.Order.map((renderPlid, renderOrder) =>
-		<tr key={`${props.data.Game.LatestEra.LatestTurn.Number}_${renderPlid}`}>
-			<td className={renderPlid === props.data.LocalPlid ? "bold" : ""}>
-				{Vm.IViewPlayerConnection.DisplayName(props.data.Nicknames[renderPlid], renderPlid)}
-			</td>
-			<td className="text-center">
-				{
-					renderPlid === props.data.LocalPlid ? "You" :
-						<div id={attackDivIdFromPlid(renderPlid)} className="attack-container">
-							<button onClick={(e): void => onAttackChanged(e, props, -1)}>-</button>
-							<input
-								className="attack-input"
-								disabled
-								data-value
-								type="number"
-								value={Shared.IPlidMap.TryGet(attacks, renderPlid, def)}
-							/>
-							<button onClick={(e): void => onAttackChanged(e, props, +1)}>+</button>
-						</div>
-				}
-			</td>
-			<td>
-				{/* {renderCommerceButtons(props, renderPlid)} */}
-			</td>
-		</tr >
-	);
+	onTradeChanged: (plidToModify: number, plidToTrade: number) => void;
 }
 export function renderActions(props: IActionsProps): React.ReactNode
 {
@@ -121,5 +28,62 @@ export function renderActions(props: IActionsProps): React.ReactNode
 			</table >
 		</fieldset>
 	);
+}
+function renderRows(props: IActionsProps): React.ReactNode
+{
+	const localOrder = props.Data.LocalOrder;
+	const localPlid = props.Data.LocalPlid;
+	const game = props.Data.Game;
+	const players = game.LatestEra.LatestTurn.Players;
+	const attacks = players[localPlid].MilitaryAttacks;
+
+	return game.LatestEra.Order.map((renderPlid, renderOrder) =>
+		<tr key={`${game.LatestEra.LatestTurn.Number}_${renderPlid}`}>
+			<td className={renderPlid === props.Data.LocalPlid ? "bold" : ""}>
+				{Vm.IViewPlayerConnection.DisplayName(props.Data.Nicknames[renderPlid], renderPlid)}
+			</td>
+			<td className="text-center">
+				{
+					renderPlid === props.Data.LocalPlid ? getSelfText() :
+						<div className="attack-container">
+							<button onClick={(): void => props.onAttackChanged(localPlid, renderPlid, -1)}>-</button>
+							<input
+								className="attack-input"
+								disabled
+								data-value
+								type="number"
+								value={attacks[renderPlid]}
+							/>
+							<button onClick={(): void => props.onAttackChanged(localPlid, renderPlid, +1)}>+</button>
+						</div>
+				}
+			</td>
+			<td>
+				{renderCommerceButtons(props, localOrder, renderOrder, renderPlid)}
+			</td>
+		</tr >
+	);
+}
+function renderCommerceButtons(props: IActionsProps, localOrder: number, renderOrder: number, renderPlid: number): React.ReactNode
+{
+	const localPlid = props.Data.LocalPlid;
+	const localPlayer = props.Data.Game.LatestEra.LatestTurn.Players[localPlid];
+	if (renderOrder === localOrder - 1 || renderOrder === localOrder + 1)
+	{
+		return <div className="attack-container">
+			<button onClick={(): void => props.onTradeChanged(props.Data.LocalPlid, renderPlid)}>
+				{getTradeButtonText(localPlayer.Trades[renderPlid])}
+			</button>
+		</div>;
+	}
+	return null;
+}
+function getTradeButtonText(tradeAction: number): string
+{
+	return tradeAction === Shared.Trade.ActionDefect ? "Steal" : "Trade";
+}
+function getSelfText(): string
+{
+	return "You";
 }
 

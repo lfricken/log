@@ -18,22 +18,21 @@ interface Props
 }
 interface State
 {
-	game: null | Vm.IViewGame;
-	connections: Vm.IViewPlayerConnection[];
-	localPlid: number;
+	Game: null | Vm.IViewGame;
+	Connections: Vm.IViewPlayerConnection[];
+	LocalPlid: number;
 }
 class App extends React.Component<Props, State>
 {
 	state: State = App.getInitialState();
 	socket!: SocketIOClient.Socket;
 
-
 	public static getInitialState(): State
 	{
 		return {
-			game: null,
-			connections: [],
-			localPlid: -1,
+			Game: null,
+			Connections: [],
+			LocalPlid: -1,
 		};
 	}
 	// called before render
@@ -53,6 +52,9 @@ class App extends React.Component<Props, State>
 		this.socket.on(Shared.Event.Turn, this.onTurnChanged.bind(this));
 		this.socket.on(Shared.Event.Era, this.onEraChanged.bind(this));
 		this.socket.on(Shared.Event.Game, this.onGameChanged.bind(this));
+
+		this.onAttackChanged = this.onAttackChanged.bind(this);
+		this.onTradeChanged = this.onTradeChanged.bind(this);
 	}
 	componentDidMount(): React.ReactNode
 	{
@@ -70,7 +72,7 @@ class App extends React.Component<Props, State>
 	{
 		console.log(`#plid${d}`);
 		this.setState({
-			localPlid: d,
+			LocalPlid: d,
 		});
 	}
 	// don't need Game change because game just has era
@@ -78,7 +80,7 @@ class App extends React.Component<Props, State>
 	{
 		console.log(`#connections${d.length}`);
 		this.setState({
-			connections: d,
+			Connections: d,
 		});
 	}
 	public onTurnChanged(d: Vm.IViewTurn): void
@@ -93,9 +95,10 @@ class App extends React.Component<Props, State>
 	{
 		this.setState((prevState: Readonly<State>, _: Readonly<Props>) =>
 		{
-			const prevGame = prevState.game!;
-			const attacks = prevGame.LatestEra.LatestTurn.Players[prevState.localPlid].MilitaryAttacks;
+			const prevGame = prevState.Game!;
+			const attacks = prevGame.LatestEra.LatestTurn.Players[prevState.LocalPlid].MilitaryAttacks;
 			const prevValue = Shared.IPlidMap.TryGet(attacks, plidToAttack, prevGame.Settings.EraStartMilitary);
+
 			let value = delta + prevValue;
 			if (value < prevGame.Settings.MilitaryMinAttack)
 				value = prevGame.Settings.MilitaryMinAttack;
@@ -104,14 +107,32 @@ class App extends React.Component<Props, State>
 
 			const game = Shared.clone(prevGame);
 			game.LatestEra.LatestTurn.Players[plidToModify].MilitaryAttacks[plidToAttack] = value;
-			return { game };
+			return { Game: game };
+		});
+	}
+	public onTradeChanged(plidToModify: number, plidToTrade: number): void
+	{
+		this.setState((prevState: Readonly<State>, _: Readonly<Props>) =>
+		{
+			const prevGame = prevState.Game!;
+			const prevTrades = prevGame.LatestEra.LatestTurn.Players[plidToModify].Trades;
+
+			let value: number;
+			if (prevTrades[plidToTrade] === Shared.Trade.ActionDefect)
+				value = Shared.Trade.ActionCooperate;
+			else
+				value = Shared.Trade.ActionDefect;
+
+			const game = Shared.clone(prevGame);
+			game.LatestEra.LatestTurn.Players[plidToModify].Trades[plidToTrade] = value;
+			return { Game: game };
 		});
 	}
 	public onGameChanged(d: Vm.IViewGame): void
 	{
 		console.log(`new game with #players${d.LatestEra.LatestTurn.Players.length}`);
 		this.setState({
-			game: d,
+			Game: d,
 		});
 	}
 	render(): ReactNode
@@ -119,15 +140,15 @@ class App extends React.Component<Props, State>
 		const data: Vm.IViewData = {
 			Game: null as unknown as Vm.IViewGame,
 			Nicknames: [],
-			LocalPlid: this.state.localPlid,
+			LocalPlid: this.state.LocalPlid,
 			LocalOrder: -1,
 		};
-		const { game } = this.state;
+		const { Game: game } = this.state;
 		if (game !== null)
 		{
 			data.Game = game;
-			data.LocalOrder = game!.LatestEra.Order.indexOf(this.state.localPlid);
-			data.Nicknames = Vm.IViewLobby.GetNicknames(this.state.connections);
+			data.LocalOrder = game!.LatestEra.Order.indexOf(this.state.LocalPlid);
+			data.Nicknames = Vm.IViewLobby.GetNicknames(this.state.Connections);
 		}
 
 		return (
@@ -151,35 +172,37 @@ class App extends React.Component<Props, State>
 	}
 	public renderChat(): React.ReactNode
 	{
-		if (this.state.connections !== null && this.state.connections.length > 0)
+		if (this.state.Connections !== null && this.state.Connections.length > 0)
 		{
-			return <ChatComp
-				socket={this.socket}
-			/>;
+			return <ChatComp Socket={this.socket} />;
 		}
 		return App.loading();
 	}
 	public renderConnections(): React.ReactNode
 	{
-		if (this.state.connections !== null && this.state.connections.length > 0)
+		if (this.state.Connections !== null && this.state.Connections.length > 0)
 		{
 			return <MembersComp
-				socket={this.socket}
-				localPlid={this.state.localPlid}
-				connections={this.state.connections}
-				activeGame={this.state.game !== null}
+				Socket={this.socket}
+				LocalPlid={this.state.LocalPlid}
+				Connections={this.state.Connections}
+				ActiveGame={this.state.Game !== null}
 			/>;
 		}
 		return App.loading();
 	}
 	public renderActions(app: App, data: Vm.IViewData): React.ReactNode
 	{
-		if (this.state.game !== null)
+		if (this.state.Game !== null)
 		{
 			const players = data.Game.LatestEra.LatestTurn.Players;
 			if (players[data.LocalPlid] !== undefined)
 			{
-				return Actions.renderActions({ data, onAttackChanged: app.onAttackChanged.bind(app) });
+				return Actions.renderActions({
+					Data: data,
+					onAttackChanged: app.onAttackChanged,
+					onTradeChanged: app.onTradeChanged,
+				});
 			}
 			else
 			{

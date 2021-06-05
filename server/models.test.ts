@@ -25,8 +25,62 @@ test('GetConnection adds a player', () =>
 	expect(c1.isNew).toBe(true);
 });
 
+interface IMap<V>
+{
+	[plid: number]: V;
+}
+class IMap<V>
+{
+	public static *Kvp<V>(map: IMap<V>): Generator<{ key: number, value: V }>
+	{
+		for (const k of Object.keys(map))
+		{
+			const key = parseInt(k, 10);
+			yield { key, value: map[key] };
+		}
+	}
+	public static Length<V>(map: IMap<V>): number
+	{
+		return Object.keys(map).length;
+	}
+	public static Has<V>(map: IMap<V>, key: number): boolean
+	{
+		return map[key] !== undefined;
+	}
+	public static KeyOf<V>(map: IMap<V>, checkValue: V): number | null
+	{
+		for (const { key, value } of IMap.Kvp(map))
+		{
+			if (value === checkValue)
+				return key;
+		}
+		return null;
+	}
+}
+test('IMap', () =>
+{
+	const map: IMap<string> = {};
+	map[4] = "val";
+
+	for (const { key, value } of IMap.Kvp(map))
+	{
+		expect(key).toBe(4);
+		expect(value).toBe("val");
+	}
+	expect(IMap.Length(map)).toBe(1);
+
+	expect(IMap.Has(map, 4)).toBe(true);
+	expect(IMap.Has(map, 5)).toBe(false);
+
+	expect(IMap.KeyOf(map, "hi")).toBe(null);
+	expect(IMap.KeyOf(map, "val")).toBe(4);
+
+	expect(IMap.Length(map)).toBe(1);
+});
+
 test('New Lobby Leader', () =>
 {
+
 	const settings = Shared.GetSettings(Shared.SettingConfig.Default) as Shared.IGameSettingsEditable;
 	const l = Util.setupLobby(settings, 2);
 	const game = l.Game!;
@@ -440,7 +494,7 @@ test('Player Death', () =>
 		// new era should be different
 		expect(game.LatestEra.Number).toBeGreaterThan(prevEra.Number);
 		// a new era has occured
-		Util.testLatestEra(settings, game);
+		Util.testLatestEra(settings, game, 4);
 	}
 });
 
@@ -468,7 +522,7 @@ test('New Era', () =>
 		// new era should be different
 		expect(game.LatestEra.Number).toBeGreaterThan(prevEra.Number);
 		// a new era has occured
-		Util.testLatestEra(settings, game);
+		Util.testLatestEra(settings, game, 3);
 
 		const t = game.LatestEra.LatestTurn;
 		const p0 = t.Players.get(0)!;
@@ -498,7 +552,7 @@ test('New Era', () =>
 		// new era should be different
 		expect(game.LatestEra.Number).toBeGreaterThan(prevEra.Number);
 		// a new era has occured
-		Util.testLatestEra(settings, game);
+		Util.testLatestEra(settings, game, 3);
 
 		const t = game.LatestEra.LatestTurn;
 		const p0 = t.Players.get(0)!;
@@ -537,7 +591,7 @@ function testNewGame(l: Models.Lobby): void
 			game.EndTurn();
 			// new era should be different
 			expect(game.LatestEra.Number).toBeGreaterThan(prevEra.Number);
-			Util.testLatestEra(settings, game); // a new era has occured
+			Util.testLatestEra(settings, game, l.PlayerConnections.size); // a new era has occured
 			// should have produced a new era 
 			expect(game.LatestEra.Number).not.toBe(prevEra.Number);
 			expect(game.IsOver).toBe(false);
@@ -552,7 +606,7 @@ function testNewGame(l: Models.Lobby): void
 		game.EndTurn();
 		// new era should be different
 		expect(game.LatestEra.Number).toBeGreaterThan(prevEra.Number);
-		Util.testLatestEra(settings, game); // a new era has occured
+		Util.testLatestEra(settings, game, l.PlayerConnections.size); // a new era has occured
 		// should have produced a new era 
 		expect(game.LatestEra.Number).not.toBe(prevEra.Number);
 		expect(game.IsOver).toBe(true);

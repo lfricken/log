@@ -86,7 +86,7 @@ export enum SettingConfig
 export interface IPlidMap<T>
 {
 	[plid: number]: T;
-	[Symbol.iterator](): IterableIterator<T>;
+	[Symbol.iterator](): IterableIterator<T[]>;
 }
 export class IPlidMap<T>
 {
@@ -138,8 +138,8 @@ export type IGameSettingsEditable = {
 
 export class Trade
 {
-	public static ActionCooperate = 1;
-	public static ActionDefect = -1;
+	public static ActionCooperate = 0;
+	public static ActionDefect = 1;
 
 	public static GetDelta(settings: IGameSettings, us: number, them: number): number
 	{

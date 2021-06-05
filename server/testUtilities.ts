@@ -25,16 +25,16 @@ export function setupLobby(settings: Shared.IGameSettings, players: number): Mod
 	}
 	l.ConsiderNewLobbyLeader();
 	l.CreateNewGame(settings);
-	testLatestEra(settings, l.Game!);
+	testLatestEra(settings, l.Game!, players);
 	return l;
 }
 
-export function testLatestEra(settings: Shared.IGameSettings, g: Models.Game): void
+export function testLatestEra(settings: Shared.IGameSettings, g: Models.Game, numPlayersExpected: number): void
 {
 	const era = g.LatestEra;
 
 	// there should be an order definition for each player
-	expect(era.Order.length).toBe(era.LatestTurn.Players.size);
+	expect(era.Order.length).toBe(numPlayersExpected);
 	// only 1 turn
 	expect(era.Turns.length).toBe(1);
 	// should not be over
@@ -53,9 +53,9 @@ export function testLatestEra(settings: Shared.IGameSettings, g: Models.Game): v
 		// expect start of game military
 		expect(player.Military).toBe(settings.EraStartMilitary);
 		// no initial attacks
-		expect(player.MilitaryAttacks.size).toBe(0);
+		expect(player.MilitaryAttacks.size).toBe(numPlayersExpected);
 		// no initial trades
-		expect(player.Trades.size).toBe(0);
+		expect(player.Trades.size).toBe(numPlayersExpected);
 		// expect not dead
 		expect(player.IsDead).toBe(false);
 		// no negative score

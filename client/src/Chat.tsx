@@ -1,20 +1,19 @@
 /** The component that lets players message eachother. */
-
-import * as React from 'react';
-import * as ViewModel from "./viewmodel";
-import * as Shared from "./shared";
 import * as View from "./view";
+import * as React from 'react';
+import * as Vm from "./viewmodel";
+import * as Shared from "./shared";
 import './Chat.css';
 import './Main.css';
 
 interface Props
 {
-	socket: SocketIOClient.Socket
+	Socket: SocketIOClient.Socket
 }
 interface State
 {
-	nickname: string;
-	messages: ViewModel.Message[];
+	Nickname: string;
+	Messages: Vm.Message[];
 }
 export class ChatComp extends React.Component<Props, State>
 {
@@ -28,8 +27,8 @@ export class ChatComp extends React.Component<Props, State>
 		const clientNickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
 		super(props);
 		this.state = {
-			nickname: clientNickname,
-			messages: [],
+			Nickname: clientNickname,
+			Messages: [],
 		};
 	}
 	componentDidMount(): React.ReactNode
@@ -38,7 +37,7 @@ export class ChatComp extends React.Component<Props, State>
 		this.chatInput = document.getElementById('chatInput') as HTMLInputElement;
 		this.nameInput = document.getElementById('nameInput') as HTMLInputElement;
 
-		this.props.socket.on(Shared.Event.Message, this.onNewMessage.bind(this));
+		this.props.Socket.on(Shared.Event.Message, this.onNewMessage.bind(this));
 
 		var chatForm = document.getElementById('chatForm') as HTMLFormElement;
 		chatForm.addEventListener('submit', this.onSubmitMessage.bind(this));
@@ -49,25 +48,26 @@ export class ChatComp extends React.Component<Props, State>
 		e.preventDefault();
 		const text = this.chatInput.value;
 		const nickname = this.nameInput.value;
-		const message = new ViewModel.Message(nickname, text, true);
+		const message = new Vm.Message(nickname, text, true);
 		View.SaveCookie(View.CookieNickname, nickname);
 
 		if (nickname !== "" && text !== "")
 		{
-			this.props.socket.emit(Shared.Event.Message, message);
+			this.props.Socket.emit(Shared.Event.Message, message);
 			this.chatInput.value = '';
 		}
 	}
-	private onNewMessage(m: ViewModel.Message): void
+	private onNewMessage(m: Vm.Message): void
 	{
 		// follow the bottom of the chat if they are already looking there
 		const pixelFollowRange = 80;
 		const follow = (this.chatView.scrollHeight - this.chatView.offsetHeight - this.chatView.scrollTop) < pixelFollowRange;
 
-		const messages = this.state.messages;
-		messages.push(m);
-		this.setState({
-			messages
+		this.setState((prevState: Readonly<State>, _: Readonly<Props>) =>
+		{
+			const messages = Shared.clone(prevState.Messages);
+			messages.push(m);
+			return { Messages: messages };
 		});
 
 		if (follow)
@@ -75,7 +75,7 @@ export class ChatComp extends React.Component<Props, State>
 	}
 	render(): React.ReactNode
 	{
-		const { nickname: name, messages } = this.state;
+		const { Nickname: name, Messages: messages } = this.state;
 
 		return (
 			<div className="full-size flex-column">
@@ -93,7 +93,7 @@ export class ChatComp extends React.Component<Props, State>
 						<input
 							className="nickname-box-width"
 							id="nameInput"
-							maxLength={ViewModel.Message.MaxLenName}
+							maxLength={Vm.Message.MaxLenName}
 							autoComplete="off"
 							autoCapitalize="on"
 							defaultValue={name}
@@ -104,7 +104,7 @@ export class ChatComp extends React.Component<Props, State>
 							<input
 								className="flex"
 								id="chatInput"
-								maxLength={ViewModel.Message.MaxLenMessage}
+								maxLength={Vm.Message.MaxLenMessage}
 								autoComplete="off"
 							/>
 						</form>
