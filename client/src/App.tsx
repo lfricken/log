@@ -3,7 +3,7 @@
 import * as React from 'react';
 import io from "socket.io-client";
 import { ChatComp } from './Chat';
-import { AttacksComp } from './Attacks';
+import * as Actions from './Attacks';
 import { ReactNode } from 'react';
 import * as Shared from './shared';
 //import * as SharedReact from './sharedReact';
@@ -18,8 +18,8 @@ interface Props
 }
 interface State
 {
-	game: null | Vm.ViewGame;
-	connections: Vm.ViewPlayerConnection[];
+	game: null | Vm.IViewGame;
+	connections: Vm.IViewPlayerConnection[];
 	localPlid: number;
 }
 class App extends React.Component<Props, State>
@@ -74,22 +74,39 @@ class App extends React.Component<Props, State>
 		});
 	}
 	// don't need Game change because game just has era
-	public onConnectionsChanged(d: Vm.ViewPlayerConnection[]): void // someone joined the lobby
+	public onConnectionsChanged(d: Vm.IViewPlayerConnection[]): void // someone joined the lobby
 	{
 		console.log(`#connections${d.length}`);
 		this.setState({
 			connections: d,
 		});
 	}
-	public onTurnChanged(d: Vm.ViewTurn): void
+	public onTurnChanged(d: Vm.IViewTurn): void
 	{
 		console.log(`#turn${d.Number} #players${d.Players.length}`);
 	}
-	public onEraChanged(d: Vm.ViewEra): void
+	public onEraChanged(d: Vm.IViewEra): void
 	{
 		console.log(`#era${d.Number}`);
 	}
-	public onGameChanged(d: Vm.ViewGame): void
+	public onAttackChanged(plid: number, delta: number): void
+	{
+		this.setState((prevState: Readonly<State>, _: Readonly<Props>) =>
+		{
+			const prevGame = prevState.game!;
+			const attacks = prevGame.LatestEra.LatestTurn.Players[prevState.localPlid].MilitaryAttacks;
+			const prevValue = Shared.IPlidMap.TryGet(attacks, plid, prevGame.Settings.EraStartMilitary);
+			let value = delta + prevValue;
+			if (value < prevGame.Settings.MilitaryMinAttack)
+				value = prevGame.Settings.MilitaryMinAttack;
+			else if (value > prevGame.Settings.MilitaryMaxAttack)
+				value = prevGame.Settings.MilitaryMaxAttack;
+
+			const game = { ...prevGame };
+			return { game };
+		});
+	}
+	public onGameChanged(d: Vm.IViewGame): void
 	{
 		console.log(`new game with #players${d.LatestEra.LatestTurn.Players.length}`);
 		this.setState({
@@ -98,8 +115,19 @@ class App extends React.Component<Props, State>
 	}
 	render(): ReactNode
 	{
-		const socket = this.socket;
-		const { game, connections, } = this.state;
+		const data: Vm.IViewData = {
+			Game: null as unknown as Vm.IViewGame,
+			Nicknames: [],
+			LocalPlid: this.state.localPlid,
+			LocalOrder: -1,
+		};
+		const { game } = this.state;
+		if (game !== null)
+		{
+			data.Game = game;
+			data.LocalOrder = game!.LatestEra.Order.indexOf(this.state.localPlid);
+			data.Nicknames = Vm.IViewLobby.GetNicknames(this.state.connections);
+		}
 
 		return (
 			<div className="padding-small flex-row with-gaps">
@@ -114,7 +142,7 @@ class App extends React.Component<Props, State>
 				<div className="flex flex-column with-gaps">
 					<div className="container_2 component"></div>
 					<div className="container_3 component">
-						{this.renderTurnChoices()}
+						{this.renderActions(this, data)}
 					</div>
 				</div>
 			</div>
@@ -147,17 +175,12 @@ class App extends React.Component<Props, State>
 	{
 		return <p>...loading...</p>;
 	}
-	public renderTurnChoices(): React.ReactNode
+	public renderActions(app: App, data: Vm.IViewData): React.ReactNode
 	{
-		const nicknames = Vm.ViewLobby.GetNicknames(this.state.connections);
+		const nicknames = Vm.IViewLobby.GetNicknames(this.state.connections);
 		if (this.state.game !== null)
 		{
-			return <AttacksComp
-				socket={this.socket}
-				localPlid={this.state.localPlid}
-				game={this.state.game}
-				nicknames={nicknames}
-			/>;
+			return Actions.renderActions({ data, onAttackChanged: app.onAttackChanged.bind(app) });
 		}
 		return App.gameNotStarted();
 	}

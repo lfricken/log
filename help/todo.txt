@@ -1,22 +1,28 @@
+The meek shall inherit the earth.
+Techno-libertarians get the rest.
 
 
 
-The meek shall inherit the earth, and techno-libertarians the rest.
-
-
-send game vm to client
-make client attack work
-
-setup client
+trade buttons (Trading/Stealing)
+next turn (submits decisions, prevents multiple next turn, disables actions)
+LastEvents behavior
 LastEvents test
+LastEvents component
+Client needs to handle dead players
 everyone disconnected timeout
-game end timeout
-try out everything
+kick player
+lobby password
+consider redoing vm so private data is merged with public list. Private data just isn't filled in most of the time
+about page
 
 
-models need events or something?
+
+
+
 
 add to ideas: 
+techs should be publicly revealed
+random money bonuses/other asymetry?
 (global project that earns all surviving players extra stuff)
 pass events to player server player functions
 dynamic trading (each player has more than 2 options)

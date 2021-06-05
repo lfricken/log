@@ -72,6 +72,9 @@ export function GetSettings(config: SettingConfig): IGameSettings
 			TradeResultDefectBoth: 2,
 			TradeResultDefectWin: 8,
 			TradeResultDefectLose: 0,
+
+			MilitaryMinAttack: 0,
+			MilitaryMaxAttack: 9,
 		};
 }
 export enum SettingConfig
@@ -79,6 +82,23 @@ export enum SettingConfig
 	Default,
 	Custom,
 }
+
+export interface IPlidMap<T>
+{
+	[plid: number]: T;
+	[Symbol.iterator](): IterableIterator<T>;
+}
+export class IPlidMap<T>
+{
+	public static TryGet<T>(obj: IPlidMap<T>, plid: number, def: T): T
+	{
+		if (obj[plid] !== undefined && obj[plid] !== null)
+			return obj[plid];
+		else
+			return def;
+	}
+}
+
 /** Rules and other random settings. */
 export interface IGameSettings
 {
@@ -107,6 +127,13 @@ export interface IGameSettings
 	readonly TradeResultDefectBoth: number;
 	readonly TradeResultDefectWin: number;
 	readonly TradeResultDefectLose: number;
+
+	readonly MilitaryMinAttack: number;
+	readonly MilitaryMaxAttack: number;
+}
+
+export type IGameSettingsEditable = {
+	-readonly [K in keyof IGameSettings]: IGameSettings[K]
 }
 
 export class Trade
@@ -116,6 +143,9 @@ export class Trade
 
 	public static GetDelta(settings: IGameSettings, us: number, them: number): number
 	{
+		if (us !== Trade.ActionDefect) us = Trade.ActionCooperate;
+		if (them !== Trade.ActionDefect) them = Trade.ActionCooperate;
+
 		let delta = 0;
 		if (us === Trade.ActionCooperate && them === Trade.ActionCooperate)
 		{

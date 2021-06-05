@@ -12,7 +12,7 @@ interface Props
 {
 	socket: SocketIOClient.Socket;
 	localPlid: number;
-	connections: Vm.ViewPlayerConnection[];
+	connections: Vm.IViewPlayerConnection[];
 	activeGame: boolean;
 }
 interface State { }
@@ -36,7 +36,7 @@ export class MembersComp extends React.Component<Props, State>
 	{
 		this.props.socket.emit(Shared.Event.Game, Shared.GetSettings(Shared.SettingConfig.Default));
 	}
-	public renderMemberList(connections: Vm.ViewPlayerConnection[], localPlid: number): React.ReactNode
+	public renderMemberList(connections: Vm.IViewPlayerConnection[], localPlid: number): React.ReactNode
 	{
 		return connections.map((connection, plid) =>
 			<tr>
@@ -55,7 +55,7 @@ export class MembersComp extends React.Component<Props, State>
 			</tr>
 		);
 	}
-	public renderAdditionalInfo(connection: Vm.ViewPlayerConnection, plid: number): React.ReactNode
+	public renderAdditionalInfo(connection: Vm.IViewPlayerConnection, plid: number): React.ReactNode
 	{
 		if (connection.IsConnected)
 		{

@@ -5,28 +5,35 @@
 
 /* eslint-disable no-magic-numbers */
 import sanitize from "sanitize-html";
+import * as Shared from './shared';
 
 /** Fields a player must have. */
-export class ViewPlayerConnection
+export interface IViewPlayerConnection
 {
 	/** The order this player joined in. */
-	public Nickname: string = "errorname";
-	public IsHost: boolean = false;
-	public IsConnected: boolean = false;
-
+	Nickname: string;
+	IsHost: boolean;
+	IsConnected: boolean;
+}
+/** Fields a player must have. */
+export class IViewPlayerConnection
+{
 	public static DisplayName(nickname: string, plid: number): string
 	{
 		return `${nickname}(${plid})`;
 	}
 }
-/** View data about the game in its current state. */
-export class ViewLobby
-{
-	/** Player number > player */
-	public PlayerConnections!: ViewPlayerConnection[];
-	public Game: null | ViewGame = null;
 
-	public static GetNicknames(playerConnections: ViewPlayerConnection[]): string[]
+/** View data about the game in its current state. */
+export interface IViewLobby
+{
+	/** Plid > player */
+	PlayerConnections: IViewPlayerConnection[];
+	Game: null | IViewGame;
+}
+export class IViewLobby
+{
+	public static GetNicknames(playerConnections: IViewPlayerConnection[]): string[]
 	{
 		const names: string[] = [];
 		playerConnections.forEach((connection, _) =>
@@ -38,57 +45,72 @@ export class ViewLobby
 }
 
 /** View data about the game in its current state. */
-export class ViewGame
+export interface IViewGame
 {
-	public LatestEra!: ViewEra;
+	LatestEra: IViewEra;
+	Settings: Shared.IGameSettings;
+}
+
+export interface IViewData
+{
+	Nicknames: string[];
+	Game: IViewGame;
+	LocalPlid: number;
+	LocalOrder: number;
 }
 
 /** Data about a players turn, indexed on turn number. */
-export class ViewEra
+export interface IViewEra
 {
 	/** Which Era is this? */
-	public Number!: number;
+	Number: number;
 	/** Dictates player order. Order > Plid */
-	public Order!: number[];
+	Order: number[];
 	/** The latest turn? */
-	public LatestTurn!: ViewTurn;
+	LatestTurn: IViewTurn;
+}
+export class IViewEra
+{
+	/** Returns a list of trade partners. */
+	public static GetTradePartners(localPlid: number, orders: number[]): number[]
+	{
+		const localOrder = orders.indexOf(localPlid);
+		const tradePartners = new Map<number, number>();
+		// add orders.length as a hack to get around negative modulus in JS because JS is garbage
+		tradePartners.set(orders[(orders.length + localOrder - 1) % orders.length], 0);
+		tradePartners.set(orders[(orders.length + localOrder + 1) % orders.length], 0);
+		return Array.from(tradePartners.keys());
+	}
 }
 
 /** Data about actions a player wants to take on their turn. */
-export class ViewTurn
+export interface IViewTurn
 {
 	/** Which turn is this? */
-	public Number!: number;
-	/** This players private data. */
-	public LocalPlayer!: ViewPlayerTurnPrivate;
+	Number: number;
 	/** Maps (plid > trade action) */
-	public Players!: ViewPlayerTurnPublic[];
-}
-
-/** Publicly exposed to every player. */
-export class ViewPlayerTurnPublic
-{
-	/** The order this player joined in. */
-	public Plid!: number;
-	/** How many points this player has. */
-	public Score!: number;
-	/** Total money this player has in military. */
-	public Military!: number;
+	Players: IViewPlayerTurn[];
 }
 
 /** Data only visible to the player themselves. */
-export class ViewPlayerTurnPrivate extends ViewPlayerTurnPublic
+export interface IViewPlayerTurn
 {
+	/** The order this player joined in. */
+	Plid: number;
+	/** How many points this player has. */
+	Score: number;
+	/** Total money this player has in military. */
+	Military: number;
 	/** Any techs this player has unlocked. */
 	//public UnlockedTechnologies!: string[];
 	/** Resources the player has available to use. */
-	public Money!: number;
+	Money: number;
 	/** How much money this player is trying to add to their military. */
-	public MilitaryDelta!: number;
+	MilitaryDelta: number;
 	/** Maps (plid > attack) */
-	public MilitaryAttacks!: Map<number, number>;
+	MilitaryAttacks: Shared.IPlidMap<number>;
 	/** Maps (plid > trade decision). */
-	public Trades!: Map<number, number>;
+	Trades: Shared.IPlidMap<number>;
 }
 
 /** A message sent out to clients. */

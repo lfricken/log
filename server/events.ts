@@ -4,7 +4,7 @@ import * as io from "socket.io";
 import * as ViewModel from "../client/src/viewmodel";
 import * as Shared from "../client/src/shared";
 import { Lobby, PlayerConnection } from "./model";
-import { ViewPlayerConnection } from "../client/src/viewmodel";
+import { IViewPlayerConnection } from "../client/src/viewmodel";
 
 type LobbyId = string;
 
@@ -84,7 +84,7 @@ export class ModelWireup
 			this.SendMessage(lobby, ViewModel.Message.PlayerMsg(connection.DisplayName, message), connection.Plid);
 		});
 		// player tried to modify their own turn
-		socket.on(Shared.Event.Turn, (turn: ViewModel.ViewPlayerTurnPrivate) =>
+		socket.on(Shared.Event.Turn, (turn: ViewModel.IViewPlayerTurn) =>
 		{
 
 		});

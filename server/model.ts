@@ -102,11 +102,11 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 	/** Name that will be displayed to all players. */
 	public get DisplayName(): string
 	{
-		return Vm.ViewPlayerConnection.DisplayName(this.Nickname, this.Plid);
+		return Vm.IViewPlayerConnection.DisplayName(this.Nickname, this.Plid);
 	}
-	public ToVm(): Vm.ViewPlayerConnection
+	public ToVm(): Vm.IViewPlayerConnection
 	{
-		const vm = new Vm.ViewPlayerConnection();
+		const vm = new Vm.IViewPlayerConnection();
 		vm.Nickname = this.Nickname;
 		vm.IsHost = this.IsHost;
 		vm.IsConnected = this.IsConnected;
@@ -218,9 +218,9 @@ export class Lobby
 
 		return targetSocketIds;
 	}
-	public ToVm(localPlid: number): Vm.ViewLobby
+	public ToVm(localPlid: number): Vm.IViewLobby
 	{
-		const vm = new Vm.ViewLobby();
+		const vm = new Vm.IViewLobby();
 		vm.PlayerConnections = [];
 		this.PlayerConnections.forEach((connection, _) =>
 		{
@@ -240,15 +240,18 @@ export class Game
 	public Settings: Shared.IGameSettings;
 	/** Dictates player order */
 	public Eras: Era[];
+	/** How many players are in this game. */
+	public NumPlayers: number;
 
 	public constructor(settings: Shared.IGameSettings, playerConnections: PlayerConnection[])
 	{
+		this.NumPlayers = playerConnections.length;
 		this.Settings = { ...settings };
 		this.Eras = [];
-		this.Eras.push(new Era(this.Settings, this.Eras.length, null));
+		this.Eras.push(new Era(this.NumPlayers, this.Eras.length, this.Settings, null));
 		playerConnections.forEach((connection, _) =>
 		{
-			this.LatestEra.AddNewPlayer(connection);
+			this.LatestEra.AddNewPlayer(this.NumPlayers, connection);
 		});
 	}
 	/** Obtains the current Era. */
@@ -265,13 +268,8 @@ export class Game
 		// check to see if we should make a new Era
 		if (this.LatestEra.IsOver)
 		{
-			this.Eras.push(new Era(this.Settings, this.Eras.length, this.LatestEra));
+			this.Eras.push(new Era(this.NumPlayers, this.Eras.length, this.Settings, this.LatestEra));
 		}
-	}
-	/** How many players are in this game, regardless of connection status. */
-	public get NumPlayers(): number
-	{
-		return this.LatestEra.LatestTurn.Players.size;
 	}
 	public get IsOver(): boolean
 	{
@@ -299,10 +297,13 @@ export class Game
 		shuffle(winners);
 		return winners[0];
 	}
-	public ToVm(localPlid: number): Vm.ViewGame
+	public ToVm(localPlid: number): Vm.IViewGame
 	{
-		const vm = new Vm.ViewGame();
-		vm.LatestEra = this.LatestEra.ToVm(localPlid);
+		const vm: Vm.IViewGame =
+		{
+			LatestEra: this.LatestEra.ToVm(localPlid),
+			Settings: this.Settings,
+		};
 		return vm;
 	}
 }
@@ -317,21 +318,23 @@ export class Era
 	public Order: number[];
 	/** Maps (turn number > turn data) */
 	public Turns: Turn[];
+	public NumPlayers: number;
 
-	public constructor(settings: Shared.IGameSettings, number: number, old: null | Era)
+	public constructor(numPlayers: number, number: number, settings: Shared.IGameSettings, old: null | Era)
 	{
+		this.NumPlayers = numPlayers;
 		this.Settings = settings;
 		this.Number = number;
 		this.Turns = [];
 		if (old === null)
 		{
-			this.Turns.push(new Turn(this.Settings, this.Turns.length, null, true));
+			this.Turns.push(new Turn(this.NumPlayers, this.Settings, this.Turns.length, this, null, true));
 			this.Order = [];
 		}
 		else
 		{
 			// previous era ended
-			this.Turns.push(new Turn(this.Settings, this.Turns.length, old.LatestTurn, true));
+			this.Turns.push(new Turn(this.NumPlayers, this.Settings, this.Turns.length, this, old.LatestTurn, true));
 
 			// create new random order
 			this.Order = Array.from(this.LatestTurn.Players.keys());
@@ -341,7 +344,7 @@ export class Era
 	/** Ends the turn and advances the game state by one unit. */
 	public EndTurn(): void
 	{
-		const turn = new Turn(this.Settings, this.Turns.length, this.LatestTurn, false);
+		const turn = new Turn(this.NumPlayers, this.Settings, this.Turns.length, this, this.LatestTurn, false);
 		this.Turns.push(turn);
 	}
 	/** Gets the active Turn. */
@@ -357,17 +360,19 @@ export class Era
 		return this.LatestTurn.NumDead >= minDead;
 	}
 	/** Adds a new player to this Era. */
-	public AddNewPlayer(connection: PlayerConnection): void
+	public AddNewPlayer(numPlayers: number, connection: PlayerConnection): void
 	{
 		this.Order.push(connection.Plid);
-		this.LatestTurn.AddNewPlayer(connection);
+		this.LatestTurn.AddNewPlayer(numPlayers, connection);
 	}
-	public ToVm(localPlid: number): Vm.ViewEra
+	public ToVm(localPlid: number): Vm.IViewEra
 	{
-		const vm = new Vm.ViewEra();
-		vm.Number = this.Number;
-		vm.Order = [...this.Order]; // shallow copy
-		vm.LatestTurn = this.LatestTurn.ToVm(localPlid);
+		const vm: Vm.IViewEra =
+		{
+			Number = this.Number,
+			Order =[...this.Order], // shallow copy
+			LatestTurn = this.LatestTurn.ToVm(localPlid),
+		};
 		return vm;
 	}
 }
@@ -381,7 +386,14 @@ export class Turn
 	public Players!: Map<number, PlayerTurn>;
 
 	/** Pass old turn if it exists which will compute the new turn state. */
-	public constructor(settings: Shared.IGameSettings, number: number, oldTurn: null | Turn, isNewEra: boolean)
+	public constructor(
+		numPlayers: number,
+		settings: Shared.IGameSettings,
+		number: number,
+		currentEra: Era,
+		oldTurn: null | Turn,
+		isNewEra: boolean
+	)
 	{
 		this.Settings = settings;
 		this.Number = number;
@@ -392,11 +404,11 @@ export class Turn
 		}
 		else
 		{
-			this.ComputeNewTurn(oldTurn, isNewEra);
+			this.ComputeNewTurn(numPlayers, currentEra, oldTurn, isNewEra);
 		}
 	}
 	/** Given an old turn, build the new turn. */
-	private ComputeNewTurn(oldTurn: Turn, isNewEra: boolean): void
+	private ComputeNewTurn(numPlayers: number, currentEra: Era, oldTurn: Turn, isNewEra: boolean): void
 	{
 		// score awarded at the beginning of an era
 		const scoreDelta = oldTurn.GetScoreDelta(isNewEra);
@@ -404,28 +416,27 @@ export class Turn
 		// copy player data
 		for (const oldPlayer of oldTurn.Players.values())
 		{
-			const newPlayer = PlayerTurn.NewPlayerTurnFromOld(oldTurn, oldPlayer, isNewEra);
+			const newPlayer = PlayerTurn.NewPlayerTurnFromOld(numPlayers, currentEra, oldTurn, oldPlayer, isNewEra);
 			newPlayer.Score += scoreDelta[newPlayer.Plid];
 			this.Players.set(newPlayer.Plid, newPlayer);
 		}
 	}
 	/** Returns the changes in money for the given player due to trade. */
-	public GetTradeDelta(targetPlayer: PlayerTurn): number
+	public GetTradeDelta(targetPlayer: PlayerTurn, currentEra: Era): number
 	{
 		let delta = 0;
 
-		for (const player of this.Players.values())
+		const tradePlids = Vm.IViewEra.GetTradePartners(targetPlayer.Plid, currentEra.Order);
+
+		for (const plid of tradePlids)
 		{
-			if (player.Plid === targetPlayer.Plid) // cant trade with self
+			const otherPlayer = currentEra.LatestTurn.Players.get(plid)!;
+			if (otherPlayer.Plid === targetPlayer.Plid) // cant trade with self
 				continue;
-			const pOther = player;
 
 			// get trade decisions
-			const us = targetPlayer.Trades.get(player.Plid);
-			const them = pOther.Trades.get(targetPlayer.Plid);
-
-			if (us === undefined || them === undefined)
-				continue; // no trade route
+			const us = targetPlayer.Trades.get(otherPlayer.Plid) || Shared.Trade.ActionCooperate;
+			const them = otherPlayer.Trades.get(targetPlayer.Plid) || Shared.Trade.ActionCooperate;
 
 			delta += Shared.Trade.GetDelta(this.Settings, us, them);
 		}
@@ -480,9 +491,9 @@ export class Turn
 		return scores;
 	}
 	/** Adds a new player to this Turn. */
-	public AddNewPlayer(connection: PlayerConnection): void
+	public AddNewPlayer(numPlayers: number, connection: PlayerConnection): void
 	{
-		const player = PlayerTurn.NewPlayerTurnFromConnection(this.Settings, connection);
+		const player = PlayerTurn.NewPlayerTurnFromConnection(numPlayers, this.Settings, connection);
 		this.Players.set(player.Plid, player);
 	}
 	/** Returns the number of dead players currently. */
@@ -496,11 +507,13 @@ export class Turn
 		});
 		return numDead;
 	}
-	public ToVm(localPlid: number): Vm.ViewTurn
+	public ToVm(localPlid: number): Vm.IViewTurn
 	{
-		const vm = new Vm.ViewTurn();
-		vm.Number = this.Number;
-		vm.Players = [];
+		const vm: Vm.IViewTurn =
+		{
+			Number = this.Number,
+			Players =[];
+		}
 		this.Players.forEach((player, _) =>
 		{
 			if (localPlid === player.Plid)
@@ -525,21 +538,25 @@ export class PlayerTurn
 	/** How much money this player is trying to add to their military. */
 	public MilitaryDelta: number;
 	/** Maps (plid > attack) */
-	public MilitaryAttacks: Map<number, number>;
+	public MilitaryAttacks!: Map<number, number>;
 	/** Maps (plid > trade decision). */
-	public Trades: Map<number, number>;
+	public Trades!: Map<number, number>;
 
 	/** Creates a new PlayerTurn from a connection. */
-	public static NewPlayerTurnFromConnection(settings: Shared.IGameSettings, connection: PlayerConnection): PlayerTurn
+	public static NewPlayerTurnFromConnection(
+		numPlayers: number,
+		settings: Shared.IGameSettings,
+		connection: PlayerConnection): PlayerTurn
 	{
-		const player = new PlayerTurn(connection.Plid, 0);
+		const player = new PlayerTurn(numPlayers, connection.Plid, 0);
 		player.ResetForNewEra(settings);
 		return player;
 	}
 	/** Creates a new PlayerTurn from their old turn. */
-	public static NewPlayerTurnFromOld(oldTurn: Turn, oldPlayer: PlayerTurn, isNewEra: boolean): PlayerTurn
+	public static NewPlayerTurnFromOld(
+		numPlayers: number, currentEra: Era, oldTurn: Turn, oldPlayer: PlayerTurn, isNewEra: boolean): PlayerTurn
 	{
-		const player = new PlayerTurn(oldPlayer.Plid, oldPlayer.Score);
+		const player = new PlayerTurn(numPlayers, oldPlayer.Plid, oldPlayer.Score);
 
 		if (isNewEra)
 		{
@@ -552,16 +569,16 @@ export class PlayerTurn
 			player.Military = oldPlayer.Military;
 
 			// do trades
-			player.Money += oldTurn.GetTradeDelta(oldPlayer);
+			player.Money += oldTurn.GetTradeDelta(oldPlayer, currentEra);
 
 			// do military delta
 			player.Money -= oldPlayer.MilitaryDelta;
 			player.Military += oldPlayer.MilitaryDelta;
 
 			// allocate our attack money
-			for (const kvp of oldPlayer.MilitaryAttacks)
+			for (const attack of oldPlayer.MilitaryAttacks.values())
 			{
-				player.Military -= kvp[1];
+				player.Military -= attack;
 			}
 
 			// apply others attacks to us
@@ -573,7 +590,7 @@ export class PlayerTurn
 		return player;
 	}
 	/** Intentionally private. Use the static factories above. */
-	private constructor(plid: number, score: number)
+	private constructor(numPlayers: number, plid: number, score: number)
 	{
 		this.Plid = plid;
 		this.Score = score;
@@ -607,16 +624,17 @@ export class PlayerTurn
 		vm.Score = this.Score;
 		return vm;
 	}
-	public ToVmPrivate(): Vm.ViewPlayerTurnPrivate
+	public ToVmPrivate(): Vm.IViewPlayerTurn
 	{
-		const vm = new Vm.ViewPlayerTurnPrivate();
-		vm.MilitaryAttacks = new Map<number, number>();
-		vm.MilitaryDelta = this.MilitaryDelta;
-		vm.Military = this.Military;
-		vm.Money = this.Money;
-		vm.Plid = this.Plid;
-		vm.Score = this.Score;
-		vm.Trades = new Map<number, number>();
+		const vm: Vm.IViewPlayerTurn = {
+			MilitaryAttacks: new Map<number, number>();
+			MilitaryDelta: this.MilitaryDelta,
+			Military: this.Military,
+			Money: this.Money,
+			Plid: this.Plid,
+			Score: this.Score,
+			Trades: new Map<number, number>(),
+		};
 		return vm;
 	}
 }

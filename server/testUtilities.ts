@@ -15,9 +15,8 @@ export function lid(): string
 {
 	return "lid";
 }
-export const defaultSettings = Shared.GetSettings(Shared.SettingConfig.Default);
 
-export function setupLobby(players: number): Models.Lobby
+export function setupLobby(settings: Shared.IGameSettings, players: number): Models.Lobby
 {
 	const l = new Models.Lobby(lid());
 	for (let i = 0; i < players; ++i)
@@ -25,12 +24,12 @@ export function setupLobby(players: number): Models.Lobby
 		l.GetConnection(uid(i), name(i));
 	}
 	l.ConsiderNewLobbyLeader();
-	l.CreateNewGame(defaultSettings);
-	testLatestEra(l.Game!);
+	l.CreateNewGame(settings);
+	testLatestEra(settings, l.Game!);
 	return l;
 }
 
-export function testLatestEra(g: Models.Game): void
+export function testLatestEra(settings: Shared.IGameSettings, g: Models.Game): void
 {
 	const era = g.LatestEra;
 
@@ -50,11 +49,13 @@ export function testLatestEra(g: Models.Game): void
 	for (const player of era.LatestTurn.Players.values())
 	{
 		// expect start of game money
-		expect(player.Money).toBe(defaultSettings.EraStartMoney);
+		expect(player.Money).toBe(settings.EraStartMoney);
 		// expect start of game military
-		expect(player.Military).toBe(defaultSettings.EraStartMilitary);
+		expect(player.Military).toBe(settings.EraStartMilitary);
 		// no initial attacks
 		expect(player.MilitaryAttacks.size).toBe(0);
+		// no initial trades
+		expect(player.Trades.size).toBe(0);
 		// expect not dead
 		expect(player.IsDead).toBe(false);
 		// no negative score

@@ -2,6 +2,7 @@
 
 import * as real from "../client/src/viewmodel";
 import * as Util from "./testUtilities";
+import * as Shared from "../client/src/shared";
 
 test('Targetted message gets sockets.', () =>
 {
@@ -11,7 +12,8 @@ test('Targetted message gets sockets.', () =>
 test('Models exist.', () =>
 {
 	const numPlayers = 3;
-	const l = Util.setupLobby(numPlayers);
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default);
+	const l = Util.setupLobby(settings, numPlayers);
 
 	{
 		const localPlid = 1;

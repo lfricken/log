@@ -4,13 +4,15 @@
 
 
 import * as Shared from "../client/src/shared";
+import * as Vm from "../client/src/viewmodel";
 import * as Models from "./model";
 import * as Util from "./testUtilities";
 
 
 test('GetConnection adds a player', () =>
 {
-	const l = Util.setupLobby(1);
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default) as Shared.IGameSettingsEditable;
+	const l = Util.setupLobby(settings, 1);
 	const game = l.Game!;
 	// setup game should automatically add 1 player
 	expect(game.LatestEra.LatestTurn.Players.size).toBe(1);
@@ -25,7 +27,8 @@ test('GetConnection adds a player', () =>
 
 test('New Lobby Leader', () =>
 {
-	const l = Util.setupLobby(2);
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default) as Shared.IGameSettingsEditable;
+	const l = Util.setupLobby(settings, 2);
 	const game = l.Game!;
 
 	const c0 = l.GetConnection(Util.uid(0), Util.name(0));
@@ -60,7 +63,8 @@ test('New Lobby Leader', () =>
 
 test('Models Created', () =>
 {
-	const l = Util.setupLobby(1);
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default) as Shared.IGameSettingsEditable;
+	const l = Util.setupLobby(settings, 1);
 	const game = l.Game!;
 
 	// get connection automatically adds a new player
@@ -81,15 +85,65 @@ test('Models Created', () =>
 	expect(c0.connection.Nickname).toBe(Util.name(0));
 });
 
+test('Trade Partners Calculated', () =>
+{
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default) as Shared.IGameSettingsEditable;
+	{
+		const plid = 0;
+		const l = Util.setupLobby(settings, 2);
+		const tradePartners = Vm.IViewEra.GetTradePartners(plid, [0, 1]);
+		expect(tradePartners.length).toBe(1);
+		expect(tradePartners.indexOf(1)).not.toBe(-1);
+	}
+	{
+		const plid = 1;
+		const l = Util.setupLobby(settings, 2);
+		const tradePartners = Vm.IViewEra.GetTradePartners(plid, [0, 1]);
+		expect(tradePartners.length).toBe(1);
+		expect(tradePartners.indexOf(0)).not.toBe(-1);
+	}
+	{ // 3 players, middle player
+		const plid = 1;
+		const l = Util.setupLobby(settings, 3);
+		const tradePartners = Vm.IViewEra.GetTradePartners(plid, [0, 1, 2]);
+		expect(tradePartners.length).toBe(2);
+		expect(tradePartners.indexOf(0)).not.toBe(-1);
+		expect(tradePartners.indexOf(1)).toBe(-1);
+		expect(tradePartners.indexOf(2)).not.toBe(-1);
+	}
+	{ // 4 players, last player
+		const plid = 3;
+		const l = Util.setupLobby(settings, 4);
+		const tradePartners = Vm.IViewEra.GetTradePartners(plid, [0, 1, 2, 3]);
+		expect(tradePartners.length).toBe(2);
+		expect(tradePartners.indexOf(0)).not.toBe(-1);
+		expect(tradePartners.indexOf(1)).toBe(-1);
+		expect(tradePartners.indexOf(2)).not.toBe(-1);
+		expect(tradePartners.indexOf(3)).toBe(-1);
+	}
+	{ // 4 players, scramble order
+		const plid = 2;
+		const l = Util.setupLobby(settings, 4);
+		const tradePartners = Vm.IViewEra.GetTradePartners(plid, [0, 3, 1, 2]);
+		expect(tradePartners.length).toBe(2);
+		expect(tradePartners.indexOf(0)).not.toBe(-1);
+		expect(tradePartners.indexOf(1)).not.toBe(-1);
+		expect(tradePartners.indexOf(2)).toBe(-1);
+		expect(tradePartners.indexOf(3)).toBe(-1);
+	}
+});
+
 test('New Turn', () =>
 {
+	let lastMoney = 0;
 	const delta = 2;
 	const startMoney = 7;
 	const startMilMoney = 5;
-	const settings = Shared.GetSettings(Shared.SettingConfig.Default);
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default) as Shared.IGameSettingsEditable;
+	settings.TradeResultCooperateBoth = 0;
 
 	// new turn, 0
-	const l = Util.setupLobby(2);
+	const l = Util.setupLobby(settings, 2);
 	const game = l.Game!;
 	{
 		expect(game.LatestEra.IsOver).toBe(false);
@@ -107,6 +161,8 @@ test('New Turn', () =>
 
 		p0.Money = startMoney;
 		p0.Military = startMilMoney;
+
+		lastMoney = p0.Money;
 	}
 
 	// new turn, 1
@@ -119,11 +175,13 @@ test('New Turn', () =>
 		// nobody died so the era should not end
 		expect(game.LatestEra.Number).toBe(prevEra.Number);
 
+		// we automatically trade
+		expect(p0.Money).toBe(lastMoney);
 		// no military delta
-		expect(p0.Money).toBe(startMoney);
 		expect(p0.Military).toBe(startMilMoney);
 
 		p0.MilitaryDelta = delta;
+		lastMoney = p0.Money;
 	}
 
 	// new turn, 2
@@ -141,8 +199,9 @@ test('New Turn', () =>
 		expect(t === t).toBe(true);
 
 		// military delta
-		expect(p0.Money).toBe(startMoney - delta);
+		expect(p0.Money).toBe(lastMoney - delta);
 		expect(p0.Military).toBe(startMilMoney + delta);
+		lastMoney = p0.Money;
 	}
 
 	// new turn, 3
@@ -160,14 +219,14 @@ test('New Turn', () =>
 		expect(t === t).toBe(true);
 
 		// military delta
-		expect(p0.Money).toBe(startMoney - delta);
+		expect(p0.Money).toBe(lastMoney);
 		expect(p0.Military).toBe(startMilMoney + delta);
 	}
 });
 
 test('Trades', () =>
 {
-	const settings = Shared.GetSettings(Shared.SettingConfig.Default);
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default) as Shared.IGameSettingsEditable;
 	{
 		const delta = Shared.Trade.GetDelta(settings, Shared.Trade.ActionCooperate, Shared.Trade.ActionCooperate);
 		// double cooperate
@@ -192,7 +251,8 @@ test('Trades', () =>
 
 test('Attacks', () =>
 {
-	const settings = Shared.GetSettings(Shared.SettingConfig.Default);
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default) as Shared.IGameSettingsEditable;
+	settings.TradeResultCooperateBoth = 0;
 
 	// test military exchanges
 	{
@@ -229,7 +289,7 @@ test('Attacks', () =>
 		const p1military = 6;
 		const p1attack = 1;
 
-		const l = Util.setupLobby(2);
+		const l = Util.setupLobby(settings, 2);
 		const game = l.Game!;
 		{
 			const t = game.LatestEra.LatestTurn;
@@ -255,10 +315,10 @@ test('Attacks', () =>
 			const p1 = t.Players.get(1)!;
 
 			// player should now have military
-			expect(p0.Money).toBe(p0money);
+			expect(p0.Money).toBe(p0money + settings.TradeResultCooperateBoth);
 			expect(p0.Military).toBe(p0military - p1attack);
 			// other play should be as is
-			expect(p1.Money).toBe(p1money);
+			expect(p1.Money).toBe(p1money + settings.TradeResultCooperateBoth);
 			expect(p1.Military).toBe(p1military - p1attack);
 		}
 	}
@@ -272,7 +332,7 @@ test('Attacks', () =>
 		const p1money = 10;
 		const p1moneyDamage = 6;
 
-		const l = Util.setupLobby(2);
+		const l = Util.setupLobby(settings, 2);
 		const game = l.Game!;
 		{
 			const t = game.LatestEra.LatestTurn;
@@ -337,7 +397,10 @@ test('Attacks', () =>
 
 test('Player Death', () =>
 {
-	const l = Util.setupLobby(4);
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default) as Shared.IGameSettingsEditable;
+	settings.TradeResultCooperateBoth = 0;
+
+	const l = Util.setupLobby(settings, 4);
 	const game = l.Game!;
 	{
 		const t = game.LatestEra.LatestTurn;
@@ -348,7 +411,7 @@ test('Player Death', () =>
 		expect(p0.IsDead).toBe(false);
 		expect(p1.IsDead).toBe(false);
 
-		p0.Money = 0;
+		p0.Money = -5;
 
 		// player 1 should be dead now
 		expect(p0.IsDead).toBe(true);
@@ -377,13 +440,16 @@ test('Player Death', () =>
 		// new era should be different
 		expect(game.LatestEra.Number).toBeGreaterThan(prevEra.Number);
 		// a new era has occured
-		Util.testLatestEra(game);
+		Util.testLatestEra(settings, game);
 	}
 });
 
 test('New Era', () =>
 {
-	const l = Util.setupLobby(3);
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default) as Shared.IGameSettingsEditable;
+	settings.TradeResultCooperateBoth = 0;
+
+	const l = Util.setupLobby(settings, 3);
 	const game = l.Game!;
 	{
 		const t = game.LatestEra.LatestTurn;
@@ -402,7 +468,7 @@ test('New Era', () =>
 		// new era should be different
 		expect(game.LatestEra.Number).toBeGreaterThan(prevEra.Number);
 		// a new era has occured
-		Util.testLatestEra(game);
+		Util.testLatestEra(settings, game);
 
 		const t = game.LatestEra.LatestTurn;
 		const p0 = t.Players.get(0)!;
@@ -432,7 +498,7 @@ test('New Era', () =>
 		// new era should be different
 		expect(game.LatestEra.Number).toBeGreaterThan(prevEra.Number);
 		// a new era has occured
-		Util.testLatestEra(game);
+		Util.testLatestEra(settings, game);
 
 		const t = game.LatestEra.LatestTurn;
 		const p0 = t.Players.get(0)!;
@@ -449,14 +515,17 @@ test('New Era', () =>
 
 test('Run Game', () =>
 {
-	const l = Util.setupLobby(3);
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default) as Shared.IGameSettingsEditable;
+	settings.TradeResultCooperateBoth = 0;
+	const l = Util.setupLobby(settings, 3);
 	testNewGame(l);
 	testNewGame(l);
 	testNewGame(l);
 });
 function testNewGame(l: Models.Lobby): void
 {
-	const settings = Shared.GetSettings(Shared.SettingConfig.Default);
+	const settings = Shared.GetSettings(Shared.SettingConfig.Default) as Shared.IGameSettingsEditable;
+	settings.TradeResultCooperateBoth = 0;
 	l.CreateNewGame(settings);
 	const game = l.Game!;
 	{
@@ -468,7 +537,7 @@ function testNewGame(l: Models.Lobby): void
 			game.EndTurn();
 			// new era should be different
 			expect(game.LatestEra.Number).toBeGreaterThan(prevEra.Number);
-			Util.testLatestEra(game); // a new era has occured
+			Util.testLatestEra(settings, game); // a new era has occured
 			// should have produced a new era 
 			expect(game.LatestEra.Number).not.toBe(prevEra.Number);
 			expect(game.IsOver).toBe(false);
@@ -483,7 +552,7 @@ function testNewGame(l: Models.Lobby): void
 		game.EndTurn();
 		// new era should be different
 		expect(game.LatestEra.Number).toBeGreaterThan(prevEra.Number);
-		Util.testLatestEra(game); // a new era has occured
+		Util.testLatestEra(settings, game); // a new era has occured
 		// should have produced a new era 
 		expect(game.LatestEra.Number).not.toBe(prevEra.Number);
 		expect(game.IsOver).toBe(true);
