@@ -88,7 +88,16 @@ function renderMoney(props: IActionsProps, renderPlid: number): React.ReactNode
 }
 function renderDone(props: IActionsProps, renderPlid: number): React.ReactNode
 {
-	return (props.Data.Game.LatestEra.LatestTurn.Players[renderPlid].IsDone ? "Done" : " ");
+	if (renderPlid === props.Data.LocalPlid)
+	{
+		return <button onClick={(): void => props.onTurnDone()}>
+			Done
+		</button>;
+	}
+	else
+	{
+		return (props.Data.Game.LatestEra.LatestTurn.Players[renderPlid].IsDone ? "Yes" : "No");
+	}
 }
 function renderCommerceButtons(props: IActionsProps, renderOrder: number, renderPlid: number): React.ReactNode
 {
