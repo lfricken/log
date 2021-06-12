@@ -1,9 +1,7 @@
 The meek shall inherit the earth, and non-meek the rest.
 
-incorrectly showing ...the current game does not have you in it...
-
-trade buttons (Trading/Stealing)
 next turn (submits decisions, prevents multiple next turn, disables actions)
+trade buttons (Trading/Stealing)
 LastEvents behavior
 LastEvents test
 LastEvents component

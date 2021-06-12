@@ -86,10 +86,17 @@ export class IViewEra
 	/** Gets the order numbers of players adjacent to the targetOrder */
 	public static GetAdjacentOrders(targetOrder: number, numOrders: number): number[]
 	{
-		return [
-			(numOrders + targetOrder - 1) % numOrders,
-			(numOrders + targetOrder + 1) % numOrders,
-		];
+		const neighbors: number[] = [];
+
+		const n0 = (numOrders + targetOrder - 1) % numOrders;
+		if (n0 !== targetOrder)
+			neighbors.push(n0);
+
+		const n1 = (numOrders + targetOrder + 1) % numOrders;
+		if (n1 !== targetOrder)
+			neighbors.push(n1);
+
+		return neighbors;
 	}
 }
 
@@ -102,7 +109,7 @@ export interface IViewTurn
 	Players: IMap<IViewPlayerTurn>;
 }
 
-/** Data only visible to the player themselves. */
+/** State for a players turn. */
 export interface IViewPlayerTurn
 {
 	/** The order this player joined in. */
@@ -114,13 +121,15 @@ export interface IViewPlayerTurn
 	/** Any techs this player has unlocked. */
 	//public UnlockedTechnologies!: string[];
 	/** Resources the player has available to use. */
-	Money: number;
+	Money: string;
 	/** How much money this player is trying to add to their military. */
 	MilitaryDelta: number;
 	/** Maps (plid > attack) */
 	MilitaryAttacks: IMap<number>;
 	/** Maps (plid > trade decision). */
 	Trades: IMap<number>;
+	/** True if this player is done with their turn. */
+	IsDone: boolean;
 }
 
 /** A message sent out to clients. */

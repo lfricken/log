@@ -264,6 +264,7 @@ export class Game
 		{
 			this.LatestEra.AddNewPlayer(plids, connection);
 		});
+		shuffle(this.LatestEra.Order); // first era should have random order as well
 	}
 	/** Obtains the current Era. */
 	public get LatestEra(): Era
@@ -271,7 +272,7 @@ export class Game
 		return this.Eras[this.Eras.length - 1];
 	}
 	/** Ends the turn and advances the game state by one unit. */
-	public EndTurn(): void
+	public EndTurn(): boolean
 	{
 		// compute next turn state
 		this.LatestEra.EndTurn();
@@ -280,7 +281,9 @@ export class Game
 		if (this.LatestEra.IsOver)
 		{
 			this.Eras.push(new Era(this.NumPlayers, this.Eras.length, this.Settings, this.LatestEra));
+			return true;
 		}
+		return false;
 	}
 	public get IsOver(): boolean
 	{
@@ -349,7 +352,6 @@ export class Era
 			{
 				this.Order.push(players.Plid);
 			}
-			const x = IMap.Length(old.LatestTurn.Players);
 			shuffle(this.Order);
 
 			// previous era ended
@@ -450,8 +452,8 @@ export class Turn
 				continue;
 
 			// get trade decisions
-			const us = targetPlayer.Trades.get(otherPlayer.Plid) || Shared.Trade.ActionCooperate;
-			const them = otherPlayer.Trades.get(targetPlayer.Plid) || Shared.Trade.ActionCooperate;
+			const us = targetPlayer.Trades[otherPlayer.Plid] || Shared.Trade.ActionCooperate;
+			const them = otherPlayer.Trades[targetPlayer.Plid] || Shared.Trade.ActionCooperate;
 
 			delta += Shared.Trade.GetDelta(this.Settings, us, them);
 		}
@@ -469,8 +471,8 @@ export class Turn
 				continue;
 
 			// get trade decisions
-			const us = targetPlayer.MilitaryAttacks.get(player.Plid) || 0;
-			const them = player.MilitaryAttacks.get(targetPlayer.Plid) || 0;
+			const us = targetPlayer.MilitaryAttacks[player.Plid] || 0;
+			const them = player.MilitaryAttacks[targetPlayer.Plid] || 0;
 
 			const delta = Shared.Military.GetDelta(this.Settings, targetPlayer.Military, us, them);
 			militaryDelta += delta.militaryDelta;
@@ -522,18 +524,31 @@ export class Turn
 		}
 		return numDead;
 	}
+	/** True if this Turn should end. */
+	public get IsOver(): boolean
+	{
+		// at least this many players need to be dead
+		for (const player of IMap.Values(this.Players))
+		{
+			if (!player.IsDead && !player.IsDone)
+				return false;
+		}
+		return true;
+	}
 	public ToVm(localPlid: number): Vm.IViewTurn
 	{
 		const vm: Vm.IViewTurn =
 		{
 			Number: this.Number,
-			Players: [],
+			Players: {},
 		};
+
+		const self = this.Players[localPlid] || null;
 
 		for (const player of IMap.Values(this.Players))
 		{
 			const isLocal = localPlid === player.Plid;
-			vm.Players[player.Plid] = player.ToVm(isLocal);
+			vm.Players[player.Plid] = player.ToVm(self);
 		}
 		return vm;
 	}
@@ -542,6 +557,8 @@ export class Turn
 /** Data about the player, indexed on UniqueId. */
 export class PlayerTurn
 {
+	/** Is this player done with their turn? */
+	public IsDone: boolean;
 	/** The order this player joined in. */
 	public Plid: number;
 	/** How many points this player has. */
@@ -553,9 +570,9 @@ export class PlayerTurn
 	/** How much money this player is trying to add to their military. */
 	public MilitaryDelta: number;
 	/** Maps (plid > attack) */
-	public MilitaryAttacks!: Map<number, number>;
+	public MilitaryAttacks!: IMap<number>;
 	/** Maps (plid > trade decision). */
-	public Trades: Map<number, number>;
+	public Trades: IMap<number>;
 
 	/** Creates a new PlayerTurn from a connection. */
 	public static NewPlayerTurnFromConnection(era: Era, plids: number[], connection: PlayerConnection): PlayerTurn
@@ -588,7 +605,7 @@ export class PlayerTurn
 			player.Military += oldPlayer.MilitaryDelta;
 
 			// allocate our attack money
-			for (const attack of oldPlayer.MilitaryAttacks.values())
+			for (const attack of IMap.Values(oldPlayer.MilitaryAttacks))
 			{
 				player.Military -= attack;
 			}
@@ -604,15 +621,16 @@ export class PlayerTurn
 	/** Intentionally private. Use the static factories above. */
 	private constructor(plidList: number[], plid: number, score: number)
 	{
+		this.IsDone = false;
 		this.Plid = plid;
 		this.Score = score;
 
-		this.MilitaryAttacks = new Map<number, number>();
-		this.Trades = new Map<number, number>();
+		this.MilitaryAttacks = {};
+		this.Trades = {};
 		for (const plid of plidList)
 		{
-			this.MilitaryAttacks.set(plid, 0);
-			this.Trades.set(plid, Shared.Trade.ActionCooperate);
+			this.MilitaryAttacks[plid] = 0;
+			this.Trades[plid] = Shared.Trade.ActionCooperate;
 		}
 
 		this.MilitaryDelta = 0;
@@ -634,18 +652,28 @@ export class PlayerTurn
 	{
 		return this.Money <= 0;
 	}
-	public ToVm(isLocal: boolean): Vm.IViewPlayerTurn
+	public ToVm(viewerTurn: null | PlayerTurn): Vm.IViewPlayerTurn
 	{
+		let isSelf = false;
+		if (viewerTurn !== null)
+			isSelf = viewerTurn.Plid === this.Plid;
+
 		const vm: Vm.IViewPlayerTurn = {
-			MilitaryAttacks: IMap.From(this.MilitaryAttacks),
-			Trades: IMap.From(this.Trades),
-			MilitaryDelta: isLocal ? this.MilitaryDelta : 0,
+			MilitaryAttacks: { ...this.MilitaryAttacks },
+			Trades: { ...this.Trades },
+			MilitaryDelta: isSelf ? this.MilitaryDelta : 0,
 			Military: this.Military,
-			Money: this.Money,
+			Money: isSelf ? this.Money.toString() : "?",
 			Plid: this.Plid,
 			Score: this.Score,
+			IsDone: this.IsDone,
 		};
 
 		return vm;
+	}
+	public FromVm(vm: Vm.IViewPlayerTurn): void
+	{
+		this.MilitaryAttacks = { ...vm.MilitaryAttacks };
+		this.Trades = { ...vm.Trades };
 	}
 }

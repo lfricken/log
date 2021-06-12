@@ -12,6 +12,8 @@ interface Props
 	LocalPlid: number;
 	Connections: Vm.IViewPlayerConnection[];
 	ActiveGame: boolean;
+	onClickForceNextTurn: () => void;
+	onClickStartGame: () => void;
 }
 interface State { }
 export class MembersComp extends React.Component<Props, State>
@@ -25,14 +27,6 @@ export class MembersComp extends React.Component<Props, State>
 	componentDidMount(): React.ReactNode
 	{
 		return null;
-	}
-	public onClickNextTurn(e: React.MouseEvent<HTMLButtonElement>): void
-	{
-		this.props.Socket.emit(Shared.Event.Turn, {});
-	}
-	public onClickStartGame(e: React.MouseEvent<HTMLButtonElement>): void
-	{
-		this.props.Socket.emit(Shared.Event.Game, Shared.GetSettings(Shared.SettingConfig.Default));
 	}
 	render(): React.ReactNode
 	{
@@ -88,9 +82,9 @@ export class MembersComp extends React.Component<Props, State>
 		{
 			return <button
 				disabled={plid !== this.props.LocalPlid}
-				onClick={this.onClickStartGame.bind(this)}
+				onClick={this.props.onClickStartGame}
 			>
-				Start Game
+				Start New Game
 			</button>;
 		}
 		else
@@ -104,9 +98,9 @@ export class MembersComp extends React.Component<Props, State>
 		{
 			return <button
 				disabled={plid !== this.props.LocalPlid || !this.props.ActiveGame}
-				onClick={this.onClickNextTurn.bind(this)}
+				onClick={this.props.onClickForceNextTurn}
 			>
-				Next Turn
+				Force Next Turn
 			</button>;
 		}
 		else

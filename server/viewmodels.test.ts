@@ -42,20 +42,21 @@ test('Models exist.', () =>
 
 
 		expect(gVm.LatestEra.LatestTurn.Number).toBe(0);
-		expect(gVm.LatestEra.LatestTurn.Players.length).toBe(numPlayers);
-		gVm.LatestEra.LatestTurn.Players.forEach((player, i) =>
+		expect(IMap.Length(gVm.LatestEra.LatestTurn.Players)).toBe(numPlayers);
+		for (const kvp of IMap.Kvp(gVm.LatestEra.LatestTurn.Players))
 		{
+			const player = kvp.v;
 			expect(player.Score).toBe(0);
-			expect(player.Plid).toBe(i);
+			expect(player.Plid).toBe(kvp.k);
 			expect(player.Military).toBe(0);
-		});
+		}
 
 
 		// local player
 		{
 			const player = gVm.LatestEra.LatestTurn.Players[localPlid];
 			expect(player).toBeTruthy();
-			expect(player.Money).toBe(10);
+			expect(player.Money).toBe((10).toString());
 			expect(player.Military).toBe(0);
 
 			for (const x in player.MilitaryAttacks)

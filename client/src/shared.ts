@@ -99,18 +99,22 @@ export const UniqueIdLength = 8;
 
 export class Event
 {
-	/** Player/server messages. */
-	public static Message = 'm';
 	/** Connection data changed. */
 	public static OnConnected = 'o';
 	/** Connection data changed. */
 	public static Connections = 'c';
+	/** Player/server messages. */
+	public static Message = 'm';
 	/** New turn/player updated their turn. */
-	public static Turn = 't';
+	public static PlayerTurn = 'pt';
+	/** Turn advanced. */
+	public static WholeTurn = 'wt';
 	/** New era. */
 	public static Era = 'e';
-	/** New game/started new game. */
-	public static Game = 'g';
+	/** Started new game. */
+	public static StartNewGame = 'g';
+	/** Started new game. */
+	public static ForceNextTurn = 'g';
 }
 
 /** Returns a configuration for game settings. */

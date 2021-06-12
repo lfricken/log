@@ -50,10 +50,14 @@ class App extends React.Component<Props, State>
 		this.socket = io({ autoConnect: false, reconnection: false, auth: authObj });
 		this.socket.on(Shared.Event.OnConnected, this.onConnected.bind(this));
 		this.socket.on(Shared.Event.Connections, this.onConnectionsChanged.bind(this));
-		this.socket.on(Shared.Event.Turn, this.onTurnChanged.bind(this));
+		this.socket.on(Shared.Event.WholeTurn, this.onWholeTurnChanged.bind(this));
+		this.socket.on(Shared.Event.PlayerTurn, this.onPlayerTurnChanged.bind(this));
 		this.socket.on(Shared.Event.Era, this.onEraChanged.bind(this));
-		this.socket.on(Shared.Event.Game, this.onGameChanged.bind(this));
+		this.socket.on(Shared.Event.StartNewGame, this.onGameChanged.bind(this));
 
+		this.onClickStartGame = this.onClickStartGame.bind(this);
+		this.onForceNextTurn = this.onForceNextTurn.bind(this);
+		this.onTurnDone = this.onTurnDone.bind(this);
 		this.onAttackChanged = this.onAttackChanged.bind(this);
 		this.onTradeChanged = this.onTradeChanged.bind(this);
 	}
@@ -68,29 +72,26 @@ class App extends React.Component<Props, State>
 		this.socket.disconnect();
 		return null;
 	}
-	/** Called right after we first connect so we know our Plid. */
-	public onConnected(d: number): void // someone joined the lobby
+	public onClickStartGame(): void
 	{
-		console.log(`#plid${d}`);
-		this.setState({
-			LocalPlid: d,
-		});
+		this.socket.emit(Shared.Event.StartNewGame, Shared.GetSettings(Shared.SettingConfig.Default));
 	}
-	// don't need Game change because game just has era
-	public onConnectionsChanged(d: Vm.IViewPlayerConnection[]): void // someone joined the lobby
+	public onForceNextTurn(): void
 	{
-		console.log(`#connections${d.length}`);
-		this.setState({
-			Connections: d,
-		});
+		const game = this.state.Game;
+		if (game !== null)
+		{
+			this.socket.emit(Shared.Event.ForceNextTurn, {});
+		}
 	}
-	public onTurnChanged(d: Vm.IViewTurn): void
+	public onTurnDone(): void
 	{
-		console.log(`#turn${d.Number} #players${IMap.Length(d.Players)}`);
-	}
-	public onEraChanged(d: Vm.IViewEra): void
-	{
-		console.log(`#era${d.Number}`);
+		const game = this.state.Game;
+		if (game !== null)
+		{
+			const localPlayerTurnState = game.LatestEra.LatestTurn.Players[this.state.LocalPlid];
+			this.socket.emit(Shared.Event.PlayerTurn, localPlayerTurnState);
+		}
 	}
 	public onAttackChanged(plidToModify: number, plidToAttack: number, delta: number): void
 	{
@@ -129,6 +130,59 @@ class App extends React.Component<Props, State>
 			return { Game: game };
 		});
 	}
+	/** Called right after we first connect so we know our Plid. */
+	public onConnected(d: number): void // someone joined the lobby
+	{
+		console.log(`#plid${d}`);
+		this.setState({
+			LocalPlid: d,
+		});
+	}
+	/** Lobby data changed. */
+	public onConnectionsChanged(d: Vm.IViewPlayerConnection[]): void // someone joined the lobby
+	{
+		console.log(`#connections${d.length}`);
+		this.setState({
+			Connections: d,
+		});
+	}
+	/** Someone modified their turn in a visible way. */
+	public onPlayerTurnChanged(d: Vm.IViewPlayerTurn): void
+	{
+		console.log(`#turn for plid${d.Plid} changed`);
+		this.setState((prevState: Readonly<State>, _: Readonly<Props>) =>
+		{
+			const prevGame = prevState.Game!;
+			const game = Shared.clone(prevGame);
+			game.LatestEra.LatestTurn.Players[d.Plid] = d;
+			return { Game: game };
+		});
+	}
+	/** The turn advanced. */
+	public onWholeTurnChanged(d: Vm.IViewTurn): void
+	{
+		console.log(`#new turn #${d.Number}`);
+		this.setState((prevState: Readonly<State>, _: Readonly<Props>) =>
+		{
+			const prevGame = prevState.Game!;
+			const game = Shared.clone(prevGame);
+			game.LatestEra.LatestTurn = d;
+			return { Game: game };
+		});
+	}
+	/** A new Era happened. */
+	public onEraChanged(d: Vm.IViewEra): void
+	{
+		console.log(`#era${d.Number}`);
+		this.setState((prevState: Readonly<State>, _: Readonly<Props>) =>
+		{
+			const prevGame = prevState.Game!;
+			const game = Shared.clone(prevGame);
+			game.LatestEra = d;
+			return { Game: game };
+		});
+	}
+	/** A whole new game was created. */
 	public onGameChanged(d: Vm.IViewGame): void
 	{
 		console.log(`new game with #players${IMap.Length(d.LatestEra.LatestTurn.Players)}`);
@@ -159,7 +213,7 @@ class App extends React.Component<Props, State>
 						{this.renderChat()}
 					</div>
 					<div className="container_1 component">
-						{this.renderConnections()}
+						{this.renderConnections(this)}
 					</div>
 				</div>
 				<div className="flex flex-column with-gaps">
@@ -179,7 +233,7 @@ class App extends React.Component<Props, State>
 		}
 		return App.loading();
 	}
-	public renderConnections(): React.ReactNode
+	public renderConnections(app: App): React.ReactNode
 	{
 		if (this.state.Connections !== null && this.state.Connections.length > 0)
 		{
@@ -188,6 +242,8 @@ class App extends React.Component<Props, State>
 				LocalPlid={this.state.LocalPlid}
 				Connections={this.state.Connections}
 				ActiveGame={this.state.Game !== null}
+				onClickForceNextTurn={app.onForceNextTurn}
+				onClickStartGame={app.onClickStartGame}
 			/>;
 		}
 		return App.loading();
@@ -196,19 +252,12 @@ class App extends React.Component<Props, State>
 	{
 		if (this.state.Game !== null)
 		{
-			const players = data.Game.LatestEra.LatestTurn.Players;
-			if (players[data.LocalPlid] !== null && players[data.LocalPlid] !== undefined)
-			{
-				return Actions.renderActions({
-					Data: data,
-					onAttackChanged: app.onAttackChanged,
-					onTradeChanged: app.onTradeChanged,
-				});
-			}
-			else
-			{
-				return App.gameNotIncluded();
-			}
+			return Actions.renderActions({
+				Data: data,
+				onAttackChanged: app.onAttackChanged,
+				onTradeChanged: app.onTradeChanged,
+				onTurnDone: app.onTurnDone,
+			});
 		}
 		return App.gameNotStarted();
 	}
@@ -219,10 +268,6 @@ class App extends React.Component<Props, State>
 	public static gameNotStarted(): React.ReactNode
 	{
 		return <p>...game has not started...</p>;
-	}
-	public static gameNotIncluded(): React.ReactNode
-	{
-		return <p>...the current game does not have you in it...</p>;
 	}
 }
 
