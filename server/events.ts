@@ -5,6 +5,7 @@ import * as ViewModel from "../client/src/viewmodel";
 import * as Shared from "../client/src/shared";
 import { Lobby, PlayerConnection } from "./model";
 import { IViewPlayerConnection } from "../client/src/viewmodel";
+import { IMap } from "../client/src/shared";
 
 type LobbyId = string;
 
@@ -96,11 +97,11 @@ export class ModelWireup
 				lobby.CreateNewGame(settings);
 
 				this.SendMessage(lobby, ViewModel.Message.NewGameMsg(lobby.Game!.NumPlayers));
-				lobby.PlayerConnections.forEach(connection =>
+				for (const connection of IMap.Values(lobby.PlayerConnections))
 				{
 					const plid = connection.Plid;
 					this.SendData(lobby, [plid.toString()], Shared.Event.Game, lobby.Game!.ToVm(plid));
-				});
+				}
 			}
 		});
 	}

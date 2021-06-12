@@ -6,6 +6,7 @@
 /* eslint-disable no-magic-numbers */
 import sanitize from "sanitize-html";
 import * as Shared from './shared';
+import { IMap } from "./shared";
 
 /** Fields a player must have. */
 export interface IViewPlayerConnection
@@ -76,10 +77,19 @@ export class IViewEra
 	{
 		const localOrder = orders.indexOf(localPlid);
 		const tradePartners = new Map<number, number>();
+		const adjacent = IViewEra.GetAdjacentOrders(localPlid, orders.length);
 		// add orders.length as a hack to get around negative modulus in JS because JS is garbage
-		tradePartners.set(orders[(orders.length + localOrder - 1) % orders.length], 0);
-		tradePartners.set(orders[(orders.length + localOrder + 1) % orders.length], 0);
+		tradePartners.set(orders[adjacent[0]], 0);
+		tradePartners.set(orders[adjacent[1]], 0);
 		return Array.from(tradePartners.keys());
+	}
+	/** Gets the order numbers of players adjacent to the targetOrder */
+	public static GetAdjacentOrders(targetOrder: number, numOrders: number): number[]
+	{
+		return [
+			(numOrders + targetOrder - 1) % numOrders,
+			(numOrders + targetOrder + 1) % numOrders,
+		];
 	}
 }
 
@@ -89,7 +99,7 @@ export interface IViewTurn
 	/** Which turn is this? */
 	Number: number;
 	/** Maps (plid > trade action) */
-	Players: IViewPlayerTurn[];
+	Players: IMap<IViewPlayerTurn>;
 }
 
 /** Data only visible to the player themselves. */
@@ -108,9 +118,9 @@ export interface IViewPlayerTurn
 	/** How much money this player is trying to add to their military. */
 	MilitaryDelta: number;
 	/** Maps (plid > attack) */
-	MilitaryAttacks: Shared.IPlidMap<number>;
+	MilitaryAttacks: IMap<number>;
 	/** Maps (plid > trade decision). */
-	Trades: Shared.IPlidMap<number>;
+	Trades: IMap<number>;
 }
 
 /** A message sent out to clients. */

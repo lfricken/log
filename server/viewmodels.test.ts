@@ -3,6 +3,7 @@
 import * as real from "../client/src/viewmodel";
 import * as Util from "./testUtilities";
 import * as Shared from "../client/src/shared";
+import { IMap } from "../client/src/shared";
 
 test('Targetted message gets sockets.', () =>
 {
@@ -59,11 +60,17 @@ test('Models exist.', () =>
 
 			for (const x in player.MilitaryAttacks)
 			{
-				expect(x).toBe("a");
+				x.length;
+			}
+			const y = { test: "val" };
+			for (const x in y)
+			{
+				x.length;
 			}
 
-			expect(player.MilitaryAttacks).toBe(numPlayers);
-			expect(player.Trades).toBe(numPlayers);
+			const len = IMap.Length(player.MilitaryAttacks);
+			expect(len).toBe(numPlayers);
+			expect(IMap.Length(player.Trades)).toBe(numPlayers);
 			expect(player.MilitaryDelta).toBe(0);
 			expect(player.Plid).toBe(localPlid);
 			expect(player.Score).toBe(0);

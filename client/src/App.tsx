@@ -11,6 +11,7 @@ import * as View from './view';
 import * as Vm from './viewmodel';
 import './App.css';
 import MembersComp from './Members';
+import { IMap } from './shared';
 
 interface Props
 {
@@ -85,7 +86,7 @@ class App extends React.Component<Props, State>
 	}
 	public onTurnChanged(d: Vm.IViewTurn): void
 	{
-		console.log(`#turn${d.Number} #players${d.Players.length}`);
+		console.log(`#turn${d.Number} #players${IMap.Length(d.Players)}`);
 	}
 	public onEraChanged(d: Vm.IViewEra): void
 	{
@@ -97,7 +98,7 @@ class App extends React.Component<Props, State>
 		{
 			const prevGame = prevState.Game!;
 			const attacks = prevGame.LatestEra.LatestTurn.Players[prevState.LocalPlid].MilitaryAttacks;
-			const prevValue = Shared.IPlidMap.TryGet(attacks, plidToAttack, prevGame.Settings.EraStartMilitary);
+			const prevValue = attacks[plidToAttack];
 
 			let value = delta + prevValue;
 			if (value < prevGame.Settings.MilitaryMinAttack)
@@ -130,7 +131,7 @@ class App extends React.Component<Props, State>
 	}
 	public onGameChanged(d: Vm.IViewGame): void
 	{
-		console.log(`new game with #players${d.LatestEra.LatestTurn.Players.length}`);
+		console.log(`new game with #players${IMap.Length(d.LatestEra.LatestTurn.Players)}`);
 		this.setState({
 			Game: d,
 		});
@@ -196,7 +197,7 @@ class App extends React.Component<Props, State>
 		if (this.state.Game !== null)
 		{
 			const players = data.Game.LatestEra.LatestTurn.Players;
-			if (players[data.LocalPlid] !== undefined)
+			if (players[data.LocalPlid] !== null && players[data.LocalPlid] !== undefined)
 			{
 				return Actions.renderActions({
 					Data: data,

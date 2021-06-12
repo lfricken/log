@@ -5,6 +5,7 @@ import * as Vm from "./viewmodel";
 import * as Shared from './shared';
 import './Attacks.css';
 import './Main.css';
+import { IMap } from './shared';
 
 interface IActionsProps
 {
@@ -68,7 +69,8 @@ function renderCommerceButtons(props: IActionsProps, localOrder: number, renderO
 {
 	const localPlid = props.Data.LocalPlid;
 	const localPlayer = props.Data.Game.LatestEra.LatestTurn.Players[localPlid];
-	if (renderOrder === localOrder - 1 || renderOrder === localOrder + 1)
+	const adjacentOrders = Vm.IViewEra.GetAdjacentOrders(localOrder, IMap.Length(props.Data.Game.LatestEra.LatestTurn.Players));
+	if (adjacentOrders.indexOf(renderOrder) !== -1)
 	{
 		return <div className="attack-container">
 			<button onClick={(): void => props.onTradeChanged(props.Data.LocalPlid, renderPlid)}>

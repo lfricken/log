@@ -4,10 +4,57 @@
 
 
 import * as Shared from "../client/src/shared";
+import { IMap } from "../client/src/shared";
 import * as Vm from "../client/src/viewmodel";
 import * as Models from "./model";
 import * as Util from "./testUtilities";
 
+test('IMap', () =>
+{
+	{
+		const size = 2;
+
+		const imap: IMap<number> = {};
+		imap[0] = 4;
+		IMap.Set(imap, "v", 4);
+		expect(IMap.Length(imap)).toBe(size);
+
+		let count = 0;
+		for (const kvp of IMap.Keys(imap))
+		{
+			count++;
+		}
+		expect(count).toBe(size);
+	}
+
+	{
+		const map: IMap<string> = {};
+		map[4] = "val";
+
+		for (const { k, v } of IMap.Kvp(map))
+		{
+			expect(k).toBe((4).toString());
+			expect(v).toBe("val");
+		}
+		for (const v of IMap.Values(map))
+		{
+			expect(v).toBe("val");
+		}
+		for (const k of IMap.Keys(map))
+		{
+			expect(k).toBe("4");
+		}
+		expect(IMap.Length(map)).toBe(1);
+
+		expect(IMap.Has(map, 4)).toBe(true);
+		expect(IMap.Has(map, 5)).toBe(false);
+
+		expect(IMap.KeyOf(map, "hi")).toBe(null);
+		expect(IMap.KeyOf(map, "val")).toBe((4).toString());
+
+		expect(IMap.Length(map)).toBe(1);
+	}
+});
 
 test('GetConnection adds a player', () =>
 {
@@ -15,67 +62,14 @@ test('GetConnection adds a player', () =>
 	const l = Util.setupLobby(settings, 1);
 	const game = l.Game!;
 	// setup game should automatically add 1 player
-	expect(game.LatestEra.LatestTurn.Players.size).toBe(1);
+	expect(IMap.Length(game.LatestEra.LatestTurn.Players)).toBe(1);
 
 	const c1 = l.GetConnection(Util.uid(1), Util.name(1));
 	// get connection automatically adds aother new player
-	expect(l.PlayerConnections.size).toBe(2);
+	expect(IMap.Length(l.PlayerConnections)).toBe(2);
 
 	// uid was not preexisting, so it should be a new player
 	expect(c1.isNew).toBe(true);
-});
-
-interface IMap<V>
-{
-	[plid: number]: V;
-}
-class IMap<V>
-{
-	public static *Kvp<V>(map: IMap<V>): Generator<{ key: number, value: V }>
-	{
-		for (const k of Object.keys(map))
-		{
-			const key = parseInt(k, 10);
-			yield { key, value: map[key] };
-		}
-	}
-	public static Length<V>(map: IMap<V>): number
-	{
-		return Object.keys(map).length;
-	}
-	public static Has<V>(map: IMap<V>, key: number): boolean
-	{
-		return map[key] !== undefined;
-	}
-	public static KeyOf<V>(map: IMap<V>, checkValue: V): number | null
-	{
-		for (const { key, value } of IMap.Kvp(map))
-		{
-			if (value === checkValue)
-				return key;
-		}
-		return null;
-	}
-}
-test('IMap', () =>
-{
-	const map: IMap<string> = {};
-	map[4] = "val";
-
-	for (const { key, value } of IMap.Kvp(map))
-	{
-		expect(key).toBe(4);
-		expect(value).toBe("val");
-	}
-	expect(IMap.Length(map)).toBe(1);
-
-	expect(IMap.Has(map, 4)).toBe(true);
-	expect(IMap.Has(map, 5)).toBe(false);
-
-	expect(IMap.KeyOf(map, "hi")).toBe(null);
-	expect(IMap.KeyOf(map, "val")).toBe(4);
-
-	expect(IMap.Length(map)).toBe(1);
 });
 
 test('New Lobby Leader', () =>
@@ -87,7 +81,7 @@ test('New Lobby Leader', () =>
 
 	const c0 = l.GetConnection(Util.uid(0), Util.name(0));
 	const c1 = l.GetConnection(Util.uid(1), Util.name(1));
-	expect(game.LatestEra.LatestTurn.Players.size).toBe(2);
+	expect(IMap.Length(game.LatestEra.LatestTurn.Players)).toBe(2);
 
 	// uid was preexisting, so it should not be a new player
 	expect(c0.isNew).toBe(false);
@@ -123,7 +117,7 @@ test('Models Created', () =>
 
 	// get connection automatically adds a new player
 	const c0 = l.GetConnection(Util.uid(0), Util.name(0));
-	expect(game.LatestEra.LatestTurn.Players.size).toBe(1);
+	expect(IMap.Length(game.LatestEra.LatestTurn.Players)).toBe(1);
 
 	// uid was preexisting, so it should not be a new player
 	expect(c0.isNew).toBe(false);
@@ -204,8 +198,8 @@ test('New Turn', () =>
 		const t = game.LatestEra.LatestTurn;
 
 
-		const p0 = t.Players.get(0)!;
-		const p1 = t.Players.get(1)!;
+		const p0 = t.Players[0];
+		const p1 = t.Players[1];
 
 		// expect start of game money
 		expect(p0.Money).toBe(settings.EraStartMoney);
@@ -224,7 +218,7 @@ test('New Turn', () =>
 		const prevEra = game.LatestEra;
 		game.EndTurn();
 		const t = game.LatestEra.LatestTurn;
-		const p0 = t.Players.get(0)!;
+		const p0 = t.Players[0];
 
 		// nobody died so the era should not end
 		expect(game.LatestEra.Number).toBe(prevEra.Number);
@@ -244,7 +238,7 @@ test('New Turn', () =>
 		const prevTurn = game.LatestEra.LatestTurn;
 		game.EndTurn();
 		const t = game.LatestEra.LatestTurn;
-		const p0 = t.Players.get(0)!;
+		const p0 = t.Players[0];
 
 		// nobody died so the era should not end
 		expect(game.LatestEra.Number).toBe(prevEra.Number);
@@ -264,7 +258,7 @@ test('New Turn', () =>
 		const prevTurn = game.LatestEra.LatestTurn;
 		game.EndTurn();
 		const t = game.LatestEra.LatestTurn;
-		const p0 = t.Players.get(0)!;
+		const p0 = t.Players[0];
 
 		// nobody died so the era should not end
 		expect(game.LatestEra.Number).toBe(prevEra.Number);
@@ -347,8 +341,8 @@ test('Attacks', () =>
 		const game = l.Game!;
 		{
 			const t = game.LatestEra.LatestTurn;
-			const p0 = t.Players.get(0)!;
-			const p1 = t.Players.get(1)!;
+			const p0 = t.Players[0];
+			const p1 = t.Players[1];
 
 			p0.Money = p0money;
 			p0.Military = p0military;
@@ -358,15 +352,15 @@ test('Attacks', () =>
 		}
 
 		{
-			const p1 = game.LatestEra.LatestTurn.Players.get(1)!;
+			const p1 = game.LatestEra.LatestTurn.Players[1];
 			p1.MilitaryAttacks.set(0, p1attack); // attack player 0 for 1
 			game.EndTurn();
 		}
 
 		{
 			const t = game.LatestEra.LatestTurn;
-			const p0 = t.Players.get(0)!;
-			const p1 = t.Players.get(1)!;
+			const p0 = t.Players[0];
+			const p1 = t.Players[1];
 
 			// player should now have military
 			expect(p0.Money).toBe(p0money + settings.TradeResultCooperateBoth);
@@ -390,38 +384,38 @@ test('Attacks', () =>
 		const game = l.Game!;
 		{
 			const t = game.LatestEra.LatestTurn;
-			let p0 = t.Players.get(0)!;
-			const p1 = t.Players.get(1)!;
+			let p0 = t.Players[0];
+			const p1 = t.Players[1];
 
 			p0.Money = p0money;
 
 			p1.Money = p1money;
 			p1.Military = 2;
 
-			p0 = game.LatestEra.LatestTurn.Players.get(0)!;
+			p0 = game.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
 			game.EndTurn();
-			p0 = game.LatestEra.LatestTurn.Players.get(0)!;
+			p0 = game.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
 			game.EndTurn();
-			p0 = game.LatestEra.LatestTurn.Players.get(0)!;
+			p0 = game.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
 			game.EndTurn();
-			p0 = game.LatestEra.LatestTurn.Players.get(0)!;
+			p0 = game.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
 			game.EndTurn();
-			p0 = game.LatestEra.LatestTurn.Players.get(0)!;
+			p0 = game.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
 			game.EndTurn();
-			p0 = game.LatestEra.LatestTurn.Players.get(0)!;
+			p0 = game.LatestEra.LatestTurn.Players[0];
 			p0.MilitaryDelta = 1;
 			game.EndTurn();
 		}
 
 		{
 			const t = game.LatestEra.LatestTurn;
-			const p0 = t.Players.get(0)!;
-			const p1 = t.Players.get(1)!;
+			const p0 = t.Players[0];
+			const p1 = t.Players[1];
 
 			// player should now have military
 			expect(p0.Money).toBe(p0money - p0military);
@@ -436,8 +430,8 @@ test('Attacks', () =>
 
 		{
 			const t = game.LatestEra.LatestTurn;
-			const p0 = t.Players.get(0)!;
-			const p1 = t.Players.get(1)!;
+			const p0 = t.Players[0];
+			const p1 = t.Players[1];
 
 			// player should now have military
 			expect(p0.Money).toBe(p0money - p0military);
@@ -458,8 +452,8 @@ test('Player Death', () =>
 	const game = l.Game!;
 	{
 		const t = game.LatestEra.LatestTurn;
-		const p0 = t.Players.get(0)!;
-		const p1 = t.Players.get(1)!;
+		const p0 = t.Players[0];
+		const p1 = t.Players[1];
 
 		// player should not start era dead
 		expect(p0.IsDead).toBe(false);
@@ -479,8 +473,8 @@ test('Player Death', () =>
 		expect(game.LatestEra.Number).toBe(prevEra.Number);
 
 		const t = game.LatestEra.LatestTurn;
-		const p0 = t.Players.get(0)!;
-		const p1 = t.Players.get(1)!;
+		const p0 = t.Players[0];
+		const p1 = t.Players[1];
 
 		// players should stay dead
 		expect(p0.IsDead).toBe(true);
@@ -507,9 +501,9 @@ test('New Era', () =>
 	const game = l.Game!;
 	{
 		const t = game.LatestEra.LatestTurn;
-		const p0 = t.Players.get(0)!;
-		const p1 = t.Players.get(1)!;
-		const p2 = t.Players.get(2)!;
+		const p0 = t.Players[0];
+		const p1 = t.Players[1];
+		const p2 = t.Players[2];
 
 		p0.Money = 0;
 		p1.Money = 10;
@@ -525,9 +519,9 @@ test('New Era', () =>
 		Util.testLatestEra(settings, game, 3);
 
 		const t = game.LatestEra.LatestTurn;
-		const p0 = t.Players.get(0)!;
-		const p1 = t.Players.get(1)!;
-		const p2 = t.Players.get(2)!;
+		const p0 = t.Players[0];
+		const p1 = t.Players[1];
+		const p2 = t.Players[2];
 		// score died
 		expect(p0.Score).toBe(0);
 		// score survivor
@@ -555,9 +549,9 @@ test('New Era', () =>
 		Util.testLatestEra(settings, game, 3);
 
 		const t = game.LatestEra.LatestTurn;
-		const p0 = t.Players.get(0)!;
-		const p1 = t.Players.get(1)!;
-		const p2 = t.Players.get(2)!;
+		const p0 = t.Players[0];
+		const p1 = t.Players[1];
+		const p2 = t.Players[2];
 		// score died
 		expect(p0.Score).toBe(0);
 		// score survivor
@@ -585,35 +579,35 @@ function testNewGame(l: Models.Lobby): void
 	{
 		for (let i = 0; i < settings.GameEndMaxTurns - 1; ++i)
 		{
-			game.LatestEra.LatestTurn.Players.get(0)!.Money = 0;
-			game.LatestEra.LatestTurn.Players.get(1)!.Money += 1;
+			game.LatestEra.LatestTurn.Players[0].Money = 0;
+			game.LatestEra.LatestTurn.Players[1].Money += 1;
 			const prevEra = game.LatestEra;
 			game.EndTurn();
 			// new era should be different
 			expect(game.LatestEra.Number).toBeGreaterThan(prevEra.Number);
-			Util.testLatestEra(settings, game, l.PlayerConnections.size); // a new era has occured
+			Util.testLatestEra(settings, game, IMap.Length(l.PlayerConnections)); // a new era has occured
 			// should have produced a new era 
 			expect(game.LatestEra.Number).not.toBe(prevEra.Number);
 			expect(game.IsOver).toBe(false);
 			// score died
-			expect(game.LatestEra.LatestTurn.Players.get(0)!.Score).toBe(0);
+			expect(game.LatestEra.LatestTurn.Players[0].Score).toBe(0);
 		}
 	}
 	{
-		game.LatestEra.LatestTurn.Players.get(0)!.Money = 0;
-		game.LatestEra.LatestTurn.Players.get(1)!.Money += 1;
+		game.LatestEra.LatestTurn.Players[0].Money = 0;
+		game.LatestEra.LatestTurn.Players[1].Money += 1;
 		const prevEra = game.LatestEra;
 		game.EndTurn();
 		// new era should be different
 		expect(game.LatestEra.Number).toBeGreaterThan(prevEra.Number);
-		Util.testLatestEra(settings, game, l.PlayerConnections.size); // a new era has occured
+		Util.testLatestEra(settings, game, IMap.Length(l.PlayerConnections)); // a new era has occured
 		// should have produced a new era 
 		expect(game.LatestEra.Number).not.toBe(prevEra.Number);
 		expect(game.IsOver).toBe(true);
 		// score died
-		expect(game.LatestEra.LatestTurn.Players.get(0)!.Score).toBe(0);
+		expect(game.LatestEra.LatestTurn.Players[0].Score).toBe(0);
 
-		const p1 = game.LatestEra.LatestTurn.Players.get(1)!;
+		const p1 = game.LatestEra.LatestTurn.Players[1];
 		// expect winner
 		expect(game.GetCurrentWinner().Plid).toBe(p1.Plid);
 	}

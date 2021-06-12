@@ -1,6 +1,7 @@
 /** Wire up ViewModel events events to Models. View (Viewmodel Model) */
 
 import * as Shared from "../client/src/shared";
+import { IMap } from "../client/src/shared";
 import * as Models from "./model";
 
 export function name(plid: number): string
@@ -46,7 +47,7 @@ export function testLatestEra(settings: Shared.IGameSettings, g: Models.Game, nu
 	expect(era.LatestTurn.NumDead).toBe(0);
 
 	const prevPlids = [];
-	for (const player of era.LatestTurn.Players.values())
+	for (const player of IMap.Values(era.LatestTurn.Players))
 	{
 		// expect start of game money
 		expect(player.Money).toBe(settings.EraStartMoney);

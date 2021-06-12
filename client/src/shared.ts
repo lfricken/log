@@ -7,6 +7,72 @@ export function clone<T>(obj: T): T
 	return JSON.parse(JSON.stringify(obj));
 }
 
+export interface IMap<V>
+{
+	[plid: number]: V;
+}
+export class IMap<V>
+{
+	public static From<V>(map: Map<number, V>): IMap<V>
+	{
+		const imap: IMap<V> = {};
+		for (const kvp of map)
+		{
+			imap[kvp[0]] = kvp[1];
+		}
+		return imap;
+	}
+	public static Get<V>(map: IMap<V>, key: string): V
+	{
+		return map[key as unknown as number];
+	}
+	public static Set<V>(map: IMap<V>, key: string, value: V): void
+	{
+		map[key as unknown as number] = value;
+	}
+	public static *Kvp<V>(map: IMap<V>): Generator<{ k: string, v: V }>
+	{
+		const keys = IMap.Keys(map);
+		for (const key of keys)
+		{
+			yield { k: key, v: map[key as unknown as number] };
+		}
+	}
+	public static *Values<V>(map: IMap<V>): Generator<V>
+	{
+		const keys = IMap.Keys(map);
+		for (const key of keys)
+		{
+			yield map[key as unknown as number];
+		}
+	}
+	public static *Keys<V>(map: IMap<V>): Generator<string>
+	{
+		const keys = Object.keys(map);
+		for (const key of keys)
+		{
+			yield key;
+		}
+	}
+	public static Length<V>(map: IMap<V>): number
+	{
+		return Object.keys(map).length;
+	}
+	public static Has<V>(map: IMap<V>, k: number | string): boolean
+	{
+		return map[k as unknown as number] !== undefined;
+	}
+	public static KeyOf<V>(map: IMap<V>, checkValue: V): string | null
+	{
+		for (const { k: key, v: value } of IMap.Kvp(map))
+		{
+			if (value === checkValue)
+				return key;
+		}
+		return null;
+	}
+}
+
 /** When a new connection is made, how should we treat it? */
 export enum ConnectionType
 {
@@ -81,22 +147,6 @@ export enum SettingConfig
 {
 	Default,
 	Custom,
-}
-
-export interface IPlidMap<T>
-{
-	[plid: number]: T;
-	[Symbol.iterator](): IterableIterator<T[]>;
-}
-export class IPlidMap<T>
-{
-	public static TryGet<T>(obj: IPlidMap<T>, plid: number, def: T): T
-	{
-		if (obj[plid] !== undefined && obj[plid] !== null)
-			return obj[plid];
-		else
-			return def;
-	}
 }
 
 /** Rules and other random settings. */

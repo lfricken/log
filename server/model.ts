@@ -5,6 +5,7 @@
 import * as Vm from '../client/src/viewmodel';
 import * as Shared from "../client/src/shared";
 import { ModelWireup } from './events';
+import { IMap } from '../client/src/shared';
 
 type UniqueId = string;
 
@@ -117,31 +118,31 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 /** Data about a given game, indexed on LobbyId. */
 export class Lobby
 {
-	/** UniqueId > Player */
 	public Lid;
-	public PlayerConnections: Map<UniqueId, PlayerConnection>;
+	/** UniqueId > Player */
+	public PlayerConnections: IMap<PlayerConnection>;
 	public Game: null | Game;
 
 	public constructor(lid: string)
 	{
 		this.Lid = lid;
 		this.Game = null;
-		this.PlayerConnections = new Map<UniqueId, PlayerConnection>();
+		this.PlayerConnections = {};
 	}
 	/** Will create or retrieve a connection. */
 	public GetConnection(uid: UniqueId, nickname: string): { connection: PlayerConnection, isNew: boolean }
 	{
 		let isNew = false;
 		let connection: PlayerConnection;
-		if (this.PlayerConnections.has(uid)) // already have a connection
+		if (IMap.Has(this.PlayerConnections, uid)) // already have a connection
 		{
-			connection = this.PlayerConnections.get(uid)!;
+			connection = IMap.Get(this.PlayerConnections, uid);
 		}
 		else // new connection
 		{
 			connection = new PlayerConnection(this.NumTotalConnections, nickname);
 			isNew = true;
-			this.PlayerConnections.set(uid, connection);
+			IMap.Set(this.PlayerConnections, uid, connection);
 		}
 
 		return { connection, isNew };
@@ -149,18 +150,22 @@ export class Lobby
 	/** How many players are in this lobby, regardless of connection status. */
 	public get NumTotalConnections(): number
 	{
-		return this.PlayerConnections.size;
+		return IMap.Length(this.PlayerConnections);
 	}
 	/** How many players are in this lobby and connected. */
 	public get NumLiveConnections(): number
 	{
 		let num = 0;
-		this.PlayerConnections.forEach(c => { num++; });
+		for (const { v: connection } of IMap.Kvp(this.PlayerConnections))
+		{
+			if (connection.IsConnected)
+				num++;
+		}
 		return num;
 	}
 	public CreateNewGame(settings: Shared.IGameSettings): void
 	{
-		var liveConnections = Array.from(this.PlayerConnections.values()).filter(function (connection)
+		var liveConnections = Array.from(IMap.Values(this.PlayerConnections)).filter(function (connection)
 		{
 			return connection.IsConnected;
 		});
@@ -173,7 +178,7 @@ export class Lobby
 		let changed = false;
 		let leaderName = "";
 		let needLeader = true;
-		for (const p of this.PlayerConnections.values())
+		for (const p of IMap.Values(this.PlayerConnections))
 		{
 			if (needLeader && p.IsConnected)
 			{
@@ -200,7 +205,7 @@ export class Lobby
 		if (targetPlids.length > 0)
 		{
 			// if a players number is contained in the targets list, add the target socket id
-			for (const p of this.PlayerConnections.values())
+			for (const p of IMap.Values(this.PlayerConnections))
 			{
 				if (targetPlids.includes(p.Plid.toString()))
 				{
@@ -210,7 +215,7 @@ export class Lobby
 		}
 		else
 		{
-			for (const p of this.PlayerConnections.values())
+			for (const p of IMap.Values(this.PlayerConnections))
 			{
 				targetSocketIds = targetSocketIds.concat(p.SocketIds);
 			}
@@ -222,10 +227,10 @@ export class Lobby
 	{
 		const vm = new Vm.IViewLobby();
 		vm.PlayerConnections = [];
-		this.PlayerConnections.forEach((connection, _) =>
+		for (const connection of IMap.Values(this.PlayerConnections))
 		{
 			vm.PlayerConnections.push(connection.ToVm());
-		});
+		}
 		if (this.Game === null)
 			vm.Game = null;
 		else
@@ -289,13 +294,13 @@ export class Game
 		const players = this.LatestEra.LatestTurn.Players;
 		let topScore = 0;
 		// find the top score
-		for (const player of players.values())
+		for (const player of IMap.Values(players))
 		{
 			if (player.Score > topScore)
 				topScore = player.Score;
 		}
 		// if there are ties, just randomly choose one
-		for (const player of players.values())
+		for (const player of IMap.Values(players))
 		{
 			if (player.Score === topScore)
 				winners.push(player);
@@ -332,15 +337,19 @@ export class Era
 		this.Settings = settings;
 		this.Number = number;
 		this.Turns = [];
+		this.Order = [];
 		if (old === null)
 		{
 			this.Turns.push(new Turn(this.NumPlayers, this.Settings, this.Turns.length, this, null, true));
-			this.Order = [];
 		}
 		else
 		{
 			// create new random order
-			this.Order = Array.from(old.LatestTurn.Players.keys());
+			for (const players of IMap.Values(old.LatestTurn.Players))
+			{
+				this.Order.push(players.Plid);
+			}
+			const x = IMap.Length(old.LatestTurn.Players);
 			shuffle(this.Order);
 
 			// previous era ended
@@ -362,7 +371,7 @@ export class Era
 	public get IsOver(): boolean
 	{
 		// at least this many players need to be dead
-		const minDead = Math.max(1, Math.floor(this.LatestTurn.Players.size * this.Settings.EraEndMinDeadPercentage));
+		const minDead = Math.max(1, Math.floor(IMap.Length(this.LatestTurn.Players) * this.Settings.EraEndMinDeadPercentage));
 		return this.LatestTurn.NumDead >= minDead;
 	}
 	/** Adds a new player to this Era. */
@@ -387,9 +396,9 @@ export class Era
 export class Turn
 {
 	public Settings: Shared.IGameSettings;
-	public Number!: number;
+	public Number: number;
 	/** Maps (plid > player) */
-	public Players!: Map<number, PlayerTurn>;
+	public Players: IMap<PlayerTurn>;
 
 	/** Pass old turn if it exists which will compute the new turn state. */
 	public constructor(
@@ -403,7 +412,7 @@ export class Turn
 	{
 		this.Settings = settings;
 		this.Number = number;
-		this.Players = new Map<number, PlayerTurn>();
+		this.Players = {};
 		if (oldTurn === null)
 		{
 
@@ -420,11 +429,11 @@ export class Turn
 		const scoreDelta = oldTurn.GetScoreDelta(isNewEra);
 
 		// copy player data
-		for (const oldPlayer of oldTurn.Players.values())
+		for (const oldPlayer of IMap.Values(oldTurn.Players))
 		{
 			const newPlayer = PlayerTurn.NewPlayerTurnFromOld(numPlayers, currentEra, oldTurn, oldPlayer, isNewEra);
 			newPlayer.Score += scoreDelta[newPlayer.Plid];
-			this.Players.set(newPlayer.Plid, newPlayer);
+			this.Players[newPlayer.Plid] = newPlayer;
 		}
 	}
 	/** Returns the changes in money for the given player due to trade. */
@@ -436,7 +445,7 @@ export class Turn
 
 		for (const plid of tradePlids)
 		{
-			const otherPlayer = currentEra.LatestTurn.Players.get(plid)!;
+			const otherPlayer = currentEra.LatestTurn.Players[plid]!;
 			if (otherPlayer.Plid === targetPlayer.Plid) // cant trade with self
 				continue;
 
@@ -454,7 +463,7 @@ export class Turn
 	{
 		let militaryDelta = 0;
 		let moneyDelta = 0;
-		for (const player of this.Players.values())
+		for (const player of IMap.Values(this.Players))
 		{
 			if (player.Plid === targetPlayer.Plid) // cant attack self
 				continue;
@@ -472,13 +481,13 @@ export class Turn
 	/** Assuming this Era ended right now, who would get what score? */
 	public GetScoreDelta(isNewEra: boolean): number[]
 	{
-		const scores = new Array(this.Players.size).fill(0);
+		const scores = new Array(IMap.Length(this.Players)).fill(0);
 		let leaderPlid = 0;
 		let leaderMoney = 0;
 
 		if (isNewEra)
 		{
-			for (const player of this.Players.values())
+			for (const player of IMap.Values(this.Players))
 			{
 				if (player.Money > leaderMoney)
 				{
@@ -500,17 +509,17 @@ export class Turn
 	public AddNewPlayer(era: Era, plids: number[], connection: PlayerConnection): void
 	{
 		const player = PlayerTurn.NewPlayerTurnFromConnection(era, plids, connection);
-		this.Players.set(player.Plid, player);
+		this.Players[player.Plid] = player;
 	}
 	/** Returns the number of dead players currently. */
 	public get NumDead(): number
 	{
 		let numDead = 0;
-		this.Players.forEach((player, _) =>
+		for (const player of IMap.Values(this.Players)) 
 		{
 			if (player.IsDead)
 				numDead++;
-		});
+		}
 		return numDead;
 	}
 	public ToVm(localPlid: number): Vm.IViewTurn
@@ -521,11 +530,11 @@ export class Turn
 			Players: [],
 		};
 
-		this.Players.forEach((player, _) =>
+		for (const player of IMap.Values(this.Players))
 		{
 			const isLocal = localPlid === player.Plid;
-			vm.Players.push(player.ToVm(isLocal));
-		});
+			vm.Players[player.Plid] = player.ToVm(isLocal);
+		}
 		return vm;
 	}
 }
@@ -546,7 +555,7 @@ export class PlayerTurn
 	/** Maps (plid > attack) */
 	public MilitaryAttacks!: Map<number, number>;
 	/** Maps (plid > trade decision). */
-	public Trades!: Map<number, number>;
+	public Trades: Map<number, number>;
 
 	/** Creates a new PlayerTurn from a connection. */
 	public static NewPlayerTurnFromConnection(era: Era, plids: number[], connection: PlayerConnection): PlayerTurn
@@ -600,11 +609,11 @@ export class PlayerTurn
 
 		this.MilitaryAttacks = new Map<number, number>();
 		this.Trades = new Map<number, number>();
-		plidList.forEach((_, plid) =>
+		for (const plid of plidList)
 		{
 			this.MilitaryAttacks.set(plid, 0);
 			this.Trades.set(plid, Shared.Trade.ActionCooperate);
-		});
+		}
 
 		this.MilitaryDelta = 0;
 		this.Money = 0;
@@ -628,14 +637,15 @@ export class PlayerTurn
 	public ToVm(isLocal: boolean): Vm.IViewPlayerTurn
 	{
 		const vm: Vm.IViewPlayerTurn = {
-			MilitaryAttacks: this.MilitaryAttacks as unknown as Shared.IPlidMap<number>,
+			MilitaryAttacks: IMap.From(this.MilitaryAttacks),
+			Trades: IMap.From(this.Trades),
 			MilitaryDelta: isLocal ? this.MilitaryDelta : 0,
 			Military: this.Military,
 			Money: this.Money,
 			Plid: this.Plid,
 			Score: this.Score,
-			Trades: this.Trades as unknown as Shared.IPlidMap<number>,
 		};
+
 		return vm;
 	}
 }
