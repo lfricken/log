@@ -439,7 +439,7 @@ export class Turn
 		}
 	}
 	/** Returns the changes in money for the given player due to trade. */
-	public GetTradeDelta(targetPlayer: PlayerTurn, currentEra: Era): number
+	public GetTradeDelta(targetPlayer: PlayerTurn, currentEra: Era, lastTurnEvents: string[]): number
 	{
 		let delta = 0;
 
@@ -448,7 +448,7 @@ export class Turn
 		for (const plid of tradePlids)
 		{
 			const otherPlayer = currentEra.LatestTurn.Players[plid]!;
-			if (otherPlayer.Plid === targetPlayer.Plid) // cant trade with self
+			if (otherPlayer.IsSamePlayer(targetPlayer)) // cant trade with self
 				continue;
 
 			// get trade decisions
@@ -456,18 +456,20 @@ export class Turn
 			const them = otherPlayer.Trades[targetPlayer.Plid] || Shared.Trade.ActionCooperate;
 
 			delta += Shared.Trade.GetDelta(this.Settings, us, them);
+			// let the player know what happened
+			lastTurnEvents.push(Vm.Message.TradeStr(us, them, otherPlayer.Nickname, otherPlayer.Plid, delta));
 		}
 
 		return delta;
 	}
 	/** Returns the changes in military and money for the given player due to attacks. */
-	public GetAttackDelta(targetPlayer: PlayerTurn): { militaryDelta: number, moneyDelta: number, }
+	public GetAttackDelta(targetPlayer: PlayerTurn, lastTurnEvents: string[]): { militaryDelta: number, moneyDelta: number, }
 	{
 		let militaryDelta = 0;
 		let moneyDelta = 0;
 		for (const player of IMap.Values(this.Players))
 		{
-			if (player.Plid === targetPlayer.Plid) // cant attack self
+			if (player.IsSamePlayer(targetPlayer)) // cant attack self
 				continue;
 
 			// get trade decisions
@@ -477,6 +479,11 @@ export class Turn
 			const delta = Shared.Military.GetDelta(this.Settings, targetPlayer.Military, us, them);
 			militaryDelta += delta.militaryDelta;
 			moneyDelta += delta.moneyDelta;
+
+			if (them !== 0)
+				lastTurnEvents.push(Vm.Message.AttackInStr(player.Nickname, player.Plid, them, militaryDelta, moneyDelta));
+			if (us !== 0)
+				lastTurnEvents.push(Vm.Message.AttackOutStr(player.Nickname, player.Plid, us));
 		}
 		return { militaryDelta, moneyDelta };
 	}
@@ -547,7 +554,6 @@ export class Turn
 
 		for (const player of IMap.Values(this.Players))
 		{
-			const isLocal = localPlid === player.Plid;
 			vm.Players[player.Plid] = player.ToVm(self);
 		}
 		return vm;
@@ -557,6 +563,8 @@ export class Turn
 /** Data about the player, indexed on UniqueId. */
 export class PlayerTurn
 {
+	/** Is this player done with their turn? */
+	public Nickname: string;
 	/** Is this player done with their turn? */
 	public IsDone: boolean;
 	/** The order this player joined in. */
@@ -573,11 +581,13 @@ export class PlayerTurn
 	public MilitaryAttacks!: IMap<number>;
 	/** Maps (plid > trade decision). */
 	public Trades: IMap<number>;
+	/** Arbitrary list of relevant events. */
+	public LastTurnEvents: string[];
 
 	/** Creates a new PlayerTurn from a connection. */
 	public static NewPlayerTurnFromConnection(era: Era, plids: number[], connection: PlayerConnection): PlayerTurn
 	{
-		const player = new PlayerTurn(plids, connection.Plid, 0);
+		const player = new PlayerTurn(connection.Nickname, plids, connection.Plid, 0);
 		player.ResetForNewEra(era.Settings);
 		return player;
 	}
@@ -585,46 +595,59 @@ export class PlayerTurn
 	public static NewPlayerTurnFromOld(
 		numPlayers: number, currentEra: Era, oldTurn: Turn, oldPlayer: PlayerTurn, isNewEra: boolean): PlayerTurn
 	{
-		const player = new PlayerTurn(currentEra.Order, oldPlayer.Plid, oldPlayer.Score);
+		const player = new PlayerTurn(oldPlayer.Nickname, currentEra.Order, oldPlayer.Plid, oldPlayer.Score);
 
 		if (isNewEra)
 		{
 			player.ResetForNewEra(oldTurn.Settings);
+			player.LastTurnEvents = [...oldPlayer.LastTurnEvents];
+			player.LastTurnEvents.push(Vm.Message.EndEraStr(currentEra.Number - 1));
 		}
 		else
 		{
 			// copy old values
 			player.Money = oldPlayer.Money;
 			player.Military = oldPlayer.Military;
-
-			// do trades
-			player.Money += oldTurn.GetTradeDelta(oldPlayer, currentEra);
-
-			// do military delta
-			player.Money -= oldPlayer.MilitaryDelta;
-			player.Military += oldPlayer.MilitaryDelta;
-
-			// allocate our attack money
-			for (const attack of IMap.Values(oldPlayer.MilitaryAttacks))
+			if (!player.IsDead)
 			{
-				player.Military -= attack;
-			}
+				player.LastTurnEvents.push(Vm.Message.EndTurnStr(oldTurn.Number, player.Military, player.Money));
 
-			// apply others attacks to us
-			const deltas = oldTurn.GetAttackDelta(oldPlayer);
-			player.Money += deltas.moneyDelta;
-			player.Military += deltas.militaryDelta;
+				// do trades
+				player.Money += oldTurn.GetTradeDelta(oldPlayer, currentEra, player.LastTurnEvents);
+
+				// do military delta
+				player.Money -= oldPlayer.MilitaryDelta;
+				player.Military += oldPlayer.MilitaryDelta;
+				if (oldPlayer.MilitaryDelta !== 0)
+					player.LastTurnEvents.push(Vm.Message.PurchaseMilitaryStr(oldPlayer.MilitaryDelta, -oldPlayer.MilitaryDelta));
+
+				// allocate our attack money
+				for (const attack of IMap.Values(oldPlayer.MilitaryAttacks))
+				{
+					player.Military -= attack;
+				}
+
+				// apply others attacks to us
+				const deltas = oldTurn.GetAttackDelta(oldPlayer, player.LastTurnEvents);
+				player.Money += deltas.moneyDelta;
+				player.Military += deltas.militaryDelta;
+
+				if (player.IsDead)
+					player.LastTurnEvents.push(Vm.Message.YouDiedStr(player.Money));
+			}
 		}
 
 		return player;
 	}
 	/** Intentionally private. Use the static factories above. */
-	private constructor(plidList: number[], plid: number, score: number)
+	private constructor(nickname: string, plidList: number[], plid: number, score: number)
 	{
+		this.Nickname = nickname;
 		this.IsDone = false;
 		this.Plid = plid;
 		this.Score = score;
 
+		this.LastTurnEvents = [];
 		this.MilitaryAttacks = {};
 		this.Trades = {};
 		for (const plid of plidList)
@@ -643,9 +666,12 @@ export class PlayerTurn
 		this.Money = settings.EraStartMoney;
 		this.Military = settings.EraStartMilitary;
 	}
-	public IsSamePlayer(o: PlayerTurn): boolean
+	public IsSamePlayer(o: null | PlayerTurn): boolean
 	{
-		return this.Plid === o.Plid;
+		if (o !== null)
+			return this.Plid === o.Plid;
+		else
+			return false;
 	}
 	/** True if this player has met the death condition. */
 	public get IsDead(): boolean
@@ -654,9 +680,7 @@ export class PlayerTurn
 	}
 	public ToVm(viewerTurn: null | PlayerTurn): Vm.IViewPlayerTurn
 	{
-		let isSelf = false;
-		if (viewerTurn !== null)
-			isSelf = viewerTurn.Plid === this.Plid;
+		const isSelf = this.IsSamePlayer(viewerTurn);
 
 		const vm: Vm.IViewPlayerTurn = {
 			MilitaryAttacks: { ...this.MilitaryAttacks },
@@ -667,6 +691,7 @@ export class PlayerTurn
 			Plid: this.Plid,
 			Score: this.Score,
 			IsDone: this.IsDone,
+			LastTurnEvents: [...this.LastTurnEvents],
 		};
 
 		return vm;

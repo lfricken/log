@@ -101,10 +101,21 @@ export class ModelWireup
 			}
 		});
 		// host forced next turn
-		socket.on(Shared.Event.ForceNextTurn, (message: ViewModel.Message) =>
+		socket.on(Shared.Event.ForceNextTurn, (vm: {}) =>
 		{
 			console.log("force next turn");
-
+			const game = lobby.Game;
+			if (game !== null) // if there is a game
+			{
+				if (game.EndTurn()) // update Era
+				{
+					this.UpdateClientEra(lobby);
+				}
+				else // update Turn
+				{
+					this.UpdateClientTurn(lobby);
+				}
+			}
 		});
 		// player tried to modify their own turn
 		socket.on(Shared.Event.PlayerTurn, (vm: ViewModel.IViewPlayerTurn) =>

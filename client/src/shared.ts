@@ -96,6 +96,7 @@ export interface IAuth
 export const DisconnectTimeoutMilliseconds = 2000;
 /** Currently 62^8 (218 trillion) combinations. */
 export const UniqueIdLength = 8;
+export const MinPlayers = 2;
 
 export class Event
 {
@@ -114,7 +115,7 @@ export class Event
 	/** Started new game. */
 	public static StartNewGame = 'g';
 	/** Started new game. */
-	public static ForceNextTurn = 'g';
+	public static ForceNextTurn = 'f';
 }
 
 /** Returns a configuration for game settings. */

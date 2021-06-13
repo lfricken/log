@@ -1,5 +1,7 @@
 The meek shall inherit the earth, and non-meek the rest.
 
+next Era bug
+military validation
 next turn (submits decisions, prevents multiple next turn, disables actions)
 trade buttons (Trading/Stealing)
 LastEvents behavior

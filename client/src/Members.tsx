@@ -48,6 +48,7 @@ export class MembersComp extends React.Component<Props, State>
 	}
 	public renderMemberList(connections: Vm.IViewPlayerConnection[], localPlid: number): React.ReactNode
 	{
+		const numConnected = Vm.IViewLobby.GetNumConnected(connections);
 		return connections.map((connection, plid) =>
 			<tr key={Vm.IViewPlayerConnection.DisplayName(connection.Nickname, plid)}>
 				<td className={plid === localPlid ? "bold" : ""}>
@@ -57,7 +58,7 @@ export class MembersComp extends React.Component<Props, State>
 					{plid}
 				</td>
 				<td>
-					{this.renderAdditionalInfo(connection, plid)}
+					{this.renderAdditionalInfo(numConnected, connection, plid)}
 				</td>
 				<td>
 					{this.renderNextTurnButton(plid)}
@@ -65,23 +66,23 @@ export class MembersComp extends React.Component<Props, State>
 			</tr>
 		);
 	}
-	public renderAdditionalInfo(connection: Vm.IViewPlayerConnection, plid: number): React.ReactNode
+	public renderAdditionalInfo(numConnected: number, connection: Vm.IViewPlayerConnection, plid: number): React.ReactNode
 	{
 		if (connection.IsConnected)
 		{
-			return this.renderStartButton(plid);
+			return this.renderStartButton(numConnected, plid);
 		}
 		else
 		{
 			return "Disconnected";
 		}
 	}
-	public renderStartButton(plid: number): React.ReactNode
+	public renderStartButton(numConnected: number, plid: number): React.ReactNode
 	{
 		if (this.props.Connections[plid].IsHost) // local player is host
 		{
 			return <button
-				disabled={plid !== this.props.LocalPlid}
+				disabled={plid !== this.props.LocalPlid || numConnected < Shared.MinPlayers}
 				onClick={this.props.onClickStartGame}
 			>
 				Start New Game

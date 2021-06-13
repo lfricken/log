@@ -217,7 +217,9 @@ class App extends React.Component<Props, State>
 					</div>
 				</div>
 				<div className="flex flex-column with-gaps">
-					<div className="container_2 component"></div>
+					<div className="container_2 component">
+						{this.renderEvents(this, data)}
+					</div>
 					<div className="container_3 component">
 						{this.renderActions(this, data)}
 					</div>
@@ -248,9 +250,32 @@ class App extends React.Component<Props, State>
 		}
 		return App.loading();
 	}
+	public renderEvents(app: App, data: Vm.IViewData): React.ReactNode
+	{
+		const game = data.Game;
+		const localPlid = data.LocalPlid;
+		if (game !== null)
+		{
+			const messages = game.LatestEra.LatestTurn.Players[localPlid].LastTurnEvents;
+			return (
+				<div className="full-size flex-column">
+					<div className="flex message-view" id="chatView">
+						{messages.map((message, idx) =>
+							<div
+								key={idx}>
+								{message}
+							</div>
+						)}
+					</div>
+				</div>
+			);
+		}
+		return App.gameNotStarted();
+	}
 	public renderActions(app: App, data: Vm.IViewData): React.ReactNode
 	{
-		if (this.state.Game !== null)
+		const game = data.Game;
+		if (game !== null)
 		{
 			return Actions.renderActions({
 				Data: data,

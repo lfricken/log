@@ -43,6 +43,16 @@ export class IViewLobby
 		});
 		return names;
 	}
+	public static GetNumConnected(connections: IViewPlayerConnection[]): number
+	{
+		let count = 0;
+		connections.forEach((connection) =>
+		{
+			if (connection.IsConnected)
+				count++;
+		});
+		return count;
+	}
 }
 
 /** View data about the game in its current state. */
@@ -77,7 +87,7 @@ export class IViewEra
 	{
 		const localOrder = orders.indexOf(localPlid);
 		const tradePartners = new Map<number, number>();
-		const adjacent = IViewEra.GetAdjacentOrders(localPlid, orders.length);
+		const adjacent = IViewEra.GetAdjacentOrders(localOrder, orders.length);
 		// add orders.length as a hack to get around negative modulus in JS because JS is garbage
 		tradePartners.set(orders[adjacent[0]], 0);
 		tradePartners.set(orders[adjacent[1]], 0);
@@ -130,6 +140,8 @@ export interface IViewPlayerTurn
 	Trades: IMap<number>;
 	/** True if this player is done with their turn. */
 	IsDone: boolean;
+	/** True if this player is done with their turn. */
+	LastTurnEvents: string[];
 }
 
 /** A message sent out to clients. */
@@ -159,9 +171,68 @@ export class Message
 
 		return true;
 	}
-	public static NameString(nickname: string, num: number): string
+	public static AttackInStr(nickname: string, plid: number, attack: number, militaryDelta: number, moneyDelta: number): string
 	{
-		return `${nickname}(${num})`;
+		let militaryMessage = "";
+		if (militaryDelta !== 0)
+		{
+			const sign = militaryDelta > 0 ? "+" : ""; // preference negative sign
+			militaryMessage = `(${sign}${militaryDelta} Military)`;
+		}
+		let moneyMessage = "";
+		if (moneyDelta !== 0)
+		{
+			const sign = moneyDelta > 0 ? "+" : ""; // preference negative sign
+			moneyMessage = `(${sign}${moneyDelta} Money)`;
+		}
+		return `${Message.NameStr(nickname, plid)} attacked you for ${attack}: ${militaryMessage}${moneyMessage}`;
+	}
+	public static AttackOutStr(nickname: string, plid: number, attack: number): string
+	{
+		const sign = attack > 0 ? "+" : ""; // preference negative sign
+		return `You attacked ${Message.NameStr(nickname, plid)} for ${attack}: (${sign}${attack} Military)`;
+	}
+	public static TradeStr(usTraded: number, themTraded: number, nickname: string, plid: number, delta: number): string
+	{
+		const sign = delta >= 0 ? "+" : ""; // preference positive sign
+		const usAction = usTraded === Shared.Trade.ActionCooperate ? "traded" : "stole";
+		const themAction = themTraded === Shared.Trade.ActionCooperate ? "traded" : "stole";
+		return `You ${usAction} and ${Message.NameStr(nickname, plid)} ${themAction}: (${sign}${delta} Money)`;
+	}
+	public static EndTurnStr(turnNumber: number, military: number, money: number): string
+	{
+		// add 1 because 0 indexed
+		return `You ended turn ${turnNumber + 1} with ${military} Military and ${money} Money`;
+	}
+	public static EndEraStr(eraNumber: number): string
+	{
+		// add 1 because 0 indexed
+		return `Era ${eraNumber + 1} ended`;
+	}
+	public static YouDiedStr(money: number): string
+	{
+		// add 1 because 0 indexed
+		return `Your Money was 0 or less and you died! (${money} Money)`;
+	}
+	public static PurchaseMilitaryStr(militaryDelta: number, moneyDelta: number): string
+	{
+		let militaryMessage = "";
+		if (militaryDelta !== 0)
+		{
+			const sign = militaryDelta > 0 ? "+" : ""; // preference negative sign
+			militaryMessage = `(${sign}${militaryDelta} Military)`;
+		}
+		let moneyMessage = "";
+		if (moneyDelta !== 0)
+		{
+			const sign = moneyDelta > 0 ? "+" : ""; // preference negative sign
+			moneyMessage = `(${sign}${moneyDelta} Money)`;
+		}
+		return `You purchased ${militaryDelta} Military: ${militaryMessage}${moneyMessage}`;
+	}
+	public static NameStr(nickname: string, plid: number): string
+	{
+		return `${nickname}(${plid})`;
 	}
 	public static PlayerMsg(name: string, msg: Message): Message
 	{
