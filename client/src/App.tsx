@@ -256,19 +256,22 @@ class App extends React.Component<Props, State>
 		const localPlid = data.LocalPlid;
 		if (game !== null)
 		{
-			const messages = game.LatestEra.LatestTurn.Players[localPlid].LastTurnEvents;
-			return (
-				<div className="full-size flex-column">
-					<div className="flex message-view" id="chatView">
-						{messages.map((message, idx) =>
-							<div
-								key={idx}>
-								{message}
-							</div>
-						)}
+			if (IMap.Has(game.LatestEra.LatestTurn.Players, localPlid))
+			{
+				const messages = game.LatestEra.LatestTurn.Players[localPlid].LastTurnEvents;
+				return (
+					<div className="full-size flex-column">
+						<div className="flex message-view" id="chatView">
+							{messages.map((message, idx) =>
+								<div
+									key={idx}>
+									{message}
+								</div>
+							)}
+						</div>
 					</div>
-				</div>
-			);
+				);
+			}
 		}
 		return App.gameNotStarted();
 	}

@@ -50,9 +50,7 @@ function renderRows(props: IActionsProps): React.ReactNode
 
 	return era.Order.map((renderPlid, renderOrder) =>
 		<tr key={`${era.LatestTurn.Number}_${renderPlid}`}>
-			<td className={renderPlid === props.Data.LocalPlid ? "bold" : ""}>
-				{Vm.IViewPlayerConnection.DisplayName(props.Data.Nicknames[renderPlid], renderPlid)}
-			</td>
+			{renderName(props, renderPlid)}
 			<td className="text-center">
 				{renderAttacks(props, renderPlid)}
 			</td>
@@ -73,6 +71,17 @@ function renderRows(props: IActionsProps): React.ReactNode
 			</td>
 		</tr>
 	);
+}
+function renderName(props: IActionsProps, renderPlid: number): React.ReactNode
+{
+	const game = props.Data.Game;
+	const renderPlayer = game.LatestEra.LatestTurn.Players[renderPlid];
+	let classes = "";
+	classes += (renderPlid === props.Data.LocalPlid ? " bold" : "");
+	classes += (renderPlayer.IsDead ? " name-dead" : "");
+	return <td className={classes}>
+		{Vm.IViewPlayerConnection.DisplayName(props.Data.Nicknames[renderPlid], renderPlid)}
+	</td>;
 }
 function renderScore(props: IActionsProps, renderPlid: number): React.ReactNode
 {
@@ -107,11 +116,15 @@ function renderCommerceButtons(props: IActionsProps, renderOrder: number, render
 	{
 		const localOrder = props.Data.LocalOrder;
 		const localPlayer = game.LatestEra.LatestTurn.Players[localPlid];
+		const renderPlayer = game.LatestEra.LatestTurn.Players[renderPlid];
 		const adjacentOrders = Vm.IViewEra.GetAdjacentOrders(localOrder, IMap.Length(game.LatestEra.LatestTurn.Players));
 		if (adjacentOrders.indexOf(renderOrder) !== -1)
 		{
 			return <div className="attack-container">
-				<button onClick={(): void => props.onTradeChanged(props.Data.LocalPlid, renderPlid)}>
+				<button
+					disabled={renderPlayer.IsDead}
+					onClick={(): void => props.onTradeChanged(props.Data.LocalPlid, renderPlid)}
+				>
 					{getTradeButtonText(localPlayer.Trades[renderPlid])}
 				</button>
 			</div>;
@@ -133,9 +146,11 @@ function renderAttacks(props: IActionsProps, renderPlid: number): React.ReactNod
 	}
 	else
 	{
+		const renderPlayer = game.LatestEra.LatestTurn.Players[renderPlid];
 		const attacks = players[localPlid].MilitaryAttacks;
 		return <div className="attack-container">
-			<button onClick={(): void => props.onAttackChanged(localPlid, renderPlid, -1)}>-</button>
+			<button disabled={renderPlayer.IsDead}
+				onClick={(): void => props.onAttackChanged(localPlid, renderPlid, -1)}>-</button>
 			<input
 				className="attack-input"
 				disabled
@@ -143,7 +158,9 @@ function renderAttacks(props: IActionsProps, renderPlid: number): React.ReactNod
 				type="number"
 				value={attacks[renderPlid]}
 			/>
-			<button onClick={(): void => props.onAttackChanged(localPlid, renderPlid, +1)}>+</button>
+			<button
+				disabled={renderPlayer.IsDead}
+				onClick={(): void => props.onAttackChanged(localPlid, renderPlid, +1)}>+</button>
 		</div>;
 	}
 }

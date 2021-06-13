@@ -428,14 +428,30 @@ export class Turn
 	ComputeNewTurn(numPlayers: number, currentEra: Era, oldTurn: Turn, isNewEra: boolean): void
 	{
 		// score awarded at the beginning of an era
-		const scoreDelta = oldTurn.GetScoreDelta(isNewEra);
-
+		const scoreDeltas = oldTurn.GetScoreDelta(isNewEra);
+		const globalEvents: string[] = [];
 		// copy player data
 		for (const oldPlayer of IMap.Values(oldTurn.Players))
 		{
-			const newPlayer = PlayerTurn.NewPlayerTurnFromOld(numPlayers, currentEra, oldTurn, oldPlayer, isNewEra);
-			newPlayer.Score += scoreDelta[newPlayer.Plid];
+			const newPlayer = PlayerTurn.NewPlayerTurnFromOld(numPlayers, currentEra, oldTurn, oldPlayer, isNewEra, globalEvents);
+			newPlayer.Score += scoreDeltas[newPlayer.Plid];
 			this.Players[newPlayer.Plid] = newPlayer;
+		}
+		if (isNewEra)
+		{
+			globalEvents.push(Vm.Message.EndEraStr(currentEra.Number - 1));
+			for (const eachPlayer of IMap.Values(this.Players))
+			{
+				const scoreDelta = scoreDeltas[eachPlayer.Plid];
+				if (scoreDelta > 0)
+				{
+					globalEvents.push(Vm.Message.ScoreStr(eachPlayer.Nickname, eachPlayer.Plid, scoreDelta));
+				}
+			}
+		}
+		for (const player of IMap.Values(this.Players))
+		{
+			player.LastTurnEvents = player.LastTurnEvents.concat(globalEvents);
 		}
 	}
 	/** Returns the changes in money for the given player due to trade. */
@@ -447,17 +463,19 @@ export class Turn
 
 		for (const plid of tradePlids)
 		{
+			// cannot trade with self or a dead player
 			const otherPlayer = currentEra.LatestTurn.Players[plid]!;
-			if (otherPlayer.IsSamePlayer(targetPlayer)) // cant trade with self
+			if (otherPlayer.IsDead || otherPlayer.IsSamePlayer(targetPlayer))
 				continue;
 
 			// get trade decisions
 			const us = targetPlayer.Trades[otherPlayer.Plid] || Shared.Trade.ActionCooperate;
 			const them = otherPlayer.Trades[targetPlayer.Plid] || Shared.Trade.ActionCooperate;
 
-			delta += Shared.Trade.GetDelta(this.Settings, us, them);
+			const thisDelta = Shared.Trade.GetDelta(this.Settings, us, them);
+			delta += thisDelta;
 			// let the player know what happened
-			lastTurnEvents.push(Vm.Message.TradeStr(us, them, otherPlayer.Nickname, otherPlayer.Plid, delta));
+			lastTurnEvents.push(Vm.Message.TradeStr(us, them, otherPlayer.Nickname, otherPlayer.Plid, thisDelta));
 		}
 
 		return delta;
@@ -467,23 +485,25 @@ export class Turn
 	{
 		let militaryDelta = 0;
 		let moneyDelta = 0;
-		for (const player of IMap.Values(this.Players))
+		for (const otherPlayer of IMap.Values(this.Players))
 		{
-			if (player.IsSamePlayer(targetPlayer)) // cant attack self
+			// cannot attack self or a dead player
+			if (otherPlayer.IsDead || otherPlayer.IsSamePlayer(targetPlayer))
 				continue;
 
 			// get trade decisions
-			const us = targetPlayer.MilitaryAttacks[player.Plid] || 0;
-			const them = player.MilitaryAttacks[targetPlayer.Plid] || 0;
+			const us = targetPlayer.MilitaryAttacks[otherPlayer.Plid] || 0;
+			const them = otherPlayer.MilitaryAttacks[targetPlayer.Plid] || 0;
 
 			const delta = Shared.Military.GetDelta(this.Settings, targetPlayer.Military, us, them);
 			militaryDelta += delta.militaryDelta;
 			moneyDelta += delta.moneyDelta;
-
+			// let the player know what happened
 			if (them !== 0)
-				lastTurnEvents.push(Vm.Message.AttackInStr(player.Nickname, player.Plid, them, militaryDelta, moneyDelta));
+				lastTurnEvents.push(Vm.Message.AttackInStr(
+					otherPlayer.Nickname, otherPlayer.Plid, them, delta.militaryDelta, delta.moneyDelta));
 			if (us !== 0)
-				lastTurnEvents.push(Vm.Message.AttackOutStr(player.Nickname, player.Plid, us));
+				lastTurnEvents.push(Vm.Message.AttackOutStr(otherPlayer.Nickname, otherPlayer.Plid, us));
 		}
 		return { militaryDelta, moneyDelta };
 	}
@@ -593,7 +613,8 @@ export class PlayerTurn
 	}
 	/** Creates a new PlayerTurn from their old turn. */
 	public static NewPlayerTurnFromOld(
-		numPlayers: number, currentEra: Era, oldTurn: Turn, oldPlayer: PlayerTurn, isNewEra: boolean): PlayerTurn
+		numPlayers: number, currentEra: Era, oldTurn: Turn, oldPlayer: PlayerTurn, isNewEra: boolean,
+		globalEvents: string[]): PlayerTurn
 	{
 		const player = new PlayerTurn(oldPlayer.Nickname, currentEra.Order, oldPlayer.Plid, oldPlayer.Score);
 
@@ -601,7 +622,6 @@ export class PlayerTurn
 		{
 			player.ResetForNewEra(oldTurn.Settings);
 			player.LastTurnEvents = [...oldPlayer.LastTurnEvents];
-			player.LastTurnEvents.push(Vm.Message.EndEraStr(currentEra.Number - 1));
 		}
 		else
 		{
@@ -633,8 +653,12 @@ export class PlayerTurn
 				player.Military += deltas.militaryDelta;
 
 				if (player.IsDead)
+				{
 					player.LastTurnEvents.push(Vm.Message.YouDiedStr(player.Money));
+					globalEvents.push(Vm.Message.OtherDiedStr(player.Nickname, player.Plid));
+				}
 			}
+			player.IsDone = player.IsDead; // if a player is dead, they can't take actions
 		}
 
 		return player;
@@ -692,6 +716,7 @@ export class PlayerTurn
 			Score: this.Score,
 			IsDone: this.IsDone,
 			LastTurnEvents: [...this.LastTurnEvents],
+			IsDead: this.IsDead,
 		};
 
 		return vm;

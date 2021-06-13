@@ -1,6 +1,6 @@
 The meek shall inherit the earth, and non-meek the rest.
 
-next Era bug
+dead players shouldn't be traded with
 military validation
 next turn (submits decisions, prevents multiple next turn, disables actions)
 trade buttons (Trading/Stealing)
@@ -8,6 +8,7 @@ LastEvents behavior
 LastEvents test
 LastEvents component
 Client needs to handle dead players
+settings validation
 everyone disconnected timeout
 kick player
 lobby password

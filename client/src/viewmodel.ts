@@ -6,7 +6,7 @@
 /* eslint-disable no-magic-numbers */
 import sanitize from "sanitize-html";
 import * as Shared from './shared';
-import { IMap } from "./shared";
+import { IMap, MilitaryName, MoneyName, ScoreName } from "./shared";
 
 /** Fields a player must have. */
 export interface IViewPlayerConnection
@@ -142,6 +142,8 @@ export interface IViewPlayerTurn
 	IsDone: boolean;
 	/** True if this player is done with their turn. */
 	LastTurnEvents: string[];
+	/** True if this player is done with their turn. */
+	IsDead: boolean;
 }
 
 /** A message sent out to clients. */
@@ -177,42 +179,57 @@ export class Message
 		if (militaryDelta !== 0)
 		{
 			const sign = militaryDelta > 0 ? "+" : ""; // preference negative sign
-			militaryMessage = `(${sign}${militaryDelta} Military)`;
+			militaryMessage = `(${sign}${militaryDelta} ${MilitaryName})`;
 		}
 		let moneyMessage = "";
 		if (moneyDelta !== 0)
 		{
 			const sign = moneyDelta > 0 ? "+" : ""; // preference negative sign
-			moneyMessage = `(${sign}${moneyDelta} Money)`;
+			moneyMessage = `(${sign}${moneyDelta} ${MoneyName})`;
 		}
 		return `${Message.NameStr(nickname, plid)} attacked you for ${attack}: ${militaryMessage}${moneyMessage}`;
 	}
 	public static AttackOutStr(nickname: string, plid: number, attack: number): string
 	{
-		const sign = attack > 0 ? "+" : ""; // preference negative sign
-		return `You attacked ${Message.NameStr(nickname, plid)} for ${attack}: (${sign}${attack} Military)`;
+		return `You attacked ${Message.NameStr(nickname, plid)} for ${attack}: (${-attack} ${MilitaryName})`;
 	}
 	public static TradeStr(usTraded: number, themTraded: number, nickname: string, plid: number, delta: number): string
 	{
 		const sign = delta >= 0 ? "+" : ""; // preference positive sign
 		const usAction = usTraded === Shared.Trade.ActionCooperate ? "traded" : "stole";
 		const themAction = themTraded === Shared.Trade.ActionCooperate ? "traded" : "stole";
-		return `You ${usAction} and ${Message.NameStr(nickname, plid)} ${themAction}: (${sign}${delta} Money)`;
+		return `You ${usAction} and ${Message.NameStr(nickname, plid)} ${themAction}: (${sign}${delta} ${MoneyName})`;
 	}
 	public static EndTurnStr(turnNumber: number, military: number, money: number): string
 	{
 		// add 1 because 0 indexed
-		return `You ended turn ${turnNumber + 1} with ${military} Military and ${money} Money`;
+		return `You ended Turn ${turnNumber + 1} with ${military} ${MilitaryName} and ${money} ${MoneyName}.`;
 	}
 	public static EndEraStr(eraNumber: number): string
 	{
 		// add 1 because 0 indexed
-		return `Era ${eraNumber + 1} ended`;
+		return `Era ${eraNumber + 1} ended.`;
 	}
-	public static YouDiedStr(money: number): string
+	public static ScoreStr(nickname: string, plid: number, scoreDelta: number): string
+	{
+		const sign = scoreDelta >= 0 ? "+" : ""; // preference positive sign
+		let reason = "";
+		if (scoreDelta === 1)
+			reason = "for surviving";
+		else if (scoreDelta === 2)
+			reason = `for having the most ${MoneyName}`;
+
+		// add 1 because 0 indexed
+		return `${Message.NameStr(nickname, plid)} got ${sign}${scoreDelta} ${ScoreName} ${reason}.`;
+	}
+	public static YouDiedStr(totalMoney: number): string
 	{
 		// add 1 because 0 indexed
-		return `Your Money was 0 or less and you died! (${money} Money)`;
+		return `Your ${MoneyName} was 0 or less and you died! (${totalMoney} Total ${MoneyName})`;
+	}
+	public static OtherDiedStr(nickname: string, plid: number): string
+	{
+		return `${Message.NameStr(nickname, plid)} died.`;
 	}
 	public static PurchaseMilitaryStr(militaryDelta: number, moneyDelta: number): string
 	{
@@ -220,15 +237,15 @@ export class Message
 		if (militaryDelta !== 0)
 		{
 			const sign = militaryDelta > 0 ? "+" : ""; // preference negative sign
-			militaryMessage = `(${sign}${militaryDelta} Military)`;
+			militaryMessage = `(${sign}${militaryDelta} ${MilitaryName})`;
 		}
 		let moneyMessage = "";
 		if (moneyDelta !== 0)
 		{
 			const sign = moneyDelta > 0 ? "+" : ""; // preference negative sign
-			moneyMessage = `(${sign}${moneyDelta} Money)`;
+			moneyMessage = `(${sign}${moneyDelta} ${MoneyName})`;
 		}
-		return `You purchased ${militaryDelta} Military: ${militaryMessage}${moneyMessage}`;
+		return `You bought ${militaryDelta} ${MilitaryName}: ${militaryMessage}${moneyMessage}`;
 	}
 	public static NameStr(nickname: string, plid: number): string
 	{
