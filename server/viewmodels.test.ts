@@ -47,7 +47,7 @@ test('Models exist.', () =>
 		{
 			const player = kvp.v;
 			expect(player.Score).toBe(0);
-			expect(player.Plid).toBe(kvp.k);
+			expect(player.Plid.toString()).toBe(kvp.k);
 			expect(player.Military).toBe(0);
 		}
 

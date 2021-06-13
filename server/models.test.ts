@@ -353,7 +353,7 @@ test('Attacks', () =>
 
 		{
 			const p1 = game.LatestEra.LatestTurn.Players[1];
-			p1.MilitaryAttacks.set(0, p1attack); // attack player 0 for 1
+			p1.MilitaryAttacks[0] = p1attack; // attack player 0 for 1
 			game.EndTurn();
 		}
 
@@ -424,7 +424,7 @@ test('Attacks', () =>
 			expect(p1.Money).toBe(p1money);
 			expect(p1.Military).toBe(2);
 
-			p0.MilitaryAttacks.set(1, p0attack);
+			p0.MilitaryAttacks[1] = p0attack;
 			game.EndTurn();
 		}
 
@@ -577,7 +577,7 @@ function testNewGame(l: Models.Lobby): void
 	l.CreateNewGame(settings);
 	const game = l.Game!;
 	{
-		for (let i = 0; i < settings.GameEndMaxTurns - 1; ++i)
+		for (let i = 0; i < settings.GameEndMaxEras - 1; ++i)
 		{
 			game.LatestEra.LatestTurn.Players[0].Money = 0;
 			game.LatestEra.LatestTurn.Players[1].Money += 1;

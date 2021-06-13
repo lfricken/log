@@ -54,9 +54,9 @@ export function testLatestEra(settings: Shared.IGameSettings, g: Models.Game, nu
 		// expect start of game military
 		expect(player.Military).toBe(settings.EraStartMilitary);
 		// no initial attacks
-		expect(player.MilitaryAttacks.size).toBe(numPlayersExpected);
+		expect(IMap.Length(player.MilitaryAttacks)).toBe(numPlayersExpected);
 		// no initial trades
-		expect(player.Trades.size).toBe(numPlayersExpected);
+		expect(IMap.Length(player.Trades)).toBe(numPlayersExpected);
 		// expect not dead
 		expect(player.IsDead).toBe(false);
 		// no negative score

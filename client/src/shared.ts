@@ -128,7 +128,7 @@ export function GetSettings(config: SettingConfig): IGameSettings
 		return GetSettings(SettingConfig.Default);
 	else // SettingConfig.Default
 		return {
-			GameEndMaxTurns: 5,
+			GameEndMaxEras: 1,
 
 			EraEndMinDeadPercentage: 0.5,
 			EraStartMoney: 10,
@@ -161,7 +161,7 @@ export enum SettingConfig
 export interface IGameSettings
 {
 	/** After how many turns will the Game end? */
-	readonly GameEndMaxTurns: number;
+	readonly GameEndMaxEras: number;
 
 	/** What percentage of players need to die for the Era to end? */
 	readonly EraEndMinDeadPercentage: number;

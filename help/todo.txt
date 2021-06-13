@@ -1,6 +1,7 @@
 The meek shall inherit the earth, and non-meek the rest.
 
-dead players shouldn't be traded with
+game ends
+military investment
 military validation
 next turn (submits decisions, prevents multiple next turn, disables actions)
 trade buttons (Trading/Stealing)

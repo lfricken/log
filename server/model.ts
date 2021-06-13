@@ -288,7 +288,7 @@ export class Game
 	public get IsOver(): boolean
 	{
 		// N eras need to have ENDED which means we need to be on the N+1 era
-		return this.Eras.length === this.Settings.GameEndMaxTurns + 1;
+		return this.Eras.length === this.Settings.GameEndMaxEras + 1;
 	}
 	/** Returns the score leader. */
 	public GetCurrentWinner(): PlayerTurn
