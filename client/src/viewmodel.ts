@@ -58,6 +58,7 @@ export class IViewLobby
 /** View data about the game in its current state. */
 export interface IViewGame
 {
+	IsOver: boolean;
 	LatestEra: IViewEra;
 	Settings: Shared.IGameSettings;
 }
@@ -192,6 +193,10 @@ export class Message
 	public static AttackOutStr(nickname: string, plid: number, attack: number): string
 	{
 		return `You attacked ${Message.NameStr(nickname, plid)} for ${attack}: (${-attack} ${MilitaryName})`;
+	}
+	public static WinnerStr(nickname: string, plid: number, score: number): string
+	{
+		return `${Message.NameStr(nickname, plid)} won with ${score} ${ScoreName}!`;
 	}
 	public static TradeStr(usTraded: number, themTraded: number, nickname: string, plid: number, delta: number): string
 	{

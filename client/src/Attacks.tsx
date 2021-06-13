@@ -20,9 +20,10 @@ export function renderActions(props: IActionsProps): React.ReactNode
 	const game = props.Data.Game;
 	if (game !== null)
 	{
+		lockAll = lockAll || game.IsOver;
 		const localPlayer = game.LatestEra.LatestTurn.Players[props.Data.LocalPlid];
 		if (localPlayer !== null && localPlayer !== undefined)
-			lockAll = localPlayer.IsDone;
+			lockAll = lockAll || localPlayer.IsDone;
 	}
 
 	return (

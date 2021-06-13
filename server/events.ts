@@ -50,7 +50,7 @@ export class ModelWireup
 		this.SendConnectionStatus(lobby);
 		this.SendData(lobby, [localCon.Plid.toString()], Shared.Event.OnConnected, localCon.Plid);
 		if (lobby.Game !== null)
-			this.SendData(lobby, [localCon.Plid.toString()], Shared.Event.StartNewGame, lobby.Game!.ToVm(localCon.Plid));
+			this.SendData(lobby, [localCon.Plid.toString()], Shared.Event.Game, lobby.Game!.ToVm(localCon.Plid));
 
 		// player disconnected
 		socket.on("disconnect", () =>
@@ -85,7 +85,7 @@ export class ModelWireup
 			this.SendMessage(lobby, ViewModel.Message.PlayerMsg(localCon.DisplayName, message), localCon.Plid);
 		});
 		// start a new game with settings
-		socket.on(Shared.Event.StartNewGame, (settings: Shared.IGameSettings) =>
+		socket.on(Shared.Event.Game, (settings: Shared.IGameSettings) =>
 		{
 			console.log("new game");
 			if (localCon.IsHost) // only lobby leader can do this
@@ -93,11 +93,7 @@ export class ModelWireup
 				lobby.CreateNewGame(settings);
 
 				this.SendMessage(lobby, ViewModel.Message.NewGameMsg(lobby.Game!.NumPlayers));
-				for (const connection of IMap.Values(lobby.PlayerConnections))
-				{
-					const plid = connection.Plid;
-					this.SendData(lobby, [plid.toString()], Shared.Event.StartNewGame, lobby.Game!.ToVm(plid));
-				}
+				this.UpdateClientGame(lobby);
 			}
 		});
 		// host forced next turn
@@ -105,7 +101,7 @@ export class ModelWireup
 		{
 			console.log("force next turn");
 			const game = lobby.Game;
-			if (game !== null) // if there is a game
+			if (game !== null && !game.IsOver) // if there is a game
 			{
 				if (game.EndTurn()) // update Era
 				{
@@ -122,7 +118,7 @@ export class ModelWireup
 		{
 			console.log("player turn done");
 			const game = lobby.Game;
-			if (game !== null) // if there is a game
+			if (game !== null && !game.IsOver) // if there is a game
 			{
 				const wholeTurn = game.LatestEra.LatestTurn;
 				const modifiedPlayerTurn = wholeTurn.Players[localCon.Plid];
@@ -137,7 +133,14 @@ export class ModelWireup
 					{
 						if (game.EndTurn()) // update Era
 						{
-							this.UpdateClientEra(lobby);
+							if (game.IsOver)
+							{
+								this.UpdateClientGame(lobby);
+							}
+							else
+							{
+								this.UpdateClientEra(lobby);
+							}
 						}
 						else // update Turn
 						{
@@ -151,6 +154,14 @@ export class ModelWireup
 				}
 			}
 		});
+	}
+	private UpdateClientGame(lobby: Lobby): void
+	{
+		for (const loopConnection of IMap.Values(lobby.PlayerConnections))
+		{
+			const destPlid = loopConnection.Plid;
+			this.SendData(lobby, [destPlid.toString()], Shared.Event.Game, lobby.Game!.ToVm(destPlid));
+		}
 	}
 	private UpdateClientEra(lobby: Lobby): void
 	{

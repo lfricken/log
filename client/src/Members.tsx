@@ -61,7 +61,7 @@ export class MembersComp extends React.Component<Props, State>
 					{this.renderAdditionalInfo(numConnected, connection, plid)}
 				</td>
 				<td>
-					{this.renderNextTurnButton(plid)}
+					{this.renderForceNextTurnButton(plid)}
 				</td>
 			</tr>
 		);
@@ -93,7 +93,7 @@ export class MembersComp extends React.Component<Props, State>
 			return "";
 		}
 	}
-	public renderNextTurnButton(plid: number): React.ReactNode
+	public renderForceNextTurnButton(plid: number): React.ReactNode
 	{
 		if (this.props.Connections[plid].IsHost) // local player is host
 		{

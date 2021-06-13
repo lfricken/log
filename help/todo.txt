@@ -1,19 +1,12 @@
 The meek shall inherit the earth, and non-meek the rest.
 
-game ends
 military investment
 military validation
-next turn (submits decisions, prevents multiple next turn, disables actions)
-trade buttons (Trading/Stealing)
-LastEvents behavior
-LastEvents test
-LastEvents component
-Client needs to handle dead players
+settings manipulation
 settings validation
 everyone disconnected timeout
 kick player
 lobby password
-consider redoing vm so private data is merged with public list. Private data just isn't filled in most of the time
 about page
 
 

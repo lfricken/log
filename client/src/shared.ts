@@ -116,7 +116,7 @@ export class Event
 	/** New era. */
 	public static Era = 'e';
 	/** Started new game. */
-	public static StartNewGame = 'g';
+	public static Game = 'g';
 	/** Started new game. */
 	public static ForceNextTurn = 'f';
 }

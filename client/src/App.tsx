@@ -53,7 +53,7 @@ class App extends React.Component<Props, State>
 		this.socket.on(Shared.Event.WholeTurn, this.onWholeTurnChanged.bind(this));
 		this.socket.on(Shared.Event.PlayerTurn, this.onPlayerTurnChanged.bind(this));
 		this.socket.on(Shared.Event.Era, this.onEraChanged.bind(this));
-		this.socket.on(Shared.Event.StartNewGame, this.onGameChanged.bind(this));
+		this.socket.on(Shared.Event.Game, this.onGameChanged.bind(this));
 
 		this.onClickStartGame = this.onClickStartGame.bind(this);
 		this.onForceNextTurn = this.onForceNextTurn.bind(this);
@@ -74,7 +74,7 @@ class App extends React.Component<Props, State>
 	}
 	public onClickStartGame(): void
 	{
-		this.socket.emit(Shared.Event.StartNewGame, Shared.GetSettings(Shared.SettingConfig.Default));
+		this.socket.emit(Shared.Event.Game, Shared.GetSettings(Shared.SettingConfig.Default));
 	}
 	public onForceNextTurn(): void
 	{
@@ -182,10 +182,10 @@ class App extends React.Component<Props, State>
 			return { Game: game };
 		});
 	}
-	/** A whole new game was created. */
+	/** The whole game updated. */
 	public onGameChanged(d: Vm.IViewGame): void
 	{
-		console.log(`new game with #players${IMap.Length(d.LatestEra.LatestTurn.Players)}`);
+		console.log(`game with #players${IMap.Length(d.LatestEra.LatestTurn.Players)}`);
 		this.setState({
 			Game: d,
 		});
@@ -243,7 +243,7 @@ class App extends React.Component<Props, State>
 				Socket={this.socket}
 				LocalPlid={this.state.LocalPlid}
 				Connections={this.state.Connections}
-				ActiveGame={this.state.Game !== null}
+				ActiveGame={this.state.Game !== null && !this.state.Game.IsOver}
 				onClickForceNextTurn={app.onForceNextTurn}
 				onClickStartGame={app.onClickStartGame}
 			/>;

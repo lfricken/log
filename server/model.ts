@@ -271,19 +271,30 @@ export class Game
 	{
 		return this.Eras[this.Eras.length - 1];
 	}
-	/** Ends the turn and advances the game state by one unit. */
+	/** Ends the turn and advances the game state by one unit. Returns true if there was a new Era. */
 	public EndTurn(): boolean
 	{
 		// compute next turn state
 		this.LatestEra.EndTurn();
 
 		// check to see if we should make a new Era
-		if (this.LatestEra.IsOver)
+		const newEra = this.LatestEra.IsOver;
+		if (newEra)
 		{
 			this.Eras.push(new Era(this.NumPlayers, this.Eras.length, this.Settings, this.LatestEra));
-			return true;
 		}
-		return false;
+		if (this.IsOver)
+		{
+			const winner = this.GetCurrentWinner();
+			const players = this.LatestEra.LatestTurn.Players;
+			for (const player of IMap.Values(players))
+			{
+				player.LastTurnEvents.push("The last Era has ended! Game over.");
+				player.LastTurnEvents.push(Vm.Message.WinnerStr(winner.Nickname, winner.Plid, winner.Score));
+			}
+		}
+
+		return newEra;
 	}
 	public get IsOver(): boolean
 	{
@@ -317,6 +328,7 @@ export class Game
 		{
 			LatestEra: this.LatestEra.ToVm(localPlid),
 			Settings: this.Settings,
+			IsOver: this.IsOver,
 		};
 		return vm;
 	}
@@ -419,39 +431,35 @@ export class Turn
 		{
 
 		}
-		else
+		else // Given an old turn, build the new turn
 		{
-			this.ComputeNewTurn(numPlayers, currentEra, oldTurn, isNewEra);
-		}
-	}
-	/** Given an old turn, build the new turn. */
-	ComputeNewTurn(numPlayers: number, currentEra: Era, oldTurn: Turn, isNewEra: boolean): void
-	{
-		// score awarded at the beginning of an era
-		const scoreDeltas = oldTurn.GetScoreDelta(isNewEra);
-		const globalEvents: string[] = [];
-		// copy player data
-		for (const oldPlayer of IMap.Values(oldTurn.Players))
-		{
-			const newPlayer = PlayerTurn.NewPlayerTurnFromOld(numPlayers, currentEra, oldTurn, oldPlayer, isNewEra, globalEvents);
-			newPlayer.Score += scoreDeltas[newPlayer.Plid];
-			this.Players[newPlayer.Plid] = newPlayer;
-		}
-		if (isNewEra)
-		{
-			globalEvents.push(Vm.Message.EndEraStr(currentEra.Number - 1));
-			for (const eachPlayer of IMap.Values(this.Players))
+			// score awarded at the beginning of an era
+			const scoreDeltas = oldTurn.GetScoreDelta(isNewEra);
+			const globalEvents: string[] = [];
+			// copy player data
+			for (const oldPlayer of IMap.Values(oldTurn.Players))
 			{
-				const scoreDelta = scoreDeltas[eachPlayer.Plid];
-				if (scoreDelta > 0)
+				const newPlayer = PlayerTurn.NewPlayerTurnFromOld(
+					numPlayers, currentEra, oldTurn, oldPlayer, isNewEra, globalEvents);
+				newPlayer.Score += scoreDeltas[newPlayer.Plid];
+				this.Players[newPlayer.Plid] = newPlayer;
+			}
+			if (isNewEra)
+			{
+				globalEvents.push(Vm.Message.EndEraStr(currentEra.Number - 1));
+				for (const eachPlayer of IMap.Values(this.Players))
 				{
-					globalEvents.push(Vm.Message.ScoreStr(eachPlayer.Nickname, eachPlayer.Plid, scoreDelta));
+					const scoreDelta = scoreDeltas[eachPlayer.Plid];
+					if (scoreDelta > 0)
+					{
+						globalEvents.push(Vm.Message.ScoreStr(eachPlayer.Nickname, eachPlayer.Plid, scoreDelta));
+					}
 				}
 			}
-		}
-		for (const player of IMap.Values(this.Players))
-		{
-			player.LastTurnEvents = player.LastTurnEvents.concat(globalEvents);
+
+			// give each player the global events
+			for (const player of IMap.Values(this.Players))
+				player.LastTurnEvents = player.LastTurnEvents.concat(globalEvents);
 		}
 	}
 	/** Returns the changes in money for the given player due to trade. */
