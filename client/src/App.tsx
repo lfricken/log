@@ -12,14 +12,15 @@ class App extends React.Component<Props, State>
 {
 	render(): ReactNode
 	{
-		return (
+		// todo put a header at the top of the div
+		return <div>
 			<BrowserRouter>
-				<Route exact path="/" render={(): ReactNode => { return <Redirect to="/index" />; }} />
-				<Route exact path="/index" render={About} />
+				<Route exact path="/" render={(): ReactNode => { return <Redirect to="/home" />; }} />
+				<Route exact path="/home" render={About} />
 				<Route exact path="/about" render={About} />
 				<Route path="/game" component={Game} />
 			</BrowserRouter>
-		);
+		</div>;
 	}
 }
 
