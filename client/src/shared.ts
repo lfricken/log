@@ -6,7 +6,6 @@ export function clone<T>(obj: T): T
 {
 	return JSON.parse(JSON.stringify(obj));
 }
-
 export interface IMap<V>
 {
 	[plid: number]: V;
@@ -97,8 +96,11 @@ export const DisconnectTimeoutMilliseconds = 2000;
 /** Currently 62^8 (218 trillion) combinations. */
 export const UniqueIdLength = 8;
 export const MinPlayers = 2;
+export const MilitaryIcon = "⚔️";
 export const MilitaryName = "Military";
+export const MoneyIcon = "💲";
 export const MoneyName = "Money";
+export const ScoreIcon = "⭐";
 export const ScoreName = "Score";
 
 export class Event
@@ -124,11 +126,16 @@ export class Event
 /** Returns a configuration for game settings. */
 export function GetSettings(config: SettingConfig): IGameSettings
 {
+	let settings: IGameSettings;
 	if (config === SettingConfig.Custom) // todo get custom settings from somewhere
-		return GetSettings(SettingConfig.Default);
+	{
+		settings = GetSettings(SettingConfig.Test);
+	}
 	else // SettingConfig.Default
-		return {
-			GameEndMaxEras: 1,
+	{
+		settings = {
+			GameEndMaxEras: 3,
+			InterestRateDivisor: 0,
 
 			EraEndMinDeadPercentage: 0.5,
 			EraStartMoney: 10,
@@ -139,22 +146,35 @@ export function GetSettings(config: SettingConfig): IGameSettings
 			ScoreLeaderExtraDelta: 1,
 
 			MilitaryTax: 0,
-			MilitaryMaxDeltaPerTurn: 1,
+			MilitaryMinDeltaPerTurn: 0,
+			MilitaryMaxDeltaPerTurn: 8,
 			MilitaryPillageMultiplier: 2,
 
-			TradeResultCooperateBoth: 4,
-			TradeResultDefectBoth: 2,
-			TradeResultDefectWin: 8,
+			TradeResultCooperateBoth: 2,
+			TradeResultDefectBoth: 1,
+			TradeResultDefectWin: 4,
 			TradeResultDefectLose: 0,
 
 			MilitaryMinAttack: 0,
 			MilitaryMaxAttack: 9,
 		};
+	}
+	if (config === SettingConfig.Deployment)
+	{
+		(settings as IGameSettingsEditable).InterestRateDivisor = 6;
+	}
+	return settings;
 }
 export enum SettingConfig
 {
-	Default,
+	Test,
 	Custom,
+	Deployment,
+}
+
+export function sortDescending(a: number, b: number): number
+{
+	return b - a;
 }
 
 /** Rules and other random settings. */
@@ -162,6 +182,7 @@ export interface IGameSettings
 {
 	/** After how many turns will the Game end? */
 	readonly GameEndMaxEras: number;
+	readonly InterestRateDivisor: number;
 
 	/** What percentage of players need to die for the Era to end? */
 	readonly EraEndMinDeadPercentage: number;
@@ -176,6 +197,7 @@ export interface IGameSettings
 
 	/** Players military will be taxed this much per turn. */
 	readonly MilitaryTax: number;
+	readonly MilitaryMinDeltaPerTurn: number;
 	/** Players can only invest this much in military per turn. */
 	readonly MilitaryMaxDeltaPerTurn: number;
 	/** When a players Money is attacked by Military how much more they lose from an attack. */
@@ -247,5 +269,13 @@ export class Military
 		}
 
 		return { militaryDelta, moneyDelta, };
+	}
+
+	public static GetTotalAttacks(attacks: IMap<number>): number
+	{
+		let sum = 0;
+		for (const attack of IMap.Values(attacks))
+			sum += attack;
+		return sum;
 	}
 }

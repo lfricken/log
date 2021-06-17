@@ -1,6 +1,5 @@
 /* eslint-disable no-magic-numbers */
 
-import * as real from "../client/src/viewmodel";
 import * as Util from "./testUtilities";
 import * as Shared from "../client/src/shared";
 import { IMap } from "../client/src/shared";
@@ -13,7 +12,7 @@ test('Targetted message gets sockets.', () =>
 test('Models exist.', () =>
 {
 	const numPlayers = 3;
-	const settings = Shared.GetSettings(Shared.SettingConfig.Default);
+	const settings = Shared.GetSettings(Shared.SettingConfig.Test);
 	const l = Util.setupLobby(settings, numPlayers);
 
 	{
@@ -26,11 +25,12 @@ test('Models exist.', () =>
 		expect(lVm.PlayerConnections).toBeTruthy();
 
 		// player connections setup properly
-		expect(lVm.PlayerConnections.length).toBe(numPlayers);
+		expect(lVm.PlayerConnections.length).toBe(numPlayers + 1);
 		// starting public player traits
 		lVm.PlayerConnections.forEach((player, i) =>
 		{
-			expect(player.Nickname).toBe(Util.name(i));
+			expect(player.Nickname).toContain(Util.name(i));
+			expect(player.Nickname).not.toBe(Util.name(i));
 		});
 
 		// latest era 

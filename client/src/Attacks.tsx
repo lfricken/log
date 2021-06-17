@@ -11,6 +11,7 @@ interface IActionsProps
 {
 	Data: Vm.IViewData;
 	onAttackChanged: (plidToModify: number, plidToAttack: number, delta: number) => void;
+	onMilitaryChanged: (delta: number) => void;
 	onTradeChanged: (plidToModify: number, plidToTrade: number) => void;
 	onTurnDone: () => void;
 }
@@ -34,9 +35,9 @@ export function renderActions(props: IActionsProps): React.ReactNode
 						<th>Name</th>
 						<th>Attacks</th>
 						<th>Commerce</th>
-						<th>Military</th>
-						<th>Money</th>
-						<th>Score</th>
+						<th>{Shared.MilitaryIcon}{Shared.MilitaryIcon}</th>
+						<th>{Shared.MoneyIcon}{Shared.MoneyIcon}{Shared.MoneyIcon}</th>
+						<th>{Shared.ScoreIcon}</th>
 						<th>Done?</th>
 					</tr>
 					{renderRows(props)}
@@ -77,7 +78,7 @@ function renderName(props: IActionsProps, renderPlid: number): React.ReactNode
 {
 	const game = props.Data.Game;
 	const renderPlayer = game.LatestEra.LatestTurn.Players[renderPlid];
-	let classes = "";
+	let classes = "no-wrap";
 	classes += (renderPlid === props.Data.LocalPlid ? " bold" : "");
 	classes += (renderPlayer.IsDead ? " name-dead" : "");
 	return <td className={classes}>
@@ -90,11 +91,22 @@ function renderScore(props: IActionsProps, renderPlid: number): React.ReactNode
 }
 function renderMilitary(props: IActionsProps, renderPlid: number): React.ReactNode
 {
-	return props.Data.Game.LatestEra.LatestTurn.Players[renderPlid].Military;
+	const renderPlayer = props.Data.Game.LatestEra.LatestTurn.Players[renderPlid];
+	let modifier = 0;
+	if (renderPlid === props.Data.LocalPlid)
+	{
+		modifier = Shared.Military.GetTotalAttacks(renderPlayer.MilitaryAttacks);
+	}
+	return renderPlayer.Military - modifier;
 }
 function renderMoney(props: IActionsProps, renderPlid: number): React.ReactNode
 {
-	return props.Data.Game.LatestEra.LatestTurn.Players[renderPlid].Money;
+	const player = props.Data.Game.LatestEra.LatestTurn.Players[renderPlid];
+	const playerMoney = parseInt(player.Money);
+	if (isNaN(playerMoney))
+		return "?";
+	else
+		return playerMoney - player.MilitaryDelta;
 }
 function renderDone(props: IActionsProps, renderPlid: number): React.ReactNode
 {
@@ -139,31 +151,41 @@ function renderAttacks(props: IActionsProps, renderPlid: number): React.ReactNod
 	const game = props.Data.Game;
 	const players = game.LatestEra.LatestTurn.Players;
 
+	let subtract: () => void;
+	let add: () => void;
+	let value: number;
+
 	if (renderPlid === props.Data.LocalPlid)
-		return getSelfText();
+	{
+		value = players[localPlid].MilitaryDelta;
+		subtract = (): void => props.onMilitaryChanged(-1);
+		add = (): void => props.onMilitaryChanged(+1);
+	}
 	else if (!IMap.Has(players, localPlid))
 	{
 		return "?";
 	}
 	else
 	{
-		const renderPlayer = game.LatestEra.LatestTurn.Players[renderPlid];
-		const attacks = players[localPlid].MilitaryAttacks;
-		return <div className="attack-container">
-			<button disabled={renderPlayer.IsDead}
-				onClick={(): void => props.onAttackChanged(localPlid, renderPlid, -1)}>-</button>
-			<input
-				className="attack-input"
-				disabled
-				data-value
-				type="number"
-				value={attacks[renderPlid]}
-			/>
-			<button
-				disabled={renderPlayer.IsDead}
-				onClick={(): void => props.onAttackChanged(localPlid, renderPlid, +1)}>+</button>
-		</div>;
+		value = players[localPlid].MilitaryAttacks[renderPlid];
+		subtract = (): void => props.onAttackChanged(localPlid, renderPlid, -1);
+		add = (): void => props.onAttackChanged(localPlid, renderPlid, +1);
 	}
+	const renderPlayer = game.LatestEra.LatestTurn.Players[renderPlid];
+	return <div className="attack-container no-wrap">
+		<button disabled={renderPlayer.IsDead}
+			onClick={subtract}>-</button>
+		<input
+			className="attack-input"
+			disabled
+			data-value
+			type="number"
+			value={value}
+		/>
+		<button
+			disabled={renderPlayer.IsDead}
+			onClick={add}>+</button>
+	</div>;
 }
 function getTradeButtonText(tradeAction: number): string
 {

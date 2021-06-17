@@ -20,10 +20,11 @@ export function lid(): string
 export function setupLobby(settings: Shared.IGameSettings, players: number): Models.Lobby
 {
 	const l = new Models.Lobby(lid());
-	for (let i = 0; i < players; ++i)
+	for (let i = 0; i < players + 1; ++i)
 	{
 		l.GetConnection(uid(i), name(i));
 	}
+	IMap.Get(l.PlayerConnections, uid(0)).IsConnected = false;
 	l.ConsiderNewLobbyLeader();
 	l.CreateNewGame(settings);
 	testLatestEra(settings, l.Game!, players);

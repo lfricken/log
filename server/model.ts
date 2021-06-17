@@ -5,7 +5,8 @@
 import * as Vm from '../client/src/viewmodel';
 import * as Shared from "../client/src/shared";
 import { ModelWireup } from './events';
-import { IMap } from '../client/src/shared';
+import { IGameSettings, IMap } from '../client/src/shared';
+import { settings } from 'node:cluster';
 
 type UniqueId = string;
 
@@ -30,6 +31,76 @@ function shuffle<T>(array: T[]): void
 	}
 }
 
+function getRandomEmblem(takenEmblems: string[]): string
+{
+	/**
+	const emblems = [
+		"🍅",
+		"🥝",
+		"🥑",
+		"🥕",
+		"🌽",
+		"🥦",
+		"🍍",
+		"🍇",
+		"🥒",
+		"🍌",
+		"🍉",
+		"🌶️",
+		"🍊",
+		"🍆",
+		"🍗",
+		"🥩",
+		"🍤",
+		"🥓",
+		"🍞",
+		"🍹",
+		"🥣",
+		"🍡",
+		"🌭",
+		"🍩",
+		"🥞",
+		"♨️",
+	]; */
+	const emblems = [
+		"🙂",
+		"😃",
+		"😁",
+		"😞",
+		"😕",
+		"🥺",
+		"😳",
+		"😎",
+		"🙃",
+		"😑",
+		"😠",
+		"😲",
+		"😵",
+		"😍",
+		"😘",
+		"🤒",
+		"🤥",
+		"🙄",
+		"😴",
+		"🧐",
+		"😶",
+	];
+	if (emblems.length === takenEmblems.length) // none left!
+		return emblems[0];
+
+	let chosenEmblem = "";
+	let randomIndex = Math.floor(Math.random() * emblems.length);
+	let gotOne = false;
+	do 
+	{
+		chosenEmblem = emblems[randomIndex];
+		gotOne = takenEmblems.indexOf(chosenEmblem) === -1;
+		randomIndex++; // try the next one maybe
+	} while (!gotOne);
+
+	return chosenEmblem;
+}
+
 /** Data about the player, indexed on UniqueId. */
 export class PlayerConnection// implements IToVm<ViewModel.Player>
 {
@@ -48,17 +119,22 @@ export class PlayerConnection// implements IToVm<ViewModel.Player>
 	/** True if this player has control of the lobby. */
 	public IsHost: boolean;
 	/** The name this player goes by. */
-	public Nickname: string;
+	public get Nickname(): string { return this.Emblem + this._nickname; }
+	public get TextOnlyNickname(): string { return this._nickname; }
+	public set Nickname(value: string) { this._nickname = value; }
+	private _nickname: string;
+	private Emblem: string;
 	/** Callback for a timed disconnect. */
 	public Timeout: NodeJS.Timeout | null;
 
-	public constructor(plid: number, nickname: string)
+	public constructor(plid: number, nickname: string, emblem: string)
 	{
+		this.Emblem = emblem;
 		this.Plid = plid;
 		this.SocketIds = [];
 		this.IsConnected = true;
 		this.IsHost = false;
-		this.Nickname = nickname;
+		this._nickname = nickname;
 		this.Timeout = null;
 	}
 	/** Sets up so we can disconnect this player after some time. */
@@ -122,9 +198,11 @@ export class Lobby
 	/** UniqueId > Player */
 	public PlayerConnections: IMap<PlayerConnection>;
 	public Game: null | Game;
+	public TakenEmblems: string[];
 
 	public constructor(lid: string)
 	{
+		this.TakenEmblems = [];
 		this.Lid = lid;
 		this.Game = null;
 		this.PlayerConnections = {};
@@ -140,7 +218,10 @@ export class Lobby
 		}
 		else // new connection
 		{
-			connection = new PlayerConnection(this.NumTotalConnections, nickname);
+			const emblem = getRandomEmblem(this.TakenEmblems);
+			this.TakenEmblems.push(emblem);
+
+			connection = new PlayerConnection(this.NumTotalConnections, nickname, emblem);
 			isNew = true;
 			IMap.Set(this.PlayerConnections, uid, connection);
 		}
@@ -253,7 +334,7 @@ export class Game
 		this.NumPlayers = playerConnections.length;
 		this.Settings = { ...settings };
 		this.Eras = [];
-		this.Eras.push(new Era(this.NumPlayers, this.Eras.length, this.Settings, null));
+		this.Eras.push(new Era(this.NumPlayers, 0, this.Settings, null, true));
 
 		const plids: number[] = [];
 		playerConnections.forEach((connection, _) =>
@@ -264,7 +345,9 @@ export class Game
 		{
 			this.LatestEra.AddNewPlayer(plids, connection);
 		});
-		shuffle(this.LatestEra.Order); // first era should have random order as well
+		const tempEra = this.LatestEra;
+		this.Eras = [];
+		this.Eras.push(new Era(this.NumPlayers, 0, this.Settings, tempEra, true));
 	}
 	/** Obtains the current Era. */
 	public get LatestEra(): Era
@@ -281,25 +364,51 @@ export class Game
 		const newEra = this.LatestEra.IsOver;
 		if (newEra)
 		{
-			this.Eras.push(new Era(this.NumPlayers, this.Eras.length, this.Settings, this.LatestEra));
+			this.Eras.push(new Era(this.NumPlayers, this.Eras.length, this.Settings, this.LatestEra, false));
 		}
-		if (this.IsOver)
+
+		const status = this.GetStatus();
+		if (status.isOver)
 		{
 			const winner = this.GetCurrentWinner();
 			const players = this.LatestEra.LatestTurn.Players;
 			for (const player of IMap.Values(players))
 			{
-				player.LastTurnEvents.push("The last Era has ended! Game over.");
+				player.LastTurnEvents.push(Vm.Message.GameOverStr());
+				if (status.endedEarly)
+					player.LastTurnEvents.push(Vm.Message.GameOverScoreReasonStr(winner.Nickname, winner.Plid));
+				else
+					player.LastTurnEvents.push(Vm.Message.GameOverEraReasonStr());
 				player.LastTurnEvents.push(Vm.Message.WinnerStr(winner.Nickname, winner.Plid, winner.Score));
 			}
 		}
 
 		return newEra;
 	}
-	public get IsOver(): boolean
+	public GetStatus(): { isOver: boolean, endedEarly: boolean }
 	{
 		// N eras need to have ENDED which means we need to be on the N+1 era
-		return this.Eras.length === this.Settings.GameEndMaxEras + 1;
+		if (this.Eras.length === this.Settings.GameEndMaxEras + 1)
+			return { isOver: true, endedEarly: false, };
+
+		// no players left
+		if (this.NumPlayers < 2)
+			return { isOver: true, endedEarly: true, };
+
+		// find the top scores
+		const players = this.LatestEra.LatestTurn.Players;
+		const scores = [];
+		for (const player of IMap.Values(players))
+			scores.push(player.Score);
+
+		const scoreDiff = scores[0] - scores[1];
+		const remainingEras = this.Settings.GameEndMaxEras - this.Eras.length;
+		const possibleScoreGain = remainingEras * (this.Settings.ScoreLeaderExtraDelta + this.Settings.ScoreSurvivorExtraDelta);
+		// could second place even catch up?
+		if (scoreDiff > possibleScoreGain)
+			return { isOver: true, endedEarly: true, };
+
+		return { isOver: false, endedEarly: false, };
 	}
 	/** Returns the score leader. */
 	public GetCurrentWinner(): PlayerTurn
@@ -324,11 +433,13 @@ export class Game
 	}
 	public ToVm(localPlid: number): Vm.IViewGame
 	{
+		const status = this.GetStatus();
+
 		const vm: Vm.IViewGame =
 		{
 			LatestEra: this.LatestEra.ToVm(localPlid),
 			Settings: this.Settings,
-			IsOver: this.IsOver,
+			IsOver: status.isOver,
 		};
 		return vm;
 	}
@@ -346,7 +457,7 @@ export class Era
 	public Turns: Turn[];
 	public NumPlayers: number;
 
-	public constructor(numPlayers: number, number: number, settings: Shared.IGameSettings, old: null | Era)
+	public constructor(numPlayers: number, number: number, settings: Shared.IGameSettings, old: null | Era, isFirstEra: boolean)
 	{
 		this.NumPlayers = numPlayers;
 		this.Settings = settings;
@@ -355,7 +466,7 @@ export class Era
 		this.Order = [];
 		if (old === null)
 		{
-			this.Turns.push(new Turn(this.NumPlayers, this.Settings, this.Turns.length, this, null, true));
+			this.Turns.push(new Turn(this.NumPlayers, this.Settings, this.Turns.length, this, null, true, true));
 		}
 		else
 		{
@@ -367,13 +478,13 @@ export class Era
 			shuffle(this.Order);
 
 			// previous era ended
-			this.Turns.push(new Turn(this.NumPlayers, this.Settings, this.Turns.length, this, old.LatestTurn, true));
+			this.Turns.push(new Turn(this.NumPlayers, this.Settings, this.Turns.length, this, old.LatestTurn, true, isFirstEra));
 		}
 	}
 	/** Ends the turn and advances the game state by one unit. */
 	public EndTurn(): void
 	{
-		const turn = new Turn(this.NumPlayers, this.Settings, this.Turns.length, this, this.LatestTurn, false);
+		const turn = new Turn(this.NumPlayers, this.Settings, this.Turns.length, this, this.LatestTurn, false, false);
 		this.Turns.push(turn);
 	}
 	/** Gets the active Turn. */
@@ -421,7 +532,8 @@ export class Turn
 		number: number,
 		currentEra: Era,
 		oldTurn: null | Turn,
-		isNewEra: boolean
+		isNewEra: boolean,
+		isFirstEra: boolean
 	)
 	{
 		this.Settings = settings;
@@ -434,17 +546,37 @@ export class Turn
 		else // Given an old turn, build the new turn
 		{
 			// score awarded at the beginning of an era
-			const scoreDeltas = oldTurn.GetScoreDelta(isNewEra);
+			const scoreDeltas = oldTurn.GetScoreDelta(!isFirstEra && isNewEra);
 			const globalEvents: string[] = [];
+
+			const numPlayers = currentEra.NumPlayers;
+			const maxMoney = Array(numPlayers).fill(0);
+			if (isNewEra)
+			{
+				for (let i = 0; i < Math.ceil(numPlayers / 2); ++i)
+				{
+					maxMoney[i] = 30 + Math.floor(Math.random() * 15);
+				}
+				shuffle(maxMoney);
+			}
+
 			// copy player data
+			let i = 0;
 			for (const oldPlayer of IMap.Values(oldTurn.Players))
 			{
-				const newPlayer = PlayerTurn.NewPlayerTurnFromOld(
-					numPlayers, currentEra, oldTurn, oldPlayer, isNewEra, globalEvents);
+				const newPlayer = PlayerTurn.NewPlayerTurnFromOld(this.Settings,
+					numPlayers, currentEra, oldTurn, oldPlayer, isNewEra, globalEvents, maxMoney[i]);
 				newPlayer.Score += scoreDeltas[newPlayer.Plid];
 				this.Players[newPlayer.Plid] = newPlayer;
+				++i;
 			}
-			if (isNewEra)
+
+			if (isFirstEra)
+			{
+				for (const player of IMap.Values(this.Players))
+					player.LastTurnEvents = [];
+			}
+			else if (isNewEra)
 			{
 				globalEvents.push(Vm.Message.EndEraStr(currentEra.Number - 1));
 				for (const eachPlayer of IMap.Values(this.Players))
@@ -455,11 +587,17 @@ export class Turn
 						globalEvents.push(Vm.Message.ScoreStr(eachPlayer.Nickname, eachPlayer.Plid, scoreDelta));
 					}
 				}
+				// give each player the global events
+				for (const player of IMap.Values(this.Players))
+					player.LastTurnEvents = player.LastTurnEvents.concat(globalEvents);
 			}
-
-			// give each player the global events
 			for (const player of IMap.Values(this.Players))
-				player.LastTurnEvents = player.LastTurnEvents.concat(globalEvents);
+			{
+				if (player.MaxMoney === 0)
+					player.LastTurnEvents.push(`You have no max ${Shared.MoneyIcon} this Era.`);
+				else
+					player.LastTurnEvents.push(`Your max ${Shared.MoneyIcon} is ${player.MaxMoney} this Era.`);
+			}
 		}
 	}
 	/** Returns the changes in money for the given player due to trade. */
@@ -489,7 +627,8 @@ export class Turn
 		return delta;
 	}
 	/** Returns the changes in military and money for the given player due to attacks. */
-	public GetAttackDelta(targetPlayer: PlayerTurn, lastTurnEvents: string[]): { militaryDelta: number, moneyDelta: number, }
+	public GetAttackDelta(existingMilitary: number, targetPlayer: PlayerTurn, lastTurnEvents: string[]):
+		{ militaryDelta: number, moneyDelta: number, }
 	{
 		let militaryDelta = 0;
 		let moneyDelta = 0;
@@ -503,9 +642,13 @@ export class Turn
 			const us = targetPlayer.MilitaryAttacks[otherPlayer.Plid] || 0;
 			const them = otherPlayer.MilitaryAttacks[targetPlayer.Plid] || 0;
 
-			const delta = Shared.Military.GetDelta(this.Settings, targetPlayer.Military, us, them);
+			const delta = Shared.Military.GetDelta(this.Settings, existingMilitary, us, them);
 			militaryDelta += delta.militaryDelta;
 			moneyDelta += delta.moneyDelta;
+
+			// future deltas need to know what the new military will be after previous exchanges
+			existingMilitary += delta.militaryDelta;
+
 			// let the player know what happened
 			if (them !== 0)
 				lastTurnEvents.push(Vm.Message.AttackInStr(
@@ -516,36 +659,37 @@ export class Turn
 		return { militaryDelta, moneyDelta };
 	}
 	/** Assuming this Era ended right now, who would get what score? */
-	public GetScoreDelta(isNewEra: boolean): number[]
+	public GetScoreDelta(isNewEra: boolean): IMap<number>
 	{
-		const scores = new Array(IMap.Length(this.Players)).fill(0);
+		const scores = new IMap<number>();
 		let leaderPlid = 0;
 		let leaderMoney = 0;
 
-		if (isNewEra)
+		for (const player of IMap.Values(this.Players))
 		{
-			for (const player of IMap.Values(this.Players))
+			scores[player.Plid] = 0;
+			if (isNewEra)
 			{
 				if (player.Money > leaderMoney)
 				{
 					leaderPlid = player.Plid;
 					leaderMoney = player.Money;
 				}
-				scores[player.Plid] = 0;
 				if (player.IsDead)
 					scores[player.Plid] += this.Settings.ScoreDeathDelta;
 				else
 					scores[player.Plid] += this.Settings.ScoreSurvivorExtraDelta;
 			}
-			scores[leaderPlid] += this.Settings.ScoreLeaderExtraDelta;
 		}
+		if (isNewEra)
+			scores[leaderPlid] += this.Settings.ScoreLeaderExtraDelta;
 
 		return scores;
 	}
 	/** Adds a new player to this Turn. */
 	public AddNewPlayer(era: Era, plids: number[], connection: PlayerConnection): void
 	{
-		const player = PlayerTurn.NewPlayerTurnFromConnection(era, plids, connection);
+		const player = PlayerTurn.NewPlayerTurnFromConnection(era, plids, connection, 0);
 		this.Players[player.Plid] = player;
 	}
 	/** Returns the number of dead players currently. */
@@ -611,34 +755,46 @@ export class PlayerTurn
 	public Trades: IMap<number>;
 	/** Arbitrary list of relevant events. */
 	public LastTurnEvents: string[];
+	/** Max money this player can have, or 0 if unlimited. */
+	public MaxMoney: number;
 
 	/** Creates a new PlayerTurn from a connection. */
-	public static NewPlayerTurnFromConnection(era: Era, plids: number[], connection: PlayerConnection): PlayerTurn
+	public static NewPlayerTurnFromConnection(
+		era: Era, plids: number[], connection: PlayerConnection, maxMoney: number): PlayerTurn
 	{
 		const player = new PlayerTurn(connection.Nickname, plids, connection.Plid, 0);
-		player.ResetForNewEra(era.Settings);
+		player.ResetForNewEra(era.Settings, maxMoney);
 		return player;
 	}
 	/** Creates a new PlayerTurn from their old turn. */
-	public static NewPlayerTurnFromOld(
+	public static NewPlayerTurnFromOld(settings: IGameSettings,
 		numPlayers: number, currentEra: Era, oldTurn: Turn, oldPlayer: PlayerTurn, isNewEra: boolean,
-		globalEvents: string[]): PlayerTurn
+		globalEvents: string[], maxMoney: number): PlayerTurn
 	{
 		const player = new PlayerTurn(oldPlayer.Nickname, currentEra.Order, oldPlayer.Plid, oldPlayer.Score);
 
 		if (isNewEra)
 		{
-			player.ResetForNewEra(oldTurn.Settings);
+			player.ResetForNewEra(oldTurn.Settings, maxMoney);
 			player.LastTurnEvents = [...oldPlayer.LastTurnEvents];
 		}
 		else
 		{
 			// copy old values
+			player.MaxMoney = oldPlayer.MaxMoney;
 			player.Money = oldPlayer.Money;
 			player.Military = oldPlayer.Military;
 			if (!player.IsDead)
 			{
 				player.LastTurnEvents.push(Vm.Message.EndTurnStr(oldTurn.Number, player.Military, player.Money));
+
+				// get interest
+				if (settings.InterestRateDivisor !== 0)
+				{
+					const interestPayment = Math.floor(oldPlayer.Money / settings.InterestRateDivisor);
+					player.Money += interestPayment;
+					player.LastTurnEvents.push(Vm.Message.GainInterestStr(settings.InterestRateDivisor, interestPayment));
+				}
 
 				// do trades
 				player.Money += oldTurn.GetTradeDelta(oldPlayer, currentEra, player.LastTurnEvents);
@@ -656,9 +812,17 @@ export class PlayerTurn
 				}
 
 				// apply others attacks to us
-				const deltas = oldTurn.GetAttackDelta(oldPlayer, player.LastTurnEvents);
+				const deltas = oldTurn.GetAttackDelta(player.Military, oldPlayer, player.LastTurnEvents);
 				player.Money += deltas.moneyDelta;
 				player.Military += deltas.militaryDelta;
+
+				if (player.MaxMoney !== 0)
+				{
+					if (player.Money > player.MaxMoney)
+					{
+						player.Money = player.MaxMoney;
+					}
+				}
 
 				if (player.IsDead)
 				{
@@ -674,6 +838,7 @@ export class PlayerTurn
 	/** Intentionally private. Use the static factories above. */
 	private constructor(nickname: string, plidList: number[], plid: number, score: number)
 	{
+		this.MaxMoney = 0;
 		this.Nickname = nickname;
 		this.IsDone = false;
 		this.Plid = plid;
@@ -693,8 +858,9 @@ export class PlayerTurn
 		this.Military = 0;
 	}
 	/** Constructs this player turns values as if it was the start of a new Era. */
-	public ResetForNewEra(settings: Shared.IGameSettings): void
+	public ResetForNewEra(settings: Shared.IGameSettings, maxMoney: number): void
 	{
+		this.MaxMoney = maxMoney;
 		this.Money = settings.EraStartMoney;
 		this.Military = settings.EraStartMilitary;
 	}
@@ -729,9 +895,31 @@ export class PlayerTurn
 
 		return vm;
 	}
-	public FromVm(vm: Vm.IViewPlayerTurn): void
+	public FromVm(settings: IGameSettings, vm: Vm.IViewPlayerTurn): void
 	{
-		this.MilitaryAttacks = { ...vm.MilitaryAttacks };
-		this.Trades = { ...vm.Trades };
+		if (vm !== null && vm !== undefined)
+		{
+			// military delta must be less than Money
+			if (vm.MilitaryDelta > settings.MilitaryMaxDeltaPerTurn)
+			{
+				vm.MilitaryDelta = settings.MilitaryMaxDeltaPerTurn;
+			}
+			this.MilitaryDelta = vm.MilitaryDelta;
+
+			// military attacks must be less than new total Military
+			let militaryAttackSum = 0;
+			for (const attack of IMap.Values(vm.MilitaryAttacks))
+			{
+				militaryAttackSum += attack;
+			}
+			if (militaryAttackSum > this.Military + vm.MilitaryDelta)
+			{
+				vm.MilitaryAttacks = {};
+			}
+			this.MilitaryAttacks = { ...vm.MilitaryAttacks };
+
+			// TODO validation
+			this.Trades = { ...vm.Trades };
+		}
 	}
 }

@@ -4,7 +4,6 @@ import * as io from "socket.io";
 import * as ViewModel from "../client/src/viewmodel";
 import * as Shared from "../client/src/shared";
 import { Lobby, PlayerConnection, PlayerTurn } from "./model";
-import { IViewPlayerConnection } from "../client/src/viewmodel";
 import { IMap } from "../client/src/shared";
 
 type LobbyId = string;
@@ -73,7 +72,7 @@ export class ModelWireup
 			ViewModel.Message.ApplyValidation(message);
 
 			// change name notification
-			if (message.Sender !== localCon.Nickname)
+			if (message.Sender !== localCon.TextOnlyNickname)
 			{
 				const oldName = localCon.DisplayName;
 				localCon.Nickname = message.Sender;
@@ -101,15 +100,19 @@ export class ModelWireup
 		{
 			console.log("force next turn");
 			const game = lobby.Game;
-			if (game !== null && !game.IsOver) // if there is a game
+			if (game !== null) // if there is a game
 			{
-				if (game.EndTurn()) // update Era
+				const status = game.GetStatus();
+				if (!status.isOver)
 				{
-					this.UpdateClientEra(lobby);
-				}
-				else // update Turn
-				{
-					this.UpdateClientTurn(lobby);
+					if (game.EndTurn()) // update Era
+					{
+						this.UpdateClientEra(lobby);
+					}
+					else // update Turn
+					{
+						this.UpdateClientTurn(lobby);
+					}
 				}
 			}
 		});
@@ -118,14 +121,17 @@ export class ModelWireup
 		{
 			console.log("player turn done");
 			const game = lobby.Game;
-			if (game !== null && !game.IsOver) // if there is a game
+			if (game === null) return;
+
+			const status = game.GetStatus();
+			if (!status.isOver) // if there is a game
 			{
 				const wholeTurn = game.LatestEra.LatestTurn;
 				const modifiedPlayerTurn = wholeTurn.Players[localCon.Plid];
 				if (!modifiedPlayerTurn.IsDone) // if this player has not already ended their turn
 				{
 					// update turn
-					modifiedPlayerTurn.FromVm(vm);
+					modifiedPlayerTurn.FromVm(game.Settings, vm);
 					modifiedPlayerTurn.IsDone = true;
 
 					const allTurnsOver = wholeTurn.IsOver;
@@ -133,7 +139,8 @@ export class ModelWireup
 					{
 						if (game.EndTurn()) // update Era
 						{
-							if (game.IsOver)
+							const status = game.GetStatus(); // could be over now
+							if (status.isOver)
 							{
 								this.UpdateClientGame(lobby);
 							}
@@ -273,9 +280,3 @@ export class ModelWireup
 		this.SendData(lobby, [], Shared.Event.Connections, c.PlayerConnections);
 	}
 }
-
-
-
-
-
-

@@ -1,13 +1,16 @@
-The meek shall inherit the earth, and non-meek the rest.
 
-military investment
-military validation
+1500 to schwab
+
+unfair score bonus in GetScoreDelta from ties
+everyone disconnected timeout
+prevent name changes after game starts
+main menu/lobby finder/about page
 settings manipulation
 settings validation
-everyone disconnected timeout
 kick player
 lobby password
 about page
+remove debug messages
 
 
 

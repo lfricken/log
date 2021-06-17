@@ -148,7 +148,7 @@
 				"--remote-debugging-port=8080"
 			],
 			"type": "pwa-chrome",
-			"url": "http://localhost:3001/b",
+			"url": "http://localhost:3001/game/b",
 			"webRoot": "${workspaceFolder}"
 		},
 		{
@@ -161,7 +161,7 @@
 				"--remote-debugging-port=8080"
 			],
 			"type": "pwa-chrome",
-			"url": "http://localhost:3000/a",
+			"url": "http://localhost:3000/game/a",
 			"webRoot": "${workspaceFolder}"
 		}
 	]
