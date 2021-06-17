@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { test } from '@jest/globals';
-import App from './App';
+import Game from './Game';
 //import React from 'React';
 /// <reference path="node_modules/@types/testing-library__jest-dom/index.d.ts" />
 

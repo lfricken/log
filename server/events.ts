@@ -273,9 +273,3 @@ export class ModelWireup
 		this.SendData(lobby, [], Shared.Event.Connections, c.PlayerConnections);
 	}
 }
-
-
-
-
-
-

@@ -1,5 +1,6 @@
-The meek shall inherit the earth, and non-meek the rest.
 
+main menu/lobby finder/about page
+bootstrap spinners for loading
 military investment
 military validation
 settings manipulation
