@@ -3,6 +3,7 @@
 import './Game.css';
 import * as React from 'react';
 import io from "socket.io-client";
+import { Spinner } from "react-bootstrap";
 import { ChatComp } from './Chat';
 import * as Actions from './Attacks';
 import { ReactNode } from 'react';
@@ -290,11 +291,11 @@ class Game extends React.Component<Props, State>
 	}
 	public static loading(): React.ReactNode
 	{
-		return <p>...loading...</p>;
+		return <Spinner animation="border" />;
 	}
 	public static gameNotStarted(): React.ReactNode
 	{
-		return <p>...game has not started...</p>;
+		return <div>...game has not started...</div>;
 	}
 }
 
