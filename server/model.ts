@@ -5,7 +5,7 @@
 import * as Vm from '../client/src/viewmodel';
 import * as Shared from "../client/src/shared";
 import { ModelWireup } from './events';
-import { IMap } from '../client/src/shared';
+import { IGameSettings, IMap } from '../client/src/shared';
 
 type UniqueId = string;
 
@@ -729,9 +729,31 @@ export class PlayerTurn
 
 		return vm;
 	}
-	public FromVm(vm: Vm.IViewPlayerTurn): void
+	public FromVm(settings: IGameSettings, vm: Vm.IViewPlayerTurn): void
 	{
-		this.MilitaryAttacks = { ...vm.MilitaryAttacks };
-		this.Trades = { ...vm.Trades };
+		if (vm !== null && vm !== undefined)
+		{
+			// military delta must be less than Money
+			if (vm.MilitaryDelta > settings.MilitaryMaxDeltaPerTurn)
+			{
+				vm.MilitaryDelta = settings.MilitaryMaxDeltaPerTurn;
+			}
+			this.MilitaryDelta = vm.MilitaryDelta;
+
+			// military attacks must be less than new total Military
+			let militaryAttackSum = 0;
+			for (const attack of IMap.Values(vm.MilitaryAttacks))
+			{
+				militaryAttackSum += attack;
+			}
+			if (militaryAttackSum > this.Military + vm.MilitaryDelta)
+			{
+				vm.MilitaryAttacks = {};
+			}
+			this.MilitaryAttacks = { ...vm.MilitaryAttacks };
+
+			// TODO validation
+			this.Trades = { ...vm.Trades };
+		}
 	}
 }

@@ -11,6 +11,7 @@ interface IActionsProps
 {
 	Data: Vm.IViewData;
 	onAttackChanged: (plidToModify: number, plidToAttack: number, delta: number) => void;
+	onMilitaryChanged: (delta: number) => void;
 	onTradeChanged: (plidToModify: number, plidToTrade: number) => void;
 	onTurnDone: () => void;
 }
@@ -139,31 +140,41 @@ function renderAttacks(props: IActionsProps, renderPlid: number): React.ReactNod
 	const game = props.Data.Game;
 	const players = game.LatestEra.LatestTurn.Players;
 
+	let subtract: () => void;
+	let add: () => void;
+	let value: number;
+
 	if (renderPlid === props.Data.LocalPlid)
-		return getSelfText();
+	{
+		value = players[localPlid].MilitaryDelta;
+		subtract = (): void => props.onMilitaryChanged(-1);
+		add = (): void => props.onMilitaryChanged(+1);
+	}
 	else if (!IMap.Has(players, localPlid))
 	{
 		return "?";
 	}
 	else
 	{
-		const renderPlayer = game.LatestEra.LatestTurn.Players[renderPlid];
-		const attacks = players[localPlid].MilitaryAttacks;
-		return <div className="attack-container">
-			<button disabled={renderPlayer.IsDead}
-				onClick={(): void => props.onAttackChanged(localPlid, renderPlid, -1)}>-</button>
-			<input
-				className="attack-input"
-				disabled
-				data-value
-				type="number"
-				value={attacks[renderPlid]}
-			/>
-			<button
-				disabled={renderPlayer.IsDead}
-				onClick={(): void => props.onAttackChanged(localPlid, renderPlid, +1)}>+</button>
-		</div>;
+		value = players[localPlid].MilitaryAttacks[renderPlid];
+		subtract = (): void => props.onAttackChanged(localPlid, renderPlid, -1);
+		add = (): void => props.onAttackChanged(localPlid, renderPlid, +1);
 	}
+	const renderPlayer = game.LatestEra.LatestTurn.Players[renderPlid];
+	return <div className="attack-container">
+		<button disabled={renderPlayer.IsDead}
+			onClick={subtract}>-</button>
+		<input
+			className="attack-input"
+			disabled
+			data-value
+			type="number"
+			value={value}
+		/>
+		<button
+			disabled={renderPlayer.IsDead}
+			onClick={add}>+</button>
+	</div>;
 }
 function getTradeButtonText(tradeAction: number): string
 {

@@ -5,7 +5,6 @@ import { ReactNode } from 'react';
 import { BrowserRouter, Redirect, Route } from 'react-router-dom';
 import Game from './Game';
 import About from './About';
-import { Spinner } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 interface Props { }

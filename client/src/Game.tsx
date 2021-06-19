@@ -60,6 +60,7 @@ class Game extends React.Component<Props, State>
 		this.onTurnDone = this.onTurnDone.bind(this);
 		this.onAttackChanged = this.onAttackChanged.bind(this);
 		this.onTradeChanged = this.onTradeChanged.bind(this);
+		this.onMilitaryChanged = this.onMilitaryChanged.bind(this);
 	}
 	componentDidMount(): React.ReactNode
 	{
@@ -98,18 +99,24 @@ class Game extends React.Component<Props, State>
 		this.setState((prevState: Readonly<State>, _: Readonly<Props>) =>
 		{
 			const prevGame = prevState.Game!;
-			const attacks = prevGame.LatestEra.LatestTurn.Players[prevState.LocalPlid].MilitaryAttacks;
-			const prevValue = attacks[plidToAttack];
+			const localPlayer = prevGame.LatestEra.LatestTurn.Players[prevState.LocalPlid];
+			const prevTotalAttacks = Shared.Military.GetTotalAttacks(localPlayer.MilitaryAttacks);
 
-			let value = delta + prevValue;
-			if (value < prevGame.Settings.MilitaryMinAttack)
-				value = prevGame.Settings.MilitaryMinAttack;
-			else if (value > prevGame.Settings.MilitaryMaxAttack)
-				value = prevGame.Settings.MilitaryMaxAttack;
+			// total attacks should not exceed total military
+			if (delta > 0 && prevTotalAttacks >= localPlayer.Military)
+				return null;
+
+			const newValue = delta + localPlayer.MilitaryAttacks[plidToAttack];
+			// should not be able to exceed min/max attack value
+			if (newValue < prevGame.Settings.MilitaryMinAttack)
+				return null;
+			else if (newValue > prevGame.Settings.MilitaryMaxAttack)
+				return null;
 
 			const game = Shared.clone(prevGame);
-			game.LatestEra.LatestTurn.Players[plidToModify].MilitaryAttacks[plidToAttack] = value;
+			game.LatestEra.LatestTurn.Players[plidToModify].MilitaryAttacks[plidToAttack] = newValue;
 			return { Game: game };
+
 		});
 	}
 	public onTradeChanged(plidToModify: number, plidToTrade: number): void
@@ -119,6 +126,7 @@ class Game extends React.Component<Props, State>
 			const prevGame = prevState.Game!;
 			const prevTrades = prevGame.LatestEra.LatestTurn.Players[plidToModify].Trades;
 
+			// toggle trade decision based on previous value
 			let value: number;
 			if (prevTrades[plidToTrade] === Shared.Trade.ActionDefect)
 				value = Shared.Trade.ActionCooperate;
@@ -127,6 +135,24 @@ class Game extends React.Component<Props, State>
 
 			const game = Shared.clone(prevGame);
 			game.LatestEra.LatestTurn.Players[plidToModify].Trades[plidToTrade] = value;
+			return { Game: game };
+		});
+	}
+	public onMilitaryChanged(delta: number): void
+	{
+		this.setState((prevState: Readonly<State>, _: Readonly<Props>) =>
+		{
+			const prevGame = prevState.Game!;
+			const game = Shared.clone(prevGame);
+
+			const newValue = delta + prevGame.LatestEra.LatestTurn.Players[prevState.LocalPlid].MilitaryDelta;
+			// restrict military investment
+			if (newValue < prevGame.Settings.MilitaryMinDeltaPerTurn)
+				return null;
+			if (newValue > prevGame.Settings.MilitaryMaxDeltaPerTurn)
+				return null;
+
+			game.LatestEra.LatestTurn.Players[prevState.LocalPlid].MilitaryDelta = newValue;
 			return { Game: game };
 		});
 	}
@@ -285,6 +311,7 @@ class Game extends React.Component<Props, State>
 				onAttackChanged: app.onAttackChanged,
 				onTradeChanged: app.onTradeChanged,
 				onTurnDone: app.onTurnDone,
+				onMilitaryChanged: app.onMilitaryChanged,
 			});
 		}
 		return Game.gameNotStarted();

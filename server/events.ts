@@ -125,7 +125,7 @@ export class ModelWireup
 				if (!modifiedPlayerTurn.IsDone) // if this player has not already ended their turn
 				{
 					// update turn
-					modifiedPlayerTurn.FromVm(vm);
+					modifiedPlayerTurn.FromVm(game.Settings, vm);
 					modifiedPlayerTurn.IsDone = true;
 
 					const allTurnsOver = wholeTurn.IsOver;

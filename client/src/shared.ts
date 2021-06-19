@@ -139,7 +139,8 @@ export function GetSettings(config: SettingConfig): IGameSettings
 			ScoreLeaderExtraDelta: 1,
 
 			MilitaryTax: 0,
-			MilitaryMaxDeltaPerTurn: 1,
+			MilitaryMinDeltaPerTurn: 0,
+			MilitaryMaxDeltaPerTurn: 3,
 			MilitaryPillageMultiplier: 2,
 
 			TradeResultCooperateBoth: 4,
@@ -176,6 +177,7 @@ export interface IGameSettings
 
 	/** Players military will be taxed this much per turn. */
 	readonly MilitaryTax: number;
+	readonly MilitaryMinDeltaPerTurn: number;
 	/** Players can only invest this much in military per turn. */
 	readonly MilitaryMaxDeltaPerTurn: number;
 	/** When a players Money is attacked by Military how much more they lose from an attack. */
@@ -247,5 +249,13 @@ export class Military
 		}
 
 		return { militaryDelta, moneyDelta, };
+	}
+
+	public static GetTotalAttacks(attacks: IMap<number>): number
+	{
+		let sum = 0;
+		for (const attack of IMap.Values(attacks))
+			sum += attack;
+		return sum;
 	}
 }
