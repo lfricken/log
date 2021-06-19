@@ -127,6 +127,8 @@ export function GetSettings(config: SettingConfig): IGameSettings
 	if (config === SettingConfig.Custom) // todo get custom settings from somewhere
 		return GetSettings(SettingConfig.Default);
 	else // SettingConfig.Default
+	{
+		const cooperateBoth = 4;
 		return {
 			GameEndMaxEras: 1,
 
@@ -140,17 +142,18 @@ export function GetSettings(config: SettingConfig): IGameSettings
 
 			MilitaryTax: 0,
 			MilitaryMinDeltaPerTurn: 0,
-			MilitaryMaxDeltaPerTurn: 3,
+			MilitaryMaxDeltaPerTurn: Math.floor(2.5 * cooperateBoth),
 			MilitaryPillageMultiplier: 2,
 
-			TradeResultCooperateBoth: 4,
+			TradeResultCooperateBoth: cooperateBoth,
 			TradeResultDefectBoth: 2,
-			TradeResultDefectWin: 8,
-			TradeResultDefectLose: 0,
+			TradeResultDefectWin: 9,
+			TradeResultDefectLose: -1,
 
 			MilitaryMinAttack: 0,
 			MilitaryMaxAttack: 9,
 		};
+	}
 }
 export enum SettingConfig
 {

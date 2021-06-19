@@ -489,7 +489,8 @@ export class Turn
 		return delta;
 	}
 	/** Returns the changes in military and money for the given player due to attacks. */
-	public GetAttackDelta(targetPlayer: PlayerTurn, lastTurnEvents: string[]): { militaryDelta: number, moneyDelta: number, }
+	public GetAttackDelta(newMilitary: number, targetPlayer: PlayerTurn, lastTurnEvents: string[]):
+		{ militaryDelta: number, moneyDelta: number, }
 	{
 		let militaryDelta = 0;
 		let moneyDelta = 0;
@@ -503,7 +504,7 @@ export class Turn
 			const us = targetPlayer.MilitaryAttacks[otherPlayer.Plid] || 0;
 			const them = otherPlayer.MilitaryAttacks[targetPlayer.Plid] || 0;
 
-			const delta = Shared.Military.GetDelta(this.Settings, targetPlayer.Military, us, them);
+			const delta = Shared.Military.GetDelta(this.Settings, newMilitary, us, them);
 			militaryDelta += delta.militaryDelta;
 			moneyDelta += delta.moneyDelta;
 			// let the player know what happened
@@ -656,7 +657,7 @@ export class PlayerTurn
 				}
 
 				// apply others attacks to us
-				const deltas = oldTurn.GetAttackDelta(oldPlayer, player.LastTurnEvents);
+				const deltas = oldTurn.GetAttackDelta(player.Military, oldPlayer, player.LastTurnEvents);
 				player.Money += deltas.moneyDelta;
 				player.Military += deltas.militaryDelta;
 

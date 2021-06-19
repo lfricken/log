@@ -1,10 +1,9 @@
 
+
 main menu/lobby finder/about page
-bootstrap spinners for loading
-military investment
-military validation
 settings manipulation
 settings validation
+fix attack button shrinking stuff
 everyone disconnected timeout
 kick player
 lobby password
