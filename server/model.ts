@@ -267,7 +267,7 @@ export class Game
 		shuffle(this.LatestEra.Order); // first era should have random order as well
 	}
 	/** Obtains the current Era. */
-	private get LatestEra(): Era
+	public get LatestEra(): Era
 	{
 		return this.Eras[this.Eras.length - 1];
 	}
@@ -321,35 +321,6 @@ export class Game
 		}
 		shuffle(winners);
 		return winners[0];
-	}
-	public get IsTurnOver(): boolean
-	{
-		return this.LatestEra.LatestTurn.IsOver;
-	}
-	public GetViewTurn(additionalPlids: string[]): IMap<Vm.IViewTurn>
-	{
-		const mainPlids = Array.from(IMap.Keys(this.LatestEra.LatestTurn.Players));
-		const plids = additionalPlids.concat(mainPlids);
-		for (const plid of plids)
-		{
-			const destPlid = loopConnection.Plid;
-			let viewerTurn: null | PlayerTurn = null;
-			if (IMap.Has(turn.Players, destPlid))
-				viewerTurn = turn.Players[destPlid];
-
-			this.SendData(lobby, [destPlid.toString()], Shared.Event.PlayerTurn, latestTurn.ToVm(viewerTurn));
-		}
-	}
-	public UpdatePlayerTurn(plid: number, vm: Vm.IViewPlayerTurn): boolean
-	{
-		const wholeTurn = this.LatestEra.LatestTurn;
-		const playerTurnToModify = wholeTurn.Players[plid];
-		if (playerTurnToModify.IsDone)
-			return false;
-
-		playerTurnToModify.FromVm(this.Settings, vm);
-		playerTurnToModify.IsDone = true;
-		return true;
 	}
 	public ToVm(localPlid: number): Vm.IViewGame
 	{

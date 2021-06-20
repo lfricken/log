@@ -1,0 +1,96 @@
+/* css shared by all client */
+
+
+
+/* fill horizontal space */
+.flex-row {
+	display: flex;  
+	flex-flow: row wrap;
+}
+/* fill vertical space */
+.flex-column {
+	display: flex;
+	flex-flow: column wrap;
+}
+.with-gaps {
+	gap: 2px;
+}
+/* adjust to with other flex elements */
+.flex { 
+	flex: 1;
+}
+/* fill all space */
+.flex-max { 
+	flex: 1 1 100%;
+}
+.bold
+{
+	font-weight: bold;
+}
+.name-dead
+{
+	text-decoration: line-through;
+}
+.text-center
+{
+	text-align: center;
+}
+
+.no-min-width {
+	min-width: 0px;
+}
+/* content seperation inside element */
+.padding-small {
+	margin: 2px; 
+}
+.full-size {
+	width: 100%;
+	height: 100%;
+}
+.fieldset {
+	margin: 0;
+	border: 0;
+	padding: 0;
+}
+
+// https://jsfiddle.net/aksh101099/zubnapr9/1/
+// $themes: (
+//   darkTheme: (
+//     'text-color': white,
+//     'bg-color': #424242
+//   ),
+//   lightTheme: (
+//     'text-color': black,
+//     'bg-color': #f5f5f5
+//   )
+// );
+
+// @mixin theme() {
+//   @each $theme, $map in $themes {
+//     $theme-map: $map !global;
+//     .#{$theme} & {
+//       @content;
+//     }
+//   }
+//   $theme-map: null !global;
+// }
+
+// @function theme-get($key) {
+//   @return map-get($theme-map, $key);
+// }
+
+// #app {
+//   text-align: center;
+// }
+
+// .content {
+//   transition: 300ms;
+//   @include theme() {
+//     color: theme-get('text-color');
+//     background-color: theme-get('bg-color');
+//   }
+// }
+
+// button {
+//   margin: 16px;
+// }

@@ -1,0 +1,15 @@
+@use 'Main';
+
+
+.message-view {
+	text-align: left;
+	overflow-y: scroll;
+}
+.server-message
+{
+	font-style: italic;
+	font-weight: bold;
+}
+.nickname-box-width {
+	width: 5em;
+}

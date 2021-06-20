@@ -14,7 +14,10 @@ https://devcenter.heroku.com/articles/heroku-postgresql
 
 // pushes all code from the main branch of our repository to the
 // main repository of the staging remote repository
-git push staging main:main
+git push stage-0 main:main
 
 
 
+git remote add NAME URL.git
+git remote rm NAME
+git remove -v

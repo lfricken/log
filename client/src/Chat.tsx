@@ -1,23 +1,22 @@
+/** The component that lets players message eachother. */
+import * as View from "./view";
 import * as React from 'react';
+import * as Vm from "./viewmodel";
+import * as Shared from "./shared";
 import './Chat.css';
-import { Const, Player } from "./models-shared";
-import cookie from 'react-cookies'
-import { Util } from './App';
+import './Main.css';
 
-console.log('Chat loading')
 interface Props
 {
-	nickname: string;
-	socket: SocketIOClient.Socket
+	Socket: SocketIOClient.Socket
 }
 interface State
 {
-	nickname: string;
-	messages: Player.ChatMessage[];
+	Nickname: string;
+	Messages: Vm.Message[];
 }
-export class Chat extends React.Component<Props, State>
+export class ChatComp extends React.Component<Props, State>
 {
-	// Initialize state
 	state!: State;
 	chatInput!: HTMLInputElement;
 	nameInput!: HTMLInputElement;
@@ -25,78 +24,89 @@ export class Chat extends React.Component<Props, State>
 
 	constructor(props: Props)
 	{
+		const clientNickname = View.LoadSaveDefaultCookie(View.CookieNickname, "Rando");
 		super(props);
 		this.state = {
-			nickname: this.props.nickname,
-			messages: []
+			Nickname: clientNickname,
+			Messages: [],
 		};
 	}
-	componentDidMount()
+	componentDidMount(): React.ReactNode
 	{
 		this.chatView = document.getElementById('chatView') as HTMLDivElement;
 		this.chatInput = document.getElementById('chatInput') as HTMLInputElement;
 		this.nameInput = document.getElementById('nameInput') as HTMLInputElement;
 
-		this.props.socket.on(Const.Chat, this.onNewMessage.bind(this));
+		this.props.Socket.on(Shared.Event.Message, this.onNewMessage.bind(this));
 
 		var chatForm = document.getElementById('chatForm') as HTMLFormElement;
 		chatForm.addEventListener('submit', this.onSubmitMessage.bind(this));
-	}
-	componentWillUnmount()
-	{
-		// need to unsubscribe from socket
+		return null;
 	}
 	private onSubmitMessage(e: Event): void
 	{
 		e.preventDefault();
 		const text = this.chatInput.value;
 		const nickname = this.nameInput.value;
-		const message = new Player.ChatMessage(nickname, text);
-		Util.SaveCookie(Const.CookieNickname, nickname);
+		const message = new Vm.Message(nickname, text, true);
+		View.SaveCookie(View.CookieNickname, nickname);
 
 		if (nickname !== "" && text !== "")
 		{
-			this.props.socket.emit(Const.Chat, message);
-			this.onNewMessage(message);
+			this.props.Socket.emit(Shared.Event.Message, message);
 			this.chatInput.value = '';
 		}
 	}
-	private onNewMessage(m: Player.ChatMessage): void
+	private onNewMessage(m: Vm.Message): void
 	{
 		// follow the bottom of the chat if they are already looking there
-		const pixelRange = 80;
-		const follow = (this.chatView.scrollHeight - this.chatView.offsetHeight - this.chatView.scrollTop) < pixelRange;
+		const pixelFollowRange = 80;
+		const follow = (this.chatView.scrollHeight - this.chatView.offsetHeight - this.chatView.scrollTop) < pixelFollowRange;
 
-		const messages = this.state.messages;
-		messages.push(m);
-		this.setState({ messages });
+		this.setState((prevState: Readonly<State>, _: Readonly<Props>) =>
+		{
+			const messages = Shared.clone(prevState.Messages);
+			messages.push(m);
+			return { Messages: messages };
+		});
 
 		if (follow)
 			this.chatView.scrollTop = this.chatView.scrollHeight;
 	}
-	render()
+	render(): React.ReactNode
 	{
-		console.log('Chat render')
-		const { nickname: name, messages } = this.state;
+		const { Nickname: name, Messages: messages } = this.state;
 
 		return (
-			<div className="chat">
-				<div className="chatView" id="chatView">
+			<div className="full-size flex-column">
+				<div className="flex message-view" id="chatView">
 					{messages.map((message, idx: number) =>
 						<div
-							className={message.Nickname === "" ? 'official_message' : ''}
+							className={message.Sender === "" ? 'server-message' : ''}
 							key={idx}>
-							{Player.ChatMessage.DisplayString(message)}
+							{message.Text}
 						</div>
 					)}
 				</div>
-				<div className="row">
-					<div className="column">
-						<input className="nameInput" id="nameInput" autoComplete="off" defaultValue={name} />
+				<div className="flex-row">
+					<div className="padding-small flex-row" >
+						<input
+							className="nickname-box-width"
+							id="nameInput"
+							maxLength={Vm.Message.MaxLenName}
+							autoComplete="off"
+							autoCapitalize="on"
+							defaultValue={name}
+						/>
 					</div>
-					<div className="column_end">
-						<form id="chatForm">
-							<input className="chatInput" id="chatInput" autoComplete="off" />
+					<div className="flex no-min-width padding-small flex-row" >
+						<form className="flex flex-row" id="chatForm">
+							<input
+								className="flex"
+								id="chatInput"
+								maxLength={Vm.Message.MaxLenMessage}
+								autoComplete="off"
+							/>
 						</form>
 					</div>
 				</div>
@@ -105,4 +115,4 @@ export class Chat extends React.Component<Props, State>
 	}
 }
 
-export default Chat;
+export default ChatComp;

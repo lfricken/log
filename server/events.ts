@@ -120,10 +120,16 @@ export class ModelWireup
 			const game = lobby.Game;
 			if (game !== null && !game.IsOver) // if there is a game
 			{
-				const wasHandled = game.UpdatePlayerTurn(localCon.Plid, vm);
-				if (wasHandled) // something got updated potentially
+				const wholeTurn = game.LatestEra.LatestTurn;
+				const modifiedPlayerTurn = wholeTurn.Players[localCon.Plid];
+				if (!modifiedPlayerTurn.IsDone) // if this player has not already ended their turn
 				{
-					if (game.IsTurnOver) // end the whole Turn (all PlayerTurns over)
+					// update turn
+					modifiedPlayerTurn.FromVm(game.Settings, vm);
+					modifiedPlayerTurn.IsDone = true;
+
+					const allTurnsOver = wholeTurn.IsOver;
+					if (allTurnsOver) // end the Turn
 					{
 						if (game.EndTurn()) // update Era
 						{
@@ -180,7 +186,6 @@ export class ModelWireup
 	}
 	private UpdateClientPlayerTurn(lobby: Lobby, targetTurnPlid: number): void
 	{
-		const viewTurnMap = lobby.Game!.GetViewTurn();
 		const turn = lobby.Game!.LatestEra.LatestTurn;
 		const latestTurn = turn.Players[targetTurnPlid];
 		for (const loopConnection of IMap.Values(lobby.PlayerConnections))
@@ -234,7 +239,13 @@ export class ModelWireup
 
 		return { lobby, connection, type, numSockets: connection.SocketIds.length };
 	}
-	/** Send arbitary data to the client. */
+	/**
+	 * 
+	 * @param lobby 
+	 * @param event 
+	 * @param targetPlids Pass empty to send to all connections.
+	 * @param data 
+	 */
 	public SendData(lobby: Lobby, targetPlids: string[], event: string, data: unknown): void
 	{
 		const targetSocketIds = lobby.GetDestinations(targetPlids);

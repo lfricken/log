@@ -68,9 +68,10 @@ class Game extends React.Component<Props, State>
 		this.socket.connect();
 		return null;
 	}
-	componentWillUnmount(): void
+	componentWillUnmount(): ReactNode
 	{
 		this.socket.disconnect();
+		return null;
 	}
 	public onClickStartGame(): void
 	{

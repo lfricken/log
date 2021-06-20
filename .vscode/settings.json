@@ -11,6 +11,8 @@
 		"**/*.user": true,
 		"**/*.lock": true,
 		"**/*.js": true,
+		"**/*.css": true,
+		"**/*.css.map": true,
 		"**/*.json": true,
 		"**/obj": true,
 		"**/bin": true,

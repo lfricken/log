@@ -139,8 +139,6 @@ function renderAttacks(props: IActionsProps, renderPlid: number): React.ReactNod
 	const localPlid = props.Data.LocalPlid;
 	const game = props.Data.Game;
 	const players = game.LatestEra.LatestTurn.Players;
-	if (!IMap.Has(players, localPlid))
-		return "?";
 
 	let subtract: () => void;
 	let add: () => void;
@@ -152,6 +150,10 @@ function renderAttacks(props: IActionsProps, renderPlid: number): React.ReactNod
 		subtract = (): void => props.onMilitaryChanged(-1);
 		add = (): void => props.onMilitaryChanged(+1);
 	}
+	else if (!IMap.Has(players, localPlid))
+	{
+		return "?";
+	}
 	else
 	{
 		value = players[localPlid].MilitaryAttacks[renderPlid];
@@ -160,7 +162,8 @@ function renderAttacks(props: IActionsProps, renderPlid: number): React.ReactNod
 	}
 	const renderPlayer = game.LatestEra.LatestTurn.Players[renderPlid];
 	return <div className="attack-container">
-		<button disabled={renderPlayer.IsDead} onClick={subtract}>-</button>
+		<button disabled={renderPlayer.IsDead}
+			onClick={subtract}>-</button>
 		<input
 			className="attack-input"
 			disabled
@@ -168,7 +171,9 @@ function renderAttacks(props: IActionsProps, renderPlid: number): React.ReactNod
 			type="number"
 			value={value}
 		/>
-		<button disabled={renderPlayer.IsDead} onClick={add}>+</button>
+		<button
+			disabled={renderPlayer.IsDead}
+			onClick={add}>+</button>
 	</div>;
 }
 function getTradeButtonText(tradeAction: number): string

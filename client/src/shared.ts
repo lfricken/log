@@ -130,7 +130,7 @@ export function GetSettings(config: SettingConfig): IGameSettings
 	{
 		const cooperateBoth = 4;
 		return {
-			GameEndMaxEras: 4,
+			GameEndMaxEras: 1,
 
 			EraEndMinDeadPercentage: 0.5,
 			EraStartMoney: 10,

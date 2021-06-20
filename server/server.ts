@@ -4,8 +4,9 @@ import * as io from "socket.io";
 import * as path from "path";
 import * as pg from "pg";
 import * as dotenv from "dotenv";
-import { Const, Core, Player } from "../client/src/models-shared";
 import express from "express";
+import * as Model from "./model";
+import * as Events from "./events";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const process: any;
@@ -20,59 +21,14 @@ if (process.argv.length > use_env_arg)
 
 global.custom = {
 	__root_static: path.join(process.cwd(), "/client/build/")
-}
+};
 
 const expWrap = express();
 const httpServer = http.createServer(expWrap);
 
-const games: { [lobbyId: string]: number } = {};
-// socket.io
-{
-	const ioWrap = new io.Server(httpServer);
-	ioWrap.on("connection", (socket: io.Socket) =>
-	{
-		const authObj = socket.handshake.auth as Core.IAuth;
-		socket.join(authObj.LobbyId);
+const ioWrap = new io.Server(httpServer);
+const g = new Events.ModelWireup(ioWrap);
 
-		SendMessage(socket, new Player.ChatMessage("", `Player ${authObj.Nickname} connected.`));
-		console.log(`User ${0} connected to lobby ${authObj.LobbyId}.`);
-
-
-		socket.on("disconnect", () =>
-		{
-			SendMessage(socket, new Player.ChatMessage("", `Player ${authObj.Nickname} disconnected.`));
-
-			console.log(`User ${0} disconnected.`);
-		});
-		socket.on(Const.Chat, (message: Player.ChatMessage) =>
-		{
-			const authObj = socket.handshake.auth as Core.IAuth;
-			Player.ChatMessage.Validate(message);
-
-			// change name notifications
-			if (message.Nickname !== authObj.Nickname)
-			{
-				SendMessage(
-					socket,
-					new Player.ChatMessage("", `${authObj.Nickname} changed name to ${message.Nickname}.`)
-				);
-				authObj.Nickname = message.Nickname;
-			}
-
-			message.Nickname = authObj.Nickname;
-			SendMessage(socket, message);
-
-			console.log('message: ' + Player.ChatMessage.DisplayString(message));
-		});
-	});
-}
-
-
-function SendMessage(socket: io.Socket, message: Player.ChatMessage)
-{
-	const authObj = socket.handshake.auth as Core.IAuth;
-	socket.to(authObj.LobbyId).emit(Const.Chat, message);
-}
 
 
 // dynamic serve
@@ -88,7 +44,7 @@ function SendMessage(socket: io.Socket, message: Player.ChatMessage)
 	// Put all API endpoints under '/api'
 	expWrap.get("/api/passwords", async (req: exp.Request, res: exp.Response) =>
 	{
-		let xy = new Player.TurnActions(0);
+		//let xy = new Model.Turn();
 		const data = [];
 		const databaseRes = await pool.query("SELECT * FROM horses;"); //, (err, res) =>
 		for (const row of databaseRes.rows)
