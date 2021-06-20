@@ -1,4 +1,35 @@
 
+<<<<<<< Updated upstream
+=======
+
+
+
+main menu/lobby finder/about page
+settings manipulation
+settings validation
+toast notifications for why actions dont work
+fix attack button shrinking stuff
+everyone disconnected timeout
+kick player
+lobby password
+about page
+
+
+
+
+
+
+add to ideas: 
+techs should be publicly revealed
+random money bonuses/other asymetry?
+(global project that earns all surviving players extra stuff)
+pass events to player server player functions
+dynamic trading (each player has more than 2 options)
+Send each other money. For instance: The target recieves your gift + 50%. So two players send 4 each but get 6 back.
+
+
+
+>>>>>>> Stashed changes
 LobbyJoin needs submit event
 redo Chat with onChange and propper submit event
 

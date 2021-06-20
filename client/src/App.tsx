@@ -1,4 +1,5 @@
 import * as React from 'react';
+<<<<<<< Updated upstream
 import './App.css';
 import io from "socket.io-client";
 import { Chat } from './Chat'
@@ -46,6 +47,17 @@ interface State
 {
 
 }
+=======
+import { ReactNode } from 'react';
+import { BrowserRouter, Redirect, Route } from 'react-router-dom';
+import Game from './Game';
+import About from './About';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import EditSettings from './EditSettings';
+
+interface Props { }
+interface State { }
+>>>>>>> Stashed changes
 class App extends React.Component<Props, State>
 {
 	state: State = App.getInitialState();
@@ -59,6 +71,7 @@ class App extends React.Component<Props, State>
 	// called before render
 	constructor(props: Props)
 	{
+<<<<<<< Updated upstream
 		super(props);
 
 		const splitUrl = window.location.href.split('/');
@@ -93,6 +106,18 @@ class App extends React.Component<Props, State>
 				<Chat nickname={nickname} socket={this.socket} />
 			</div>
 		);
+=======
+		// todo put a header at the top of the div
+		return <div>
+			<BrowserRouter>
+				<Route exact path="/" render={(): ReactNode => { return <Redirect to="/home" />; }} />
+				<Route exact path="/home" render={About} />
+				<Route exact path="/about" render={About} />
+				<Route exact path="/settings" component={EditSettings} />
+				<Route path="/game" component={Game} />
+			</BrowserRouter>
+		</div>;
+>>>>>>> Stashed changes
 	}
 }
 
